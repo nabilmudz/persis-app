@@ -1,7 +1,5 @@
 import '../models/iuran_model.dart';
-import 'package:persis_app/features/anggota/data/models/anggota_model.dart';
 import 'package:persis_app/features/anggota/data/models/lokasi_model.dart';
-import 'package:persis_app/features/anggota/data/datasources/anggota_local_datasource.dart';
 import 'package:persis_app/features/anggota/data/datasources/lokasi_local_datasources.dart';
 
 LokasiModel _fallbackLokasiPj() {
@@ -15,23 +13,19 @@ LokasiModel _fallbackLokasiPj() {
   );
 }
 
-AnggotaModel _anggotaById(String anggotaId) {
-  return dummyAnggota.firstWhere(
-    (anggota) => anggota.id == anggotaId,
-    orElse: () => AnggotaModel(
-      id: anggotaId,
-      nama: 'Anggota tidak ditemukan',
-      noAnggota: 'N/A',
-      lokasiPj: _fallbackLokasiPj(),
-    ),
+String _lokasiPjNama(String? lokasiNama) {
+  final lokasi = dummyLokasi.firstWhere(
+    (item) => item.tingkat == TingkatLokasi.pj && item.nama == lokasiNama,
+    orElse: _fallbackLokasiPj,
   );
+  return lokasi.nama;
 }
 
 List<IuranModel> dummyDaftarIuran = [
   // 1. Contoh: Baru bayar transfer, nunggu di-ACC PJ
   IuranModel(
     id: 'IUR-001',
-    idAnggota: _anggotaById('ANG-001'),
+    lokasiPjNama: _lokasiPjNama('Jamaah Al-Hikmah'),
     nominal: 20000,
     tanggalBayar: DateTime.now().subtract(
       const Duration(days: 1),
@@ -44,7 +38,7 @@ List<IuranModel> dummyDaftarIuran = [
   // 2. Contoh: Bayar tunai (tanpa bukti), sudah di-ACC PJ, nunggu PC
   IuranModel(
     id: 'IUR-002',
-    idAnggota: _anggotaById('ANG-002'),
+    lokasiPjNama: _lokasiPjNama('Jamaah Al-Hikmah'),
     nominal: 50000,
     tanggalBayar: DateTime.now().subtract(
       const Duration(days: 3),
@@ -57,7 +51,7 @@ List<IuranModel> dummyDaftarIuran = [
   // 3. Contoh: Udah di-ACC PC, nunggu PD
   IuranModel(
     id: 'IUR-003',
-    idAnggota: _anggotaById('ANG-003'),
+    lokasiPjNama: _lokasiPjNama('Cabang Bandung Selatan'),
     nominal: 20000,
     tanggalBayar: DateTime.now().subtract(const Duration(days: 5)),
     buktiTransferUrl: 'https://contoh.com/gambar_bukti_3.jpg',
@@ -68,7 +62,7 @@ List<IuranModel> dummyDaftarIuran = [
   // 4. Contoh: Iuran sudah lunas / terverifikasi sampai akhir
   IuranModel(
     id: 'IUR-004',
-    idAnggota: _anggotaById('ANG-004'),
+    lokasiPjNama: _lokasiPjNama('Daerah Kota Bandung'),
     nominal: 100000,
     tanggalBayar: DateTime.now().subtract(const Duration(days: 10)),
     buktiTransferUrl: 'https://contoh.com/gambar_bukti_4.jpg',

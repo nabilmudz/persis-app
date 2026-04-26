@@ -89,7 +89,7 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
     await SweetAlertDialog.showSuccess(
       context: context,
       title: 'Berhasil',
-      message: 'Pembayaran ${item.name} berhasil di-ACC.',
+      message: 'Pembayaran PJ ${item.name} berhasil di-ACC.',
     );
   }
 
@@ -97,9 +97,9 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
     return _VerifikasiItem(
       idIuran: item.id,
       date: _formatDate(item.tanggalBayar),
-      location: 'PJ ${item.idAnggota.lokasiPj.nama}',
-      name: item.idAnggota.nama,
-      idNumber: item.idAnggota.noAnggota,
+      location: 'PJ ${item.lokasiPjNama}',
+      name: item.lokasiPjNama,
+      idNumber: '-',
       paymentMethod: _paymentMethodText(item),
       price: _formatCurrency(item.nominal),
       category: _categoryFromStatus(item.status),

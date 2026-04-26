@@ -1,31 +1,20 @@
-import 'package:persis_app/features/anggota/data/models/anggota_model.dart';
+enum StatusIuran { diverifikasi, menungguVerifikasi, belumDibayar, tunggakan }
 
-enum StatusIuran {
-  diverifikasi,
-  menungguVerifikasi,
-  belumDibayar,
-  tunggakan
-}
-
-enum MetodePembayaran {
-  transferBank,
-  tunai,
-  qrisCode
-}
+enum MetodePembayaran { transferBank, tunai, qrisCode }
 
 class IuranModel {
   final String id;
-  final AnggotaModel idAnggota;
+  final String lokasiPjNama;
   final double nominal;
   final DateTime tanggalBayar;
   final String? buktiTransferUrl;
   MetodePembayaran? metodePembayaran;
-  StatusIuran status; 
+  StatusIuran status;
   final String? catatan;
 
   IuranModel({
     required this.id,
-    required this.idAnggota,
+    required this.lokasiPjNama,
     required this.nominal,
     required this.tanggalBayar,
     required this.buktiTransferUrl,
@@ -38,7 +27,7 @@ class IuranModel {
   factory IuranModel.fromJson(Map<String, dynamic> json) {
     return IuranModel(
       id: json['id'] ?? '',
-      idAnggota: json['idAnggota'] ?? '',
+      lokasiPjNama: (json['lokasiPjNama'] ?? '').toString(),
       nominal: (json['nominal'] ?? 0).toDouble(),
       tanggalBayar: DateTime.parse(json['tanggalBayar']),
       buktiTransferUrl: json['buktiTransferUrl'] ?? '',
@@ -61,11 +50,12 @@ class IuranModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'idAnggota': idAnggota,
+      'lokasiPjNama': lokasiPjNama,
       'nominal': nominal,
       'tanggalBayar': tanggalBayar.toIso8601String(),
       'buktiTransferUrl': buktiTransferUrl,
-      'status': status.name, // Simpan sebagai string (belumDibayar, tunggakan, dll)
+      'status':
+          status.name, // Simpan sebagai string (belumDibayar, tunggakan, dll)
       'catatan': catatan,
       'metodePembayaran': metodePembayaran?.name,
     };

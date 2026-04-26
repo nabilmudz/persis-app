@@ -1,16 +1,24 @@
 import 'lokasi_model.dart';
+import 'role_model.dart';
+enum UserState { unactivated, active, inactive }
 
 class AnggotaModel {
   final String id;
   final String nama;
-  final String noAnggota;
+  final String npa;
   final LokasiModel lokasiPj;
-
+  final UserState state;
+  final List<RoleModel> roles;
+  final RoleType activeRole;
+  
   AnggotaModel({
     required this.id,
     required this.nama,
-    required this.noAnggota,
+    required this.npa,
     required this.lokasiPj,
+    required this.state,
+    required this.roles,
+    required this.activeRole,
   });
 
   // Fungsi untuk mengubah data dari JSON (API/Firebase) ke Model
@@ -20,7 +28,7 @@ class AnggotaModel {
     return AnggotaModel(
       id: json['id'] ?? '',
       nama: json['nama'] ?? '',
-      noAnggota: json['noAnggota'] ?? '',
+      npa: json['npa'] ?? '',
       lokasiPj: lokasiPjJson is Map<String, dynamic>
           ? LokasiModel.fromJson(lokasiPjJson)
           : LokasiModel(
@@ -28,6 +36,12 @@ class AnggotaModel {
               nama: '',
               tingkat: TingkatLokasi.pj,
             ),
+      state: UserState.values.firstWhere((e) => e.name == json['state'], orElse: () => UserState.unactivated),
+      roles: (json['roles'] as List<dynamic>?)
+          ?.map((e) => RoleModel.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+          [],
+      activeRole: RoleType.values.firstWhere((e) => e.name == json['activeRole'], orElse: () => RoleType.anggota),
     );
   }
 
@@ -35,8 +49,11 @@ class AnggotaModel {
     return {
       'id': id,
       'nama': nama,
-      'noAnggota': noAnggota,
+      'npa': npa,
       'lokasiPj': lokasiPj.toJson(),
+      'state': state.name,
+      'roles': roles.map((e) => e.toJson()).toList(),
+      'activeRole': activeRole.name,
     };
   }
 }

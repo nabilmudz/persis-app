@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/BendaharaPC/presentation/view/pc_view.dart';
 import 'package:persis_app/features/BendaharaPC/presentation/view/pc_verif_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_view.dart';
 
 import '../core/widgets/offline_warning_banner.dart';
 
@@ -10,6 +11,7 @@ class AppRoutes {
   static const String dashboard = '/dashboard';
   static const String testBases = '/test-bases';
   static const String bendaharaPC = '/bendahara-pc';
+  static const String bendaharaPJ = '/bendahara-pj';
   static const String verifikasiPC = '/verifikasi-pc';
 
   static Map<String, WidgetBuilder> get routes {
@@ -19,6 +21,7 @@ class AppRoutes {
       dashboard: (_) => const DashboardPage(),
       testBases: (_) => const TestBasesPage(),
       bendaharaPC: (_) => const PcViewPage(),
+      bendaharaPJ: (_) => const PjViewPage(),
       verifikasiPC: (_) => const PcVerifikasiPage(),
     };
   }
@@ -89,6 +92,12 @@ class LoginPage extends StatelessWidget {
               onPressed: () =>
                   Navigator.pushNamed(context, AppRoutes.bendaharaPC),
               child: const Text('Open Bendahara PC'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () =>
+                  Navigator.pushNamed(context, AppRoutes.bendaharaPJ),
+              child: const Text('Open Bendahara PJ'),
             ),
             const SizedBox(height: 12),
             ElevatedButton(
