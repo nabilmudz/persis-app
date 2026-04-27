@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Wajib ditambahkan
+import 'login_controller.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,9 +12,12 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  // Hapus inisialisasi manual LoginController di sini, kita akan pakai Provider
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _npaController = TextEditingController();
+
   bool _rememberMe = false;
   bool _obscurePassword = true;
 
@@ -49,10 +54,10 @@ class _LoginScreenState extends State<LoginScreen>
           ? Row(
               children: [
                 Expanded(flex: 4, child: _buildLeftPanel()),
-                Expanded(flex: 5, child: _buildLoginForm()),
+                Expanded(flex: 5, child: _buildLoginForm(context)),
               ],
             )
-          : _buildLoginForm(),
+          : _buildLoginForm(context),
     );
   }
 
@@ -85,7 +90,6 @@ class _LoginScreenState extends State<LoginScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Ganti dengan: Image.asset('assets/images/persis_illustration.png')
                   Container(
                     width: double.infinity,
                     height: 260,
@@ -167,16 +171,13 @@ class _LoginScreenState extends State<LoginScreen>
 
   // ─── Login Form Panel ──────────────────────────────────────────────────────
 
-  Widget _buildLoginForm() {
+  Widget _buildLoginForm(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 20),
-
-          // Logo
-          // Ganti dengan: Image.asset('assets/images/logo.png', width: 64)
           Container(
             width: 64,
             height: 64,
@@ -191,7 +192,6 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
           const SizedBox(height: 16),
-
           const Text(
             'PersisPay',
             style: TextStyle(
@@ -208,7 +208,6 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 32),
 
-          // Tab bar
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
@@ -247,12 +246,11 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 28),
 
-          // Tab content
           SizedBox(
             height: 380,
             child: TabBarView(
               controller: _tabController,
-              children: [_buildMasukTab(), _buildAktivasiTab()],
+              children: [_buildMasukTab(context), _buildAktivasiTab(context)],
             ),
           ),
         ],
@@ -262,7 +260,11 @@ class _LoginScreenState extends State<LoginScreen>
 
   // ─── Tab: Masuk ────────────────────────────────────────────────────────────
 
-  Widget _buildMasukTab() {
+  Widget _buildMasukTab(BuildContext context) {
+    // Memantau state loading dari LoginController menggunakan Provider
+    final loginController = context.watch<LoginController>();
+    final isLoading = loginController.isLoading;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -272,11 +274,12 @@ class _LoginScreenState extends State<LoginScreen>
           controller: _emailController,
           hint: 'Masukkan Email/NPA',
           icon: Icons.person_outline_rounded,
+          enabled: !isLoading, // Disable input saat loading
         ),
         const SizedBox(height: 18),
         _buildLabel('Password'),
         const SizedBox(height: 8),
-        _buildPasswordField(),
+        _buildPasswordField(enabled: !isLoading),
         const SizedBox(height: 14),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -293,7 +296,9 @@ class _LoginScreenState extends State<LoginScreen>
                       borderRadius: BorderRadius.circular(4),
                     ),
                     side: const BorderSide(color: inputBorder, width: 1.5),
-                    onChanged: (val) => setState(() => _rememberMe = val!),
+                    onChanged: isLoading
+                        ? null
+                        : (val) => setState(() => _rememberMe = val!),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -304,9 +309,7 @@ class _LoginScreenState extends State<LoginScreen>
               ],
             ),
             TextButton(
-              onPressed: () {
-                // TODO: navigate to forgot password
-              },
+              onPressed: isLoading ? null : () {},
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
@@ -327,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen>
 
         // Tombol Masuk
         ElevatedButton(
-          onPressed: _handleLogin,
+          onPressed: isLoading ? null : _handleLogin,
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryGreen,
             foregroundColor: Colors.white,
@@ -337,10 +340,19 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             elevation: 0,
           ),
-          child: const Text(
-            'Masuk',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-          ),
+          child: isLoading
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text(
+                  'Masuk',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
         ),
         const SizedBox(height: 16),
 
@@ -360,11 +372,9 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 16),
 
-        // Google
+        // Google SignIn
         OutlinedButton.icon(
-          onPressed: () {
-            // TODO: Google sign in
-          },
+          onPressed: isLoading ? null : () {},
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
             side: const BorderSide(color: inputBorder, width: 1.5),
@@ -389,7 +399,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   // ─── Tab: Aktivasi Akun ────────────────────────────────────────────────────
 
-  Widget _buildAktivasiTab() {
+  Widget _buildAktivasiTab(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -405,6 +415,7 @@ class _LoginScreenState extends State<LoginScreen>
           controller: _npaController,
           hint: 'Masukkan NPA',
           icon: Icons.badge_outlined,
+          enabled: true,
         ),
         const SizedBox(height: 32),
         ElevatedButton(
@@ -446,8 +457,10 @@ class _LoginScreenState extends State<LoginScreen>
     required TextEditingController controller,
     required String hint,
     required IconData icon,
+    required bool enabled,
   }) {
     return TextField(
+      enabled: enabled,
       controller: controller,
       style: const TextStyle(fontSize: 14, color: darkText),
       decoration: InputDecoration(
@@ -466,14 +479,19 @@ class _LoginScreenState extends State<LoginScreen>
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: primaryGreen, width: 1.5),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+        ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: enabled ? Colors.white : Colors.grey.shade100,
       ),
     );
   }
 
-  Widget _buildPasswordField() {
+  Widget _buildPasswordField({required bool enabled}) {
     return TextField(
+      enabled: enabled,
       controller: _passwordController,
       obscureText: _obscurePassword,
       style: const TextStyle(fontSize: 14, color: darkText),
@@ -507,28 +525,43 @@ class _LoginScreenState extends State<LoginScreen>
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: primaryGreen, width: 1.5),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
+        ),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: enabled ? Colors.white : Colors.grey.shade100,
       ),
     );
   }
 
-  void _handleLogin() {
+  // LOGIKA LOGIN YANG BENAR (Menyesuaikan dengan Controller)
+  Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email/NPA dan Password tidak boleh kosong'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
+    // Sembunyikan keyboard saat tombol ditekan
+    FocusScope.of(context).unfocus();
 
-    // TODO: hubungkan ke API / auth service
-    // Setelah login sukses, navigasi ke dashboard:
-    Navigator.pushReplacementNamed(context, '/dashboard');
+    // Panggil fungsi login dari LoginController via Provider
+    final result = await context.read<LoginController>().login(
+      email,
+      password,
+      context,
+      rememberMe: _rememberMe,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.message),
+        backgroundColor: result.success ? primaryGreen : Colors.redAccent,
+      ),
+    );
+
+    if (result.success) {
+      Navigator.pushReplacementNamed(context, result.nextRoute);
+    }
   }
 }

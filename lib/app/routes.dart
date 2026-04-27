@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:persis_app/features/BendaharaPC/presentation/view/pc_view.dart';
+import 'package:persis_app/features/BendaharaPC/presentation/view/pc_verif_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_view.dart';
+import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
+import 'package:persis_app/features/auth/login_controller.dart';
 
 import '../core/widgets/offline_warning_banner.dart';
 import '../features/auth/login_screen.dart';
@@ -8,13 +14,29 @@ class AppRoutes {
   static const String login = '/login';
   static const String dashboard = '/dashboard';
   static const String testBases = '/test-bases';
+  static const String bendaharaPC = '/bendahara-pc';
+  static const String bendaharaPJ = '/bendahara-pj';
+  static const String verifikasiPC = '/verifikasi-pc';
 
   static Map<String, WidgetBuilder> get routes {
     return {
-      initial: (_) => const LoginScreen(), // langsung ke login screen
-      login: (_) => const LoginScreen(),
+      initial: (_) => ChangeNotifierProvider(
+          create: (_) => LoginController(
+            remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
+          ),
+          child: const LoginScreen(),
+        ),
+    login: (_) => ChangeNotifierProvider(
+          create: (_) => LoginController(
+            remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
+          ),
+          child: const LoginScreen(),
+        ),
       dashboard: (_) => const DashboardPage(),
       testBases: (_) => const TestBasesPage(),
+      bendaharaPC: (_) => const PcViewPage(),
+      bendaharaPJ: (_) => const PjViewPage(),
+      verifikasiPC: (_) => const PcVerifikasiPage(),
     };
   }
 }
@@ -41,6 +63,12 @@ class DashboardPage extends StatelessWidget {
               onPressed: () =>
                   Navigator.pushNamed(context, AppRoutes.testBases),
               child: const Text('Open Test Bases'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () =>
+                  Navigator.pushNamed(context, AppRoutes.bendaharaPC),
+              child: const Text('Open Bendahara PC'),
             ),
             const SizedBox(height: 12),
             ElevatedButton(
