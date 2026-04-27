@@ -1,15 +1,21 @@
-enum RoleType { anggota, bendaharaPJ, bendaharaPC, bendaharaPD, admin }
-
 class RoleModel {
-  final RoleType type;
+  final String? id;
+  final String? code;
+  final String? name;
+  final String? description;
 
-  RoleModel({required this.type});
+  RoleModel({this.id, this.code, this.name, this.description});
 
-  factory RoleModel.fromJson(Map<String, dynamic> json) {
-    return RoleModel(
-      type: RoleType.values.firstWhere((e) => e.name == json['type']),
-    );
-  }
+  factory RoleModel.fromJson(Map<String, dynamic> json) => RoleModel(
+    id: json['_id'] ?? json['id'],
+    code: json['code'],
+    name: json['name'],
+    description: json['description'],
+  );
 
-  Map<String, dynamic> toJson() => {'type': type.name};
+  Map<String, dynamic> toJson() => {
+    "code": code,
+    "name": name,
+    "description": description,
+  };
 }

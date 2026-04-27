@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 
 class PjVerificationMemberCard extends StatelessWidget {
   final String name;
+  final String subtitle;
   final bool isTunggakan;
   final bool showTotal;
   final String total;
+  final List<String> iuranStatuses;
   final VoidCallback? onTapCekKartu;
 
   const PjVerificationMemberCard({
     super.key,
     required this.name,
+    this.subtitle = '',
     this.isTunggakan = false,
     this.showTotal = false,
     this.total = 'Rp. 40.000',
+    this.iuranStatuses = const <String>[],
     this.onTapCekKartu,
   });
 
@@ -96,6 +100,20 @@ class PjVerificationMemberCard extends StatelessWidget {
                         ],
                       ],
                     ),
+                    if (subtitle.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 11,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
@@ -120,6 +138,37 @@ class PjVerificationMemberCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (iuranStatuses.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: iuranStatuses.map((status) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            child: Text(
+                              status,
+                              style: const TextStyle(
+                                color: Color(0xFF374151),
+                                fontSize: 10,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ],
                 ),
               ),

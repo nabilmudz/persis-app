@@ -1,31 +1,86 @@
 import 'package:flutter/foundation.dart';
-import 'package:persis_app/features/BendaharaPC/data/models/iuran_model.dart';
-import 'package:persis_app/features/BendaharaPC/data/datasources/iuran_local_datasources.dart';
-import 'package:persis_app/features/anggota/data/datasources/anggota_local_datasource.dart';
-import 'package:persis_app/features/anggota/data/models/anggota_model.dart';
-import 'package:persis_app/features/anggota/data/models/lokasi_model.dart';
+import 'package:persis_app/core/network/api_client.dart';
+import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
+import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'pj_verif_controller.dart';
 
 export 'pj_verif_controller.dart'
     show PjMonthStatus, PjPaymentCartItem, PjSubmitResult;
 
 class PjController extends ChangeNotifier {
-  PjController() {
+  PjController({
+    UserRemoteDataSource? userDataSource,
+    TransactionRemoteDataSource? transactionDataSource,
+  }) : _userDataSource =
+           userDataSource ?? UserRemoteDataSource(ApiClient.baseUrl),
+       _transactionDataSource =
+           transactionDataSource ??
+           TransactionRemoteDataSource(ApiClient.baseUrl) {
     _verifController = PjVerifController(
-      daftarIuran: daftarIuran,
+      transactions: _transactions,
       members: _members,
+      transactionDataSource: _transactionDataSource,
     );
     _verifController.addListener(_onVerifChanged);
   }
 
-  List<IuranModel> daftarIuran = dummyDaftarIuran;
-  final List<AnggotaModel> _members = dummyAnggota;
+  final UserRemoteDataSource _userDataSource;
+  final TransactionRemoteDataSource _transactionDataSource;
+
+  final List<UserModel> _members = [];
+  final List<TransactionModel> _transactions = [];
+
+  bool _isLoading = false;
+  String? _errorMessage;
+
   late final PjVerifController _verifController;
 
-  List<AnggotaModel> get members => List<AnggotaModel>.unmodifiable(_members);
+  List<UserModel> get members => List<UserModel>.unmodifiable(_members);
+  List<TransactionModel> get transactions =>
+      List<TransactionModel>.unmodifiable(_transactions);
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+
   List<PjPaymentCartItem> get cartItems => _verifController.cartItems;
   int get cartItemCount => _verifController.cartItemCount;
   double get cartTotalNominal => _verifController.cartTotalNominal;
+
+  Future<void> loadInitialData() async {
+    if (_isLoading) {
+      return;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final results = await Future.wait<dynamic>([
+        _userDataSource.getAllUsers(),
+        _transactionDataSource.getHistory(),
+      ]);
+
+      final users = (results[0] as List<UserModel>)
+          .where((user) => user.id != null && user.id!.trim().isNotEmpty)
+          .toList();
+      final transactions = results[1] as List<TransactionModel>;
+
+      _members
+        ..clear()
+        ..addAll(users);
+
+      _transactions
+        ..clear()
+        ..addAll(transactions);
+    } catch (e) {
+      _errorMessage = 'Gagal memuat data anggota/transaksi: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   void _onVerifChanged() {
     notifyListeners();
@@ -38,16 +93,42 @@ class PjController extends ChangeNotifier {
     super.dispose();
   }
 
-  List<AnggotaModel> filterMembers(String query) {
+  String memberDisplayName(UserModel member) {
+    final name = member.name?.trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+
+    final code = member.code?.trim();
+    if (code != null && code.isNotEmpty) {
+      return code;
+    }
+
+    final email = member.email?.trim();
+    if (email != null && email.isNotEmpty) {
+      return email;
+    }
+
+    return 'Unknown Member';
+  }
+
+  String memberDisplayCode(UserModel member) {
+    return (member.code ?? '').trim();
+  }
+
+  List<UserModel> filterMembers(String query) {
     final trimmed = query.trim().toLowerCase();
     if (trimmed.isEmpty) {
       return members;
     }
 
     return _members.where((member) {
-      return member.nama.toLowerCase().contains(trimmed) ||
-          member.npa.toLowerCase().contains(trimmed) ||
-          member.lokasiPj.nama.toLowerCase().contains(trimmed);
+      final name = (member.name ?? '').toLowerCase();
+      final code = (member.code ?? '').toLowerCase();
+      final email = (member.email ?? '').toLowerCase();
+      return name.contains(trimmed) ||
+          code.contains(trimmed) ||
+          email.contains(trimmed);
     }).toList();
   }
 
@@ -64,7 +145,7 @@ class PjController extends ChangeNotifier {
   }
 
   void addMonthToCart({
-    required AnggotaModel member,
+    required UserModel member,
     required int month,
     required int year,
     double? nominal,
@@ -89,38 +170,26 @@ class PjController extends ChangeNotifier {
     _verifController.clearCart();
   }
 
-  PjSubmitResult? submitCart({
-    MetodePembayaran metodePembayaran = MetodePembayaran.tunai,
-  }) {
-    return _verifController.submitCart(metodePembayaran: metodePembayaran);
-  }
-
-  String _lokasiPjNamaByAnggotaId(String anggotaId) {
-    final member = _members.cast<AnggotaModel?>().firstWhere(
-      (item) => item?.id == anggotaId,
-      orElse: () => null,
+  Future<PjSubmitResult?> submitCart({
+    String paymentMethodId = 'bank_transfer',
+    String? creatorId,
+  }) async {
+    return _verifController.submitCart(
+      paymentMethodId: paymentMethodId,
+      creatorId: creatorId,
     );
-    return member?.lokasiPj.nama ?? '';
   }
 
   int tunggakanCountByMember(String anggotaId) {
-    final lokasiPjNama = _lokasiPjNamaByAnggotaId(anggotaId);
-    return daftarIuran.where((iuran) {
-      return iuran.lokasiPjNama == lokasiPjNama &&
-          (iuran.status == StatusIuran.tunggakan ||
-              iuran.status == StatusIuran.belumDibayar);
-    }).length;
+    return _verifController.tunggakanCountByMember(anggotaId);
   }
 
   double tunggakanNominalByMember(String anggotaId) {
-    final lokasiPjNama = _lokasiPjNamaByAnggotaId(anggotaId);
-    return daftarIuran
-        .where((iuran) {
-          return iuran.lokasiPjNama == lokasiPjNama &&
-              (iuran.status == StatusIuran.tunggakan ||
-                  iuran.status == StatusIuran.belumDibayar);
-        })
-        .fold<double>(0, (total, iuran) => total + iuran.nominal);
+    return _verifController.tunggakanNominalByMember(anggotaId);
+  }
+
+  List<String> memberIuranStatusLabels(String anggotaId, {int limit = 4}) {
+    return _verifController.memberPeriodStatusLabels(anggotaId, limit: limit);
   }
 
   double getNominalForMemberMonth({
@@ -138,11 +207,16 @@ class PjController extends ChangeNotifier {
   PjMonthStatus getMonthStatus({
     required String anggotaId,
     required int month,
+    int? year,
   }) {
-    return _verifController.getMonthStatus(anggotaId: anggotaId, month: month);
+    return _verifController.getMonthStatus(
+      anggotaId: anggotaId,
+      month: month,
+      year: year,
+    );
   }
 
-  void accPembayaran(String idIuran, TingkatLokasi roleBendahara) {
+  void accPembayaran(String idIuran, Object roleBendahara) {
     _verifController.accPembayaran(idIuran, roleBendahara);
   }
 }

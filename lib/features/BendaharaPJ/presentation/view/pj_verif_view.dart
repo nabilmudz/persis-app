@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:persis_app/features/anggota/data/models/anggota_model.dart';
+import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import '../controller/pj_controller.dart';
 import 'pj_cart_view.dart';
 
 class PjVerifViewPage extends StatefulWidget {
   final PjController controller;
-  final AnggotaModel member;
+  final UserModel member;
 
   const PjVerifViewPage({
     super.key,
@@ -37,8 +37,20 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
   ];
 
   void _handleMonthTap(int month) {
+    final anggotaId = widget.member.id;
+    if (anggotaId == null || anggotaId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ID anggota tidak tersedia.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final memberName = widget.controller.memberDisplayName(widget.member);
     final isAlreadyInCart = widget.controller.isInCart(
-      anggotaId: widget.member.id,
+      anggotaId: anggotaId,
       month: month,
       year: _selectedYear,
     );
@@ -47,7 +59,7 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Bulan ${_monthNames[month - 1]} sudah ada di keranjang ${widget.member.nama}.',
+            'Bulan ${_monthNames[month - 1]} sudah ada di keranjang $memberName.',
           ),
           behavior: SnackBarBehavior.floating,
         ),
@@ -65,6 +77,19 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
   }
 
   Future<void> _submitSelectedMonths() async {
+    final anggotaId = widget.member.id;
+    if (anggotaId == null || anggotaId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ID anggota tidak tersedia.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final memberName = widget.controller.memberDisplayName(widget.member);
+
     if (_selectedMonths.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -79,7 +104,7 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
     final monthNominals = {
       for (final month in months)
         month: widget.controller.getNominalForMemberMonth(
-          anggotaId: widget.member.id,
+          anggotaId: anggotaId,
           month: month,
           year: _selectedYear,
         ),
@@ -115,7 +140,7 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              _DetailRow(label: 'Nama', value: widget.member.nama),
+              _DetailRow(label: 'Nama', value: memberName),
               _DetailRow(label: 'Jumlah Bulan', value: '$totalMonths bulan'),
               _DetailRow(label: 'Bulan Dipilih', value: monthLabels),
               _DetailRow(
@@ -200,7 +225,7 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          '$totalMonths bulan untuk ${widget.member.nama} dimasukkan ke keranjang.',
+          '$totalMonths bulan untuk $memberName dimasukkan ke keranjang.',
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -209,8 +234,10 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
 
   @override
   Widget build(BuildContext context) {
+    final anggotaId = widget.member.id;
+    final memberName = widget.controller.memberDisplayName(widget.member);
     final totalTunggakan = widget.controller.tunggakanNominalByMember(
-      widget.member.id,
+      anggotaId ?? '',
     );
 
     return Scaffold(
@@ -285,7 +312,7 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.member.nama,
+                  memberName,
                   style: const TextStyle(
                     color: Color(0xFF073D4D),
                     fontSize: 20,
@@ -398,8 +425,9 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
                     final month = index + 1;
                     final monthName = _monthNames[index];
                     final status = widget.controller.getMonthStatus(
-                      anggotaId: widget.member.id,
+                      anggotaId: anggotaId ?? '',
                       month: month,
+                      year: _selectedYear,
                     );
 
                     return _MonthCard(
@@ -407,7 +435,7 @@ class _PjVerifViewPageState extends State<PjVerifViewPage> {
                       status: status,
                       isSelected: _selectedMonths.contains(month),
                       isInCart: widget.controller.isInCart(
-                        anggotaId: widget.member.id,
+                        anggotaId: anggotaId ?? '',
                         month: month,
                         year: _selectedYear,
                       ),

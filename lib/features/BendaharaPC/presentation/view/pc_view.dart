@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../data/datasources/iuran_local_datasources.dart';
-import '../../data/models/iuran_model.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+
 import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_verif_view.dart';
@@ -18,11 +18,27 @@ class _PcViewPageState extends State<PcViewPage> {
   // 1. Inisialisasi controller
   late final PcController _controller;
 
-  Future<void> _handleAccPressed(IuranModel item) async {
+  Future<void> _loadTransactions() async {
+    await _controller.loadTransactions();
+
+    if (!mounted) {
+      return;
+    }
+
+    final error = _controller.errorMessage;
+    if (error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  Future<void> _handleAccPressed(TransactionModel item) async {
+    final nominalText = _controller.formatCurrency(item.totalAmount ?? 0);
     final shouldContinue = await SweetAlertDialog.showConfirmation(
       context: context,
       title: 'Konfirmasi ACC',
-      message: 'Yakin ingin meng-ACC pembayaran PJ ${item.lokasiPjNama}?',
+      message: 'Yakin ingin meng-ACC transaksi dengan nominal $nominalText?',
       confirmText: 'Ya, ACC',
       cancelText: 'Batal',
     );
@@ -31,31 +47,43 @@ class _PcViewPageState extends State<PcViewPage> {
       return;
     }
 
-    setState(() {
-      item.status = StatusIuran.diverifikasi;
-    });
+    final result = await _controller.accTransaction(item);
+
+    if (!mounted) {
+      return;
+    }
+
+    if (result == PcAccResult.alreadyVerified) {
+      await SweetAlertDialog.showSuccess(
+        context: context,
+        title: 'Sudah Diverifikasi',
+        message: 'Transaksi ini sudah pernah di-ACC sebelumnya.',
+      );
+      return;
+    }
+
+    if (result == PcAccResult.notFound) {
+      await SweetAlertDialog.showSuccess(
+        context: context,
+        title: 'Data Tidak Ditemukan',
+        message: 'Data transaksi gagal diperbarui. Coba lagi.',
+      );
+      return;
+    }
 
     await SweetAlertDialog.showSuccess(
       context: context,
       title: 'Berhasil',
-      message: 'Pembayaran PJ ${item.lokasiPjNama} berhasil di-ACC.',
+      message: 'Transaksi berhasil di-ACC.',
       buttonText: 'OK',
     );
-  }
-
-  List<IuranModel> _previewIuran() {
-    final filtered = dummyDaftarIuran
-        .where((item) => item.status != StatusIuran.diverifikasi)
-        .toList();
-
-    filtered.sort((a, b) => b.tanggalBayar.compareTo(a.tanggalBayar));
-    return filtered.take(2).toList();
   }
 
   @override
   void initState() {
     super.initState();
     _controller = PcController();
+    _loadTransactions();
   }
 
   @override
@@ -67,13 +95,17 @@ class _PcViewPageState extends State<PcViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final previewItems = _previewIuran();
-
     return Scaffold(
       appBar: AppBar(title: const Text('PC View (Native)')),
       body: ListenableBuilder(
         listenable: _controller,
         builder: (context, child) {
+          final previewItems = _controller.previewTransactions;
+
+          if (_controller.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
           return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             child: Column(
@@ -133,7 +165,8 @@ class _PcViewPageState extends State<PcViewPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const PcVerifikasiPage(),
+                            builder: (context) =>
+                                PcVerifikasiPage(controller: _controller),
                           ),
                         );
                       },
@@ -162,21 +195,23 @@ class _PcViewPageState extends State<PcViewPage> {
                   )
                 else
                   ...previewItems.map((item) {
+                    final viewItem = _controller.toVerifikasiItem(item);
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: VerifikasiCard(
-                        date: _formatDate(item.tanggalBayar),
-                        location: 'PJ ${item.lokasiPjNama}',
-                        name: item.lokasiPjNama,
-                        idNumber: '-',
-                        paymentMethod: _paymentMethodText(item),
-                        price: _formatCurrency(item.nominal),
+                        date: viewItem.date,
+                        location: viewItem.location,
+                        name: viewItem.name,
+                        idNumber: viewItem.idNumber,
+                        paymentMethod: viewItem.paymentMethod,
+                        price: viewItem.price,
                         onAccPressed: () async => _handleAccPressed(item),
                         onLihatBuktiPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Menampilkan bukti ${item.lokasiPjNama}',
+                                'Menampilkan detail transaksi dari ${viewItem.name}',
                               ),
                             ),
                           );
@@ -190,54 +225,5 @@ class _PcViewPageState extends State<PcViewPage> {
         },
       ),
     );
-  }
-
-  String _paymentMethodText(IuranModel item) {
-    switch (item.metodePembayaran) {
-      case MetodePembayaran.transferBank:
-        return 'Transfer Bank';
-      case MetodePembayaran.tunai:
-        return 'Tunai';
-      case MetodePembayaran.qrisCode:
-        return 'QRIS';
-      case null:
-        return item.buktiTransferUrl == null ? 'Tunai' : 'Transfer';
-    }
-  }
-
-  String _formatDate(DateTime value) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
-    ];
-
-    final day = value.day.toString().padLeft(2, '0');
-    return '$day ${months[value.month - 1]} ${value.year}';
-  }
-
-  String _formatCurrency(double amount) {
-    final number = amount.round().toString();
-    final buffer = StringBuffer();
-
-    for (var i = 0; i < number.length; i++) {
-      final reverseIndex = number.length - i;
-      buffer.write(number[i]);
-
-      if (reverseIndex > 1 && reverseIndex % 3 == 1) {
-        buffer.write('.');
-      }
-    }
-
-    return 'Rp. ${buffer.toString()}';
   }
 }

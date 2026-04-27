@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:persis_app/features/BendaharaPC/data/models/iuran_model.dart';
 
 import '../controller/pj_controller.dart';
 
@@ -160,12 +159,24 @@ class PjCartViewPage extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () {
-                              final result = controller.submitCart(
-                                metodePembayaran: MetodePembayaran.transferBank,
+                            onPressed: () async {
+                              final result = await controller.submitCart(
+                                paymentMethodId: 'bank_transfer',
                               );
 
                               if (result == null) {
+                                if (!context.mounted) {
+                                  return;
+                                }
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Gagal membuat transaksi. Coba lagi.',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
                                 return;
                               }
 

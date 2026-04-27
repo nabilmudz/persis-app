@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:persis_app/features/BendaharaPC/data/models/iuran_model.dart';
-import 'package:persis_app/features/anggota/data/models/anggota_model.dart';
-import 'package:persis_app/features/anggota/data/models/lokasi_model.dart';
+import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'package:persis_app/helpers/object_id_helper.dart';
 
 enum PjMonthStatus { lunas, tunggakan, belumJatuhTempo }
@@ -39,24 +39,217 @@ class PjSubmitResult {
 }
 
 class PjVerifController extends ChangeNotifier {
-  static const double _fallbackNominal = 10000;
+  static const int _fallbackNominal = 10000;
+  static const Set<String> _paidStatuses = {
+    'paid',
+    'lunas',
+    'verified',
+    'diverifikasi',
+    'success',
+    'done',
+  };
+  static const Set<String> _unpaidStatuses = {
+    'unpaid',
+    'pending',
+    'belum',
+    'tunggakan',
+    'overdue',
+  };
 
   PjVerifController({
-    required List<IuranModel> daftarIuran,
-    required List<AnggotaModel> members,
-  }) : _daftarIuran = daftarIuran,
-       _members = members;
+    required List<TransactionModel> transactions,
+    required List<UserModel> members,
+    required TransactionRemoteDataSource transactionDataSource,
+  }) : _transactions = transactions,
+       _members = members,
+       _transactionDataSource = transactionDataSource;
 
-  final List<IuranModel> _daftarIuran;
-  final List<AnggotaModel> _members;
+  final List<TransactionModel> _transactions;
+  final List<UserModel> _members;
+  final TransactionRemoteDataSource _transactionDataSource;
   final List<PjPaymentCartItem> _cartItems = [];
 
-  String _lokasiPjNamaByAnggotaId(String anggotaId) {
-    final member = _members.cast<AnggotaModel?>().firstWhere(
-      (item) => item?.id == anggotaId,
-      orElse: () => null,
-    );
-    return member?.lokasiPj.nama ?? '';
+  String _displayName(UserModel member) {
+    final name = member.name?.trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+
+    final code = member.code?.trim();
+    if (code != null && code.isNotEmpty) {
+      return code;
+    }
+
+    final email = member.email?.trim();
+    if (email != null && email.isNotEmpty) {
+      return email;
+    }
+
+    return 'Unknown Member';
+  }
+
+  String _periodKey(int month, int year) {
+    final mm = month.toString().padLeft(2, '0');
+    return '$year-$mm';
+  }
+
+  String _monthLabel(int month) {
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+
+    if (month < 1 || month > 12) {
+      return '-';
+    }
+
+    return monthNames[month - 1];
+  }
+
+  String _periodLabelFromKey(String periodKey) {
+    final parsed = _parsePeriodKey(periodKey);
+    if (parsed == null) {
+      return periodKey;
+    }
+
+    return '${_monthLabel(parsed.month)} ${parsed.year}';
+  }
+
+  _PeriodValue? _parsePeriodKey(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return null;
+    }
+
+    final match = RegExp(r'(\d{4})[-_/](\d{1,2})').firstMatch(raw);
+    if (match == null) {
+      return null;
+    }
+
+    final year = int.tryParse(match.group(1)!);
+    final month = int.tryParse(match.group(2)!);
+    if (year == null || month == null || month < 1 || month > 12) {
+      return null;
+    }
+
+    return _PeriodValue(month: month, year: year);
+  }
+
+  String _resolveItemPeriodKey(TransactionItemModel item, TransactionModel tx) {
+    final periodSources = [item.periodId, item.duesPeriodId];
+    for (final source in periodSources) {
+      final parsed = _parsePeriodKey(source);
+      if (parsed != null) {
+        return _periodKey(parsed.month, parsed.year);
+      }
+    }
+
+    final createdAt = tx.createdAt;
+    if (createdAt != null) {
+      final parsedDate = DateTime.tryParse(createdAt);
+      if (parsedDate != null) {
+        return _periodKey(parsedDate.month, parsedDate.year);
+      }
+    }
+
+    final now = DateTime.now();
+    return _periodKey(now.month, now.year);
+  }
+
+  bool _isPaid({
+    required TransactionModel tx,
+    required TransactionItemModel item,
+  }) {
+    final itemStatus = (item.status ?? '').trim().toLowerCase();
+    if (_paidStatuses.contains(itemStatus)) {
+      return true;
+    }
+
+    if (_unpaidStatuses.contains(itemStatus)) {
+      return false;
+    }
+
+    final txAcc = (tx.accStatus ?? '').trim().toLowerCase();
+    if (_paidStatuses.contains(txAcc)) {
+      return true;
+    }
+
+    final txStatus = (tx.status ?? '').trim().toLowerCase();
+    if (_paidStatuses.contains(txStatus)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  Map<String, _MemberPeriodState> periodStatesByMember(String anggotaId) {
+    final map = <String, _MemberPeriodState>{};
+
+    for (final tx in _transactions) {
+      final items = tx.items ?? const <TransactionItemModel>[];
+      for (final item in items) {
+        if (item.anggotaId != anggotaId) {
+          continue;
+        }
+
+        final periodKey = _resolveItemPeriodKey(item, tx);
+        final current = map[periodKey];
+        final nominal = item.amount ?? 0;
+        final isPaid = _isPaid(tx: tx, item: item);
+
+        if (current == null) {
+          map[periodKey] = _MemberPeriodState(
+            periodKey: periodKey,
+            nominal: nominal,
+            isPaid: isPaid,
+          );
+          continue;
+        }
+
+        map[periodKey] = _MemberPeriodState(
+          periodKey: periodKey,
+          nominal: nominal > 0 ? nominal : current.nominal,
+          isPaid: current.isPaid || isPaid,
+        );
+      }
+    }
+
+    return map;
+  }
+
+  List<String> memberPeriodStatusLabels(String anggotaId, {int limit = 4}) {
+    final states = periodStatesByMember(anggotaId).values.toList();
+    if (states.isEmpty) {
+      return const <String>['Belum ada transaksi'];
+    }
+
+    states.sort((a, b) => b.periodKey.compareTo(a.periodKey));
+    return states.take(limit).map((state) {
+      final label = _periodLabelFromKey(state.periodKey);
+      return '$label: ${state.isPaid ? 'Lunas' : 'Belum'}';
+    }).toList();
+  }
+
+  int tunggakanCountByMember(String anggotaId) {
+    return periodStatesByMember(
+      anggotaId,
+    ).values.where((state) => !state.isPaid).length;
+  }
+
+  double tunggakanNominalByMember(String anggotaId) {
+    final total = periodStatesByMember(anggotaId).values
+        .where((state) => !state.isPaid)
+        .fold<int>(0, (sum, state) => sum + state.nominal);
+    return total.toDouble();
   }
 
   List<PjPaymentCartItem> get cartItems =>
@@ -79,19 +272,29 @@ class PjVerifController extends ChangeNotifier {
   }
 
   void addMonthToCart({
-    required AnggotaModel member,
+    required UserModel member,
     required int month,
     required int year,
     double? nominal,
   }) {
-    if (isInCart(anggotaId: member.id, month: month, year: year)) {
+    final anggotaId = member.id;
+    if (anggotaId == null || anggotaId.isEmpty) {
+      return;
+    }
+
+    final isKnownMember = _members.any((m) => m.id == anggotaId);
+    if (!isKnownMember) {
+      return;
+    }
+
+    if (isInCart(anggotaId: anggotaId, month: month, year: year)) {
       return;
     }
 
     final resolvedNominal =
         nominal ??
         getNominalForMemberMonth(
-          anggotaId: member.id,
+          anggotaId: anggotaId,
           month: month,
           year: year,
         );
@@ -99,8 +302,8 @@ class PjVerifController extends ChangeNotifier {
     _cartItems.add(
       PjPaymentCartItem(
         id: ObjectIdHelper.generateLocalId(),
-        anggotaId: member.id,
-        anggotaNama: member.nama,
+        anggotaId: anggotaId,
+        anggotaNama: _displayName(member),
         month: month,
         year: year,
         nominal: resolvedNominal,
@@ -125,29 +328,48 @@ class PjVerifController extends ChangeNotifier {
     notifyListeners();
   }
 
-  PjSubmitResult? submitCart({
-    MetodePembayaran metodePembayaran = MetodePembayaran.tunai,
-  }) {
+  Future<PjSubmitResult?> submitCart({
+    String paymentMethodId = 'bank_transfer',
+    String? creatorId,
+  }) async {
     if (_cartItems.isEmpty) {
       return null;
     }
 
     final transactionId = ObjectIdHelper.generateLocalId();
+    final totalNominalInt = cartTotalNominal.round();
 
-    for (final item in _cartItems) {
-      _daftarIuran.add(
-        IuranModel(
-          id: ObjectIdHelper.generateLocalId(),
-          lokasiPjNama: _lokasiPjNamaByAnggotaId(item.anggotaId),
-          nominal: item.nominal,
-          tanggalBayar: DateTime(item.year, item.month, 1),
-          buktiTransferUrl: null,
-          metodePembayaran: metodePembayaran,
-          status: StatusIuran.menungguVerifikasi,
-          catatan: 'Masuk transaksi keranjang: $transactionId',
-        ),
-      );
+    final transaction = TransactionModel(
+      creatorId: creatorId,
+      paymentMethodId: paymentMethodId,
+      totalAmount: totalNominalInt,
+      status: 'submitted',
+      accStatus: 'pending',
+      isSynced: true,
+      createdAt: DateTime.now().toIso8601String(),
+      items: _cartItems
+          .map(
+            (item) => TransactionItemModel(
+              anggotaId: item.anggotaId,
+              periodId: _periodKey(item.month, item.year),
+              status: 'pending',
+              duesPeriodId: null,
+              amount: item.nominal.round(),
+              description:
+                  'Iuran ${_monthLabel(item.month)} ${item.year} dari keranjang $transactionId',
+            ),
+          )
+          .toList(),
+    );
+
+    final isCreated = await _transactionDataSource.createTransaction(
+      transaction,
+    );
+    if (!isCreated) {
+      return null;
     }
+
+    _transactions.add(transaction);
 
     final result = PjSubmitResult(
       transactionId: transactionId,
@@ -165,67 +387,81 @@ class PjVerifController extends ChangeNotifier {
     required int month,
     required int year,
   }) {
-    final lokasiPjNama = _lokasiPjNamaByAnggotaId(anggotaId);
-    final monthlyRecord = _daftarIuran.cast<IuranModel?>().firstWhere(
-      (iuran) =>
-          iuran != null &&
-          iuran.lokasiPjNama == lokasiPjNama &&
-          iuran.tanggalBayar.month == month &&
-          iuran.tanggalBayar.year == year,
-      orElse: () => null,
-    );
+    final expectedKey = _periodKey(month, year);
+    int? latestAmount;
 
-    if (monthlyRecord != null) {
-      return monthlyRecord.nominal;
+    for (final tx in _transactions) {
+      final items = tx.items ?? const <TransactionItemModel>[];
+      for (final item in items) {
+        if (item.anggotaId != anggotaId) {
+          continue;
+        }
+
+        final periodKey = _resolveItemPeriodKey(item, tx);
+        if (periodKey == expectedKey && item.amount != null) {
+          latestAmount = item.amount;
+        }
+      }
     }
 
-    final memberRecords = _daftarIuran
-      .where((iuran) => iuran.lokasiPjNama == lokasiPjNama)
-        .toList();
-
-    if (memberRecords.isEmpty) {
-      return _fallbackNominal;
+    if (latestAmount != null && latestAmount > 0) {
+      return latestAmount.toDouble();
     }
 
-    memberRecords.sort((a, b) => b.tanggalBayar.compareTo(a.tanggalBayar));
+    final memberStates = periodStatesByMember(anggotaId).values.toList();
+    if (memberStates.isEmpty) {
+      return _fallbackNominal.toDouble();
+    }
 
-    return memberRecords.first.nominal;
+    memberStates.sort((a, b) => b.periodKey.compareTo(a.periodKey));
+    final nominal = memberStates.first.nominal;
+    if (nominal <= 0) {
+      return _fallbackNominal.toDouble();
+    }
+
+    return nominal.toDouble();
   }
 
   PjMonthStatus getMonthStatus({
     required String anggotaId,
     required int month,
+    int? year,
   }) {
-    final lokasiPjNama = _lokasiPjNamaByAnggotaId(anggotaId);
-    final hasVerifiedPayment = _daftarIuran.any(
-      (iuran) =>
-          iuran.lokasiPjNama == lokasiPjNama &&
-          iuran.tanggalBayar.month == month &&
-          iuran.status == StatusIuran.diverifikasi,
-    );
+    final targetYear = year ?? DateTime.now().year;
+    final targetKey = _periodKey(month, targetYear);
+    final state = periodStatesByMember(anggotaId)[targetKey];
 
-    if (hasVerifiedPayment) {
+    if (state == null) {
+      return PjMonthStatus.belumJatuhTempo;
+    }
+
+    if (state.isPaid) {
       return PjMonthStatus.lunas;
     }
 
-    return PjMonthStatus.belumJatuhTempo;
+    return PjMonthStatus.tunggakan;
   }
 
-  void accPembayaran(String idIuran, TingkatLokasi roleBendahara) {
-    final index = _daftarIuran.indexWhere((i) => i.id == idIuran);
-
-    if (index == -1) {
-      print('Data Iuran tidak ditemukan!');
-      return;
-    }
-
-    if (_daftarIuran[index].status == StatusIuran.belumDibayar ||
-        _daftarIuran[index].status == StatusIuran.tunggakan) {
-      _daftarIuran[index].status = StatusIuran.diverifikasi;
-      notifyListeners();
-      print('Iuran berhasil diverifikasi');
-    } else {
-      print('Iuran tidak terverifikasi');
-    }
+  void accPembayaran(String idIuran, Object roleBendahara) {
+    // Tidak digunakan pada alur terbaru PJ.
   }
+}
+
+class _MemberPeriodState {
+  final String periodKey;
+  final int nominal;
+  final bool isPaid;
+
+  const _MemberPeriodState({
+    required this.periodKey,
+    required this.nominal,
+    required this.isPaid,
+  });
+}
+
+class _PeriodValue {
+  final int month;
+  final int year;
+
+  const _PeriodValue({required this.month, required this.year});
 }

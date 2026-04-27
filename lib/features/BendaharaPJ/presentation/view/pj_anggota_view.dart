@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:persis_app/features/anggota/data/models/anggota_model.dart';
+import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import '../controller/pj_controller.dart';
 import '../widgets/pj_verification_member_card.dart';
 import 'pj_cart_view.dart';
@@ -20,6 +20,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
   @override
   void initState() {
     super.initState();
+    widget.controller.loadInitialData();
   }
 
   @override
@@ -96,7 +97,36 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
       body: ListenableBuilder(
         listenable: widget.controller,
         builder: (context, child) {
-          final List<AnggotaModel> members = widget.controller.filterMembers(
+          if (widget.controller.isLoading &&
+              widget.controller.members.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final error = widget.controller.errorMessage;
+          if (error != null && widget.controller.members.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      error,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Color(0xFF6B7280)),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: widget.controller.loadInitialData,
+                      child: const Text('Muat Ulang'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final List<UserModel> members = widget.controller.filterMembers(
             _searchController.text,
           );
 
@@ -196,15 +226,36 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final member = members[index];
-                      final totalTunggakan = widget.controller
-                          .tunggakanNominalByMember(member.id);
+                      final memberId = member.id ?? '';
+                      final totalTunggakan = memberId.isEmpty
+                          ? 0.0
+                          : widget.controller.tunggakanNominalByMember(
+                              memberId,
+                            );
+                      final iuranStatuses = memberId.isEmpty
+                          ? const <String>['ID anggota tidak valid']
+                          : widget.controller.memberIuranStatusLabels(
+                              memberId,
+                              limit: 4,
+                            );
 
                       return PjVerificationMemberCard(
-                        name: member.nama,
+                        name: widget.controller.memberDisplayName(member),
+                        subtitle: widget.controller.memberDisplayCode(member),
                         isTunggakan: totalTunggakan > 0,
                         showTotal: true,
                         total: _formatCurrency(totalTunggakan),
+                        iuranStatuses: iuranStatuses,
                         onTapCekKartu: () {
+                          if (memberId.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('ID anggota tidak tersedia.'),
+                              ),
+                            );
+                            return;
+                          }
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(

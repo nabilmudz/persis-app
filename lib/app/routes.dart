@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:persis_app/features/BendaharaPC/presentation/view/pc_view.dart';
 import 'package:persis_app/features/BendaharaPC/presentation/view/pc_verif_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_view.dart';
+import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
+import 'package:persis_app/features/auth/login_controller.dart';
 
 import '../core/widgets/offline_warning_banner.dart';
 import '../features/auth/login_screen.dart';
@@ -17,8 +20,18 @@ class AppRoutes {
 
   static Map<String, WidgetBuilder> get routes {
     return {
-      initial: (_) => const LoginScreen(), // langsung ke login screen
-      login: (_) => const LoginScreen(),
+      initial: (_) => ChangeNotifierProvider(
+          create: (_) => LoginController(
+            remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
+          ),
+          child: const LoginScreen(),
+        ),
+    login: (_) => ChangeNotifierProvider(
+          create: (_) => LoginController(
+            remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
+          ),
+          child: const LoginScreen(),
+        ),
       dashboard: (_) => const DashboardPage(),
       testBases: (_) => const TestBasesPage(),
       bendaharaPC: (_) => const PcViewPage(),

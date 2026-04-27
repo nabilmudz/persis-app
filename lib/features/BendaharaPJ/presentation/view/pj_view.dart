@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:persis_app/features/BendaharaPC/data/models/iuran_model.dart';
 import '../controller/pj_controller.dart';
 import 'pj_anggota_view.dart';
 import 'pj_cart_view.dart';
@@ -20,6 +19,7 @@ class _PjViewPageState extends State<PjViewPage> {
   void initState() {
     super.initState();
     _controller = PjController();
+    _controller.loadInitialData();
   }
 
   Future<void> _handleSubmitCart() async {
@@ -36,11 +36,21 @@ class _PjViewPageState extends State<PjViewPage> {
       return;
     }
 
-    final result = _controller.submitCart(
-      metodePembayaran: MetodePembayaran.transferBank,
+    final result = await _controller.submitCart(
+      paymentMethodId: 'bank_transfer',
     );
 
-    if (result == null || !mounted) {
+    if (!mounted) {
+      return;
+    }
+
+    if (result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gagal membuat transaksi. Coba lagi.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 
