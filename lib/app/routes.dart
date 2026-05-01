@@ -21,17 +21,17 @@ class AppRoutes {
   static Map<String, WidgetBuilder> get routes {
     return {
       initial: (_) => ChangeNotifierProvider(
-          create: (_) => LoginController(
-            remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
-          ),
-          child: const LoginScreen(),
+        create: (_) => LoginController(
+          remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
         ),
-    login: (_) => ChangeNotifierProvider(
-          create: (_) => LoginController(
-            remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
-          ),
-          child: const LoginScreen(),
+        child: const LoginScreen(),
+      ),
+      login: (_) => ChangeNotifierProvider(
+        create: (_) => LoginController(
+          remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
         ),
+        child: const LoginScreen(),
+      ),
       dashboard: (_) => const DashboardPage(),
       testBases: (_) => const TestBasesPage(),
       bendaharaPC: (_) => const PcViewPage(),

@@ -7,20 +7,16 @@ class UserRemoteDataSource {
   final String baseUrl;
   UserRemoteDataSource(this.baseUrl);
 
-  // Login User
   Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/api/users/login');
-
     try {
-      // TAMBAHKAN .timeout DI SINI 👇
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(const Duration(seconds: 10)); // Batas waktu 10 detik
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -29,8 +25,9 @@ class UserRemoteDataSource {
         throw Exception(errorData['message'] ?? 'Gagal Login');
       }
     } on TimeoutException {
-      // TANGKAP ERROR TIMEOUT-NYA DI SINI 👇
-      throw Exception('Server tidak merespon, periksa koneksi internet atau server mati.');
+      throw Exception(
+        'Server tidak merespon, periksa koneksi internet atau server mati.',
+      );
     } catch (e) {
       rethrow;
     }

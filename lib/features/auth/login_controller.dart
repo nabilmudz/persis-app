@@ -60,8 +60,9 @@ class LoginController extends ChangeNotifier {
       UserModel? parsedUser;
       try {
         final candidate = response['user'] ?? response['data'] ?? response;
-        if (candidate is Map<String, dynamic>)
+        if (candidate is Map<String, dynamic>) {
           parsedUser = UserModel.fromJson(candidate);
+        }
       } catch (_) {}
 
       _user = parsedUser;
@@ -139,16 +140,19 @@ class LoginController extends ChangeNotifier {
     final role = roleValue?.trim().toLowerCase() ?? '';
     if (role.contains('bendahara_pj') ||
         role.contains('bendaharapj') ||
-        role == 'pj')
+        role == 'pj') {
       return AppRoutes.bendaharaPJ;
+    }
     if (role.contains('bendahara_pc') ||
         role.contains('bendaharapc') ||
-        role == 'pc')
+        role == 'pc') {
       return AppRoutes.bendaharaPC;
+    }
     if (role.contains('bendahara_pd') ||
         role.contains('bendaharapd') ||
-        role == 'pd')
+        role == 'pd') {
       return AppRoutes.dashboard;
+    }
     return AppRoutes.dashboard;
   }
 }

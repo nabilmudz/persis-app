@@ -5,7 +5,16 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   ApiClient._();
 
-  static const String baseUrl = 'http://localhost:3000/api';
+  static const String baseUrl = 'http://10.10.82.29:3000/api';
+
+  static Future<bool> checkConnection() async {
+    try {
+      final response = await get('/health').timeout(const Duration(seconds: 5));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
 
   static Future<Map<String, String>> _defaultHeaders({String? token}) async {
     return {
