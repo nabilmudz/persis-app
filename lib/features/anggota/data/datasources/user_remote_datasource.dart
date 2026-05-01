@@ -8,29 +8,42 @@ class UserRemoteDataSource {
   UserRemoteDataSource(this.baseUrl);
 
   // Login User
-  Future<Map<String, dynamic>> login(String email, String password) async {
-    final url = Uri.parse('$baseUrl/api/users/login');
+  Future<Map<String, dynamic>> login(String emailOrNpa, String password) async {
+    final identifier = emailOrNpa.trim();
+    final credentialKey = identifier.contains('@') ? 'email' : 'npa';
+    final url = Uri.parse('$baseUrl/users/login');
 
     try {
-      // TAMBAHKAN .timeout DI SINI 👇
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(const Duration(seconds: 10)); // Batas waktu 10 detik
+      final response = await http
+          .post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({credentialKey: identifier, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 200) {
+      // debug prints (safe for dev) - remove or guard in production
+      // ignore: avoid_print
+      print('LOGIN URL: $url');
+      // ignore: avoid_print
+      print('STATUS: ${response.statusCode}');
+      // ignore: avoid_print
+      print('BODY: ${response.body}');
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonDecode(response.body);
       } else {
-        final errorData = jsonDecode(response.body);
-        throw Exception(errorData['message'] ?? 'Gagal Login');
+        try {
+          final errorData = jsonDecode(response.body);
+          throw Exception(errorData['message'] ?? 'Gagal Login');
+        } catch (_) {
+          throw Exception('Gagal Login: ${response.statusCode}');
+        }
       }
     } on TimeoutException {
-      // TANGKAP ERROR TIMEOUT-NYA DI SINI 👇
-      throw Exception('Server tidak merespon, periksa koneksi internet atau server mati.');
+      throw Exception(
+        'Server tidak merespon, periksa koneksi internet atau server mati.',
+      );
     } catch (e) {
       rethrow;
     }
@@ -49,7 +62,7 @@ class UserRemoteDataSource {
     final response = await http
         .get(Uri.parse('$baseUrl/users'))
         .timeout(const Duration(seconds: 10));
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       List data = json.decode(response.body);
       return data.map((e) => UserModel.fromJson(e)).toList();
     }

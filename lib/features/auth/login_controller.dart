@@ -56,24 +56,34 @@ class LoginController extends ChangeNotifier {
     try {
       final response = await remoteDataSource.login(identifier, pwd);
 
-      // try parse user
+      // locate candidate data / user map in multiple possible shapes
+      Map<String, dynamic>? dataMap;
+      try {
+        if (response['data'] is Map<String, dynamic>) {
+          dataMap = Map<String, dynamic>.from(response['data']);
+        } else if (response is Map<String, dynamic>) {
+          dataMap = Map<String, dynamic>.from(response);
+        }
+      } catch (_) {
+        dataMap = null;
+      }
+
+      Map<String, dynamic>? userMap;
+      if (response['user'] is Map<String, dynamic>) userMap = Map.from(response['user']);
+      userMap ??= dataMap != null && dataMap['user'] is Map<String, dynamic> ? Map.from(dataMap['user']) : null;
+      userMap ??= dataMap;
+
       UserModel? parsedUser;
       try {
-        final candidate = response['user'] ?? response['data'] ?? response;
-        if (candidate is Map<String, dynamic>)
-          parsedUser = UserModel.fromJson(candidate);
+        if (userMap != null) parsedUser = UserModel.fromJson(userMap);
       } catch (_) {}
 
       _user = parsedUser;
 
-      // extract token
+      // extract token from several possible locations
       String? token;
       for (final key in ['access_token', 'accessToken', 'token', 'jwt']) {
-        final v =
-            response[key] ??
-            (response['data'] is Map<String, dynamic>
-                ? response['data'][key]
-                : null);
+        final v = (response[key] ?? (dataMap != null ? dataMap[key] : null));
         if (v is String && v.trim().isNotEmpty) {
           token = v.trim();
           break;
@@ -82,19 +92,17 @@ class LoginController extends ChangeNotifier {
 
       String? refreshToken;
       for (final key in ['refresh_token', 'refreshToken']) {
-        final v =
-            response[key] ??
-            (response['data'] is Map<String, dynamic>
-                ? response['data'][key]
-                : null);
+        final v = (response[key] ?? (dataMap != null ? dataMap[key] : null));
         if (v is String && v.trim().isNotEmpty) {
           refreshToken = v.trim();
           break;
         }
       }
 
-      // role fallback
-      String? role = response['role'];
+      // role: check root, data, user, or parsed model
+      String? role = (response['role'] is String) ? response['role'] : null;
+      role ??= (dataMap != null && dataMap['role'] is String) ? dataMap['role'] : null;
+      role ??= (userMap != null && userMap['role'] is String) ? userMap['role'] : null;
       if (role == null && parsedUser != null) role = parsedUser.role;
 
       if (token != null) {
