@@ -3,6 +3,7 @@ import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.da
 
 import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
+import 'pc_bank_account_view.dart';
 import 'pc_verif_view.dart';
 import '../widgets/sweet_alert_dialog.dart';
 import '../widgets/verifikasi_card.dart';
@@ -139,10 +140,20 @@ class _PcViewPageState extends State<PcViewPage> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: BendaharaMenuCard(
-                        title: 'Kelola Rekening',
-                        icon: Icons.account_balance_wallet_outlined,
-                        iconBackgroundColor: const Color(0xFFFFFBEA),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PcBankAccountPage(),
+                            ),
+                          );
+                        },
+                        child: BendaharaMenuCard(
+                          title: 'Kelola Rekening',
+                          icon: Icons.account_balance_wallet_outlined,
+                          iconBackgroundColor: const Color(0xFFFFFBEA),
+                        ),
                       ),
                     ),
                   ],

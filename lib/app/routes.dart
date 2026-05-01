@@ -22,13 +22,13 @@ class AppRoutes {
     return {
       initial: (_) => ChangeNotifierProvider(
           create: (_) => LoginController(
-            remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
+            remoteDataSource: UserRemoteDataSource('https://avert-casually-plating.ngrok-free.dev/api'),
           ),
           child: const LoginScreen(),
         ),
     login: (_) => ChangeNotifierProvider(
           create: (_) => LoginController(
-            remoteDataSource: UserRemoteDataSource('http://10.0.2.2:3000/api'),
+            remoteDataSource: UserRemoteDataSource('https://avert-casually-plating.ngrok-free.dev/api'),
           ),
           child: const LoginScreen(),
         ),

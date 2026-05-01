@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   ApiClient._();
 
-  static const String baseUrl = 'http://localhost:3000/api';
+  static const String baseUrl = 'https://avert-casually-plating.ngrok-free.dev/api';
 
   static Future<Map<String, String>> _defaultHeaders({String? token}) async {
     return {
