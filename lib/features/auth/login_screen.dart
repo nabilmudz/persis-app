@@ -1,18 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 // ─── API Config ────────────────────────────────────────────────────────────────
 const String _baseUrl = 'https://siamese-oblivion-ranger.ngrok-free.dev';
-
-// ─── Dummy Data (untuk login tab Masuk) ───────────────────────────────────────
-final Map<String, String> _activeAccounts = {
-  'admin@persis.id': 'admin123',
-  'nashwa@persis.id': 'nashwa123',
-  '26150400': 'anggota123',
-  '26150401': 'anggota456',
-  '26150402': 'anggota789',
-};
 
 // ─── Colors ────────────────────────────────────────────────────────────────────
 const Color primaryGreen = Color(0xFF1A7A4A);
@@ -310,10 +302,19 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             elevation: 0,
           ),
-          child: const Text(
-            'Masuk',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-          ),
+          child: _isCheckingNpa
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text(
+                  'Masuk',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
         ),
       ],
     );
@@ -542,40 +543,90 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   // ─── Logic ────────────────────────────────────────────────────────────────
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     final input = _emailController.text.trim();
     final password = _passwordController.text.trim();
     if (input.isEmpty || password.isEmpty) {
-      _snackbar('Email/NPA dan Password tidak boleh kosong', isError: true);
+      _snackbar('Email dan Password tidak boleh kosong', isError: true);
       return;
     }
-    final correct = _activeAccounts[input];
-    if (correct == null) {
-      _snackbar('Akun tidak ditemukan', isError: true);
-      return;
+
+    setState(() => _isCheckingNpa = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/users/login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+        body: jsonEncode({'email': input, 'password': password}),
+      );
+
+      setState(() => _isCheckingNpa = false);
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _snackbar('Login berhasil! Selamat datang 👋');
+        Future.delayed(const Duration(milliseconds: 800), () {
+          if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
+        });
+      } else {
+        final msg = body['message'] ?? 'Email atau password salah';
+        _snackbar(msg, isError: true);
+      }
+    } catch (e) {
+      setState(() => _isCheckingNpa = false);
+      _snackbar('Tidak dapat terhubung ke server', isError: true);
     }
-    if (correct != password) {
-      _snackbar('Password salah', isError: true);
-      return;
-    }
-    _snackbar('Login berhasil! Selamat datang 👋');
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
-    });
   }
 
-  // Tombol Daftar — hanya validasi NPA tidak kosong, lalu lanjut ke IsiDataScreen
-  void _handleCekNpa() {
+  // Tombol Daftar — cek NPA dulu via API, baru ke form
+  Future<void> _handleCekNpa() async {
     final npa = _npaController.text.trim();
     if (npa.isEmpty) {
       _snackbar('NPA tidak boleh kosong', isError: true);
       return;
     }
-    // Langsung ke halaman isi data — validasi NPA dilakukan saat hit API activate
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => IsiDataScreen(npa: npa)),
-    );
+
+    setState(() {
+      _isCheckingNpa = true;
+      _npaNotFound = false;
+    });
+
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/api/users/check-npa/$npa'),
+            headers: {'ngrok-skip-browser-warning': 'true'},
+          )
+          .timeout(const Duration(seconds: 8));
+
+      setState(() => _isCheckingNpa = false);
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // NPA valid & belum aktif → lanjut isi data
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => IsiDataScreen(npa: npa)),
+        );
+      } else {
+        // NPA tidak ditemukan atau sudah aktif
+        final msg = body['message'] ?? 'NPA tidak ditemukan';
+        if (msg.toLowerCase().contains('sudah')) {
+          // Sudah aktif → suruh login
+          _snackbar('NPA sudah aktif. Silakan login langsung.', isError: true);
+          _tabController.animateTo(0);
+        } else {
+          setState(() => _npaNotFound = true);
+        }
+      }
+    } catch (e) {
+      setState(() => _isCheckingNpa = false);
+      _snackbar('Tidak dapat terhubung ke server', isError: true);
+    }
   }
 
   void _hubungiAdmin() {
