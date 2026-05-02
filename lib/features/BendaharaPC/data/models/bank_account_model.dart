@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class BankAccountModel {
   final String? id;
   final String? regionId;
@@ -5,6 +7,8 @@ class BankAccountModel {
   final String? bankName;
   final String? accountNumber;
   final String? qrisImageUrl;
+  final Uint8List? qrisImageBytes;
+  final String? qrisImageName;
   final bool? isActive;
 
   BankAccountModel({
@@ -14,6 +18,8 @@ class BankAccountModel {
     this.bankName,
     this.accountNumber,
     this.qrisImageUrl,
+    this.qrisImageBytes,
+    this.qrisImageName,
     this.isActive,
   });
 

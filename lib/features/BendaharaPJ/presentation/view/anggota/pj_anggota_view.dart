@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
-import '../controller/pj_controller.dart';
-import '../widgets/pj_verification_member_card.dart';
-import 'pj_cart_view.dart';
-import 'pj_verif_view.dart';
+import '../../controller/pj_controller.dart';
+import '../../widgets/pj_verification_member_card.dart';
+import '../tunai/pj_verif_tunai_view.dart';
+import 'pj_detail_anggota_view.dart';
 
 class PjAnggotaViewPage extends StatefulWidget {
   final PjController controller;
@@ -50,49 +50,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, thickness: 1, color: Color(0xFFD0D0D0)),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Lihat keranjang',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PjCartViewPage(controller: widget.controller),
-                ),
-              );
-            },
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.shopping_cart_outlined),
-                if (widget.controller.cartItemCount > 0)
-                  Positioned(
-                    right: -6,
-                    top: -8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFB31012),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        widget.controller.cartItemCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
+        actions: [],
       ),
       body: ListenableBuilder(
         listenable: widget.controller,
@@ -135,25 +93,6 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F8EE),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFBEE7CC)),
-                  ),
-                  child: Text(
-                    'Keranjang aktif: ${widget.controller.cartItemCount} item • Total ${_formatCurrency(widget.controller.cartTotalNominal)}',
-                    style: const TextStyle(
-                      color: Color(0xFF0B6A3B),
-                      fontFamily: 'Poppins',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
                 Container(
                   height: 56,
                   decoration: BoxDecoration(
@@ -233,11 +172,14 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                               memberId,
                             );
                       final iuranStatuses = memberId.isEmpty
-                          ? const <String>['ID anggota tidak valid']
-                          : widget.controller.memberIuranStatusLabels(
+                          ? const <MemberIuranStatusModel>[]
+                          : widget.controller.memberIuranStatusItems(
                               memberId,
                               limit: 4,
                             );
+                      final cardStatus = memberId.isEmpty
+                          ? null
+                          : widget.controller.memberCardStatus(memberId);
 
                       return PjVerificationMemberCard(
                         name: widget.controller.memberDisplayName(member),
@@ -246,6 +188,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                         showTotal: true,
                         total: _formatCurrency(totalTunggakan),
                         iuranStatuses: iuranStatuses,
+                        cardStatus: cardStatus,
                         onTapCekKartu: () {
                           if (memberId.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -259,11 +202,17 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PjVerifViewPage(
+                              builder: (_) => PjVerifTunaiViewPage(
                                 controller: widget.controller,
                                 member: member,
                               ),
                             ),
+                          );
+                        },
+                        onTapDetail: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => PjDetailAnggotaView(member: member),
                           );
                         },
                       );

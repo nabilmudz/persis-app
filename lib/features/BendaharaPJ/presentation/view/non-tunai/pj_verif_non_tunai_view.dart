@@ -1,65 +1,40 @@
 import 'package:flutter/material.dart';
-import '../controller/pc_controller.dart';
+import '../../controller/pj_verif_non_tunai_controller.dart';
+import '../../../../BendaharaPC/presentation/controller/pc_controller.dart';
+import '../../../../BendaharaPC/presentation/widgets/sweet_alert_dialog.dart';
+import '../../../../BendaharaPC/presentation/widgets/verifikasi_card.dart';
 
-import '../widgets/sweet_alert_dialog.dart';
-import '../widgets/verifikasi_card.dart';
-
-class PcVerifikasiPage extends StatefulWidget {
-  const PcVerifikasiPage({super.key, this.controller});
-
-  final PcController? controller;
+class PjVerifNonTunaiViewPage extends StatefulWidget {
+  const PjVerifNonTunaiViewPage({super.key});
 
   @override
-  State<PcVerifikasiPage> createState() => _PcVerifikasiPageState();
+  State<PjVerifNonTunaiViewPage> createState() =>
+      _PjVerifNonTunaiViewPageState();
 }
 
-class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
+class _PjVerifNonTunaiViewPageState extends State<PjVerifNonTunaiViewPage> {
   final TextEditingController _searchController = TextEditingController();
-  late final PcController _controller;
-  late final bool _ownsController;
+  late final PjVerifNonTunaiController _controller;
   String _selectedCategory = 'Belum Diverifikasi';
 
   List<String> get _categories => PcController.verificationCategories;
 
-  Future<void> _loadTransactions() async {
-    await _controller.loadTransactions();
-
-    if (!mounted) {
-      return;
-    }
-
-    final error = _controller.errorMessage;
-    if (error != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error)));
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    _ownsController = widget.controller == null;
-    _controller = widget.controller ?? PcController();
-
-    if (_ownsController) {
-      _loadTransactions();
-    }
+    _controller = PjVerifNonTunaiController();
+    _controller.loadInitialData();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-
-    if (_ownsController) {
-      _controller.dispose();
-    }
-
+    _controller.dispose();
     super.dispose();
   }
 
   List<PcVerifikasiItem> _filteredItems() {
-    return _controller.filteredVerifikasiItems(
+    return _controller.getFilteredItems(
       category: _selectedCategory,
       query: _searchController.text,
     );
@@ -89,41 +64,50 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
 
     final result = await _controller.accTransaction(item.transaction);
 
-    if (result == PcAccResult.alreadyVerified) {
+    if (result == PcAccResult.success) {
       await SweetAlertDialog.showSuccess(
         context: context,
-        title: 'Sudah Diverifikasi',
-        message: 'Pembayaran ${item.name} sudah pernah di-ACC sebelumnya.',
+        title: 'Berhasil',
+        message: 'Pembayaran ${item.name} berhasil di-ACC.',
       );
-      return;
-    }
-
-    if (result == PcAccResult.notFound) {
-      await SweetAlertDialog.showSuccess(
-        context: context,
-        title: 'Data Tidak Ditemukan',
-        message: 'Data transaksi gagal diperbarui. Coba lagi.',
+    } else {
+      // SweetAlertDialog tidak memiliki showError, gunakan showSuccess dengan pesan error
+      // atau gunakan SnackBar standar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data transaksi gagal diperbarui. Coba lagi.'),
+        ),
       );
-      return;
     }
-
-    await SweetAlertDialog.showSuccess(
-      context: context,
-      title: 'Berhasil',
-      message: 'Pembayaran ${item.name} berhasil di-ACC.',
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Verifikasi Pembayaran')),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Verifikasi Non-Tunai',
+          style: TextStyle(
+            color: Color(0xFF073D4D),
+            fontSize: 20,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: Color(0xFFD0D0D0)),
+        ),
+      ),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
           builder: (context, child) {
-            if (_controller.isLoading) {
+            if (_controller.isLoading && _controller.transactions.isEmpty) {
               return const Center(child: CircularProgressIndicator());
             }
 
@@ -147,7 +131,7 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
                       controller: _searchController,
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
-                        hintText: 'Cari nama, lokasi, ID, atau metode',
+                        hintText: 'Cari nama atau deskripsi',
                         prefixIcon: const Icon(Icons.search),
                         filled: true,
                         fillColor: const Color(0xFFF7F7F7),
@@ -229,7 +213,7 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
                         ),
                         child: const Center(
                           child: Text(
-                            'Data tidak ditemukan',
+                            'Tidak ada data iuran non-tunai',
                             style: TextStyle(
                               color: Color(0xFF6A6A6A),
                               fontFamily: 'Poppins',
@@ -242,25 +226,17 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
                       ...items.map((item) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
-                          child: Align(
-                            child: VerifikasiCard(
-                              date: item.date,
-                              location: item.location,
-                              name: item.name,
-                              idNumber: item.idNumber,
-                              paymentMethod: item.paymentMethod,
-                              price: item.price,
-                              onAccPressed: () async => _handleAccPressed(item),
-                              onLihatBuktiPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Menampilkan bukti ${item.paymentMethod}',
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                          child: VerifikasiCard(
+                            date: item.date,
+                            location: item.location,
+                            name: item.name,
+                            idNumber: item.idNumber,
+                            paymentMethod: item.paymentMethod,
+                            price: item.price,
+                            onAccPressed: () async => _handleAccPressed(item),
+                            onLihatBuktiPressed: () {
+                              // Fitur lihat bukti
+                            },
                           ),
                         );
                       }),
