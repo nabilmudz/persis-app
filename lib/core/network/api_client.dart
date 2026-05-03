@@ -5,7 +5,8 @@ import 'package:http/http.dart' as http;
 class ApiClient {
   ApiClient._();
 
-  static const String baseUrl = 'https://avert-casually-plating.ngrok-free.dev/api';
+  static const String baseUrl =
+      'https://avert-casually-plating.ngrok-free.dev/api';
 
   static Future<Map<String, String>> _defaultHeaders({String? token}) async {
     return {
@@ -41,6 +42,17 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$endpoint');
 
     return http.put(uri, headers: headers, body: jsonEncode(body ?? {}));
+  }
+
+  static Future<http.Response> patch(
+    String endpoint, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) async {
+    final headers = await _defaultHeaders(token: token);
+    final uri = Uri.parse('$baseUrl$endpoint');
+
+    return http.patch(uri, headers: headers, body: jsonEncode(body ?? {}));
   }
 
   static Future<http.Response> delete(String endpoint, {String? token}) async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
 
 class PjVerificationMemberCard extends StatelessWidget {
   final String name;
@@ -6,8 +7,10 @@ class PjVerificationMemberCard extends StatelessWidget {
   final bool isTunggakan;
   final bool showTotal;
   final String total;
-  final List<String> iuranStatuses;
+  final List<MemberIuranStatusModel> iuranStatuses;
+  final PjMonthStatus? cardStatus;
   final VoidCallback? onTapCekKartu;
+  final VoidCallback? onTapDetail;
 
   const PjVerificationMemberCard({
     super.key,
@@ -16,17 +19,86 @@ class PjVerificationMemberCard extends StatelessWidget {
     this.isTunggakan = false,
     this.showTotal = false,
     this.total = 'Rp. 40.000',
-    this.iuranStatuses = const <String>[],
+    this.iuranStatuses = const <MemberIuranStatusModel>[],
+    this.cardStatus,
     this.onTapCekKartu,
+    this.onTapDetail,
   });
+
+  PjMonthStatus _aggregateStatus() {
+    if (cardStatus != null) {
+      return cardStatus!;
+    }
+
+    if (iuranStatuses.any((status) => status.status == PjMonthStatus.lunas)) {
+      return PjMonthStatus.lunas;
+    }
+
+    if (iuranStatuses.any(
+          (status) => status.status == PjMonthStatus.tunggakan,
+        ) ||
+        isTunggakan) {
+      return PjMonthStatus.tunggakan;
+    }
+
+    return PjMonthStatus.belumJatuhTempo;
+  }
+
+  String _statusLabel(PjMonthStatus status) {
+    switch (status) {
+      case PjMonthStatus.lunas:
+        return 'Lunas';
+      case PjMonthStatus.tunggakan:
+        return 'Tunggakan';
+      case PjMonthStatus.belumJatuhTempo:
+        return 'Belum Bayar';
+    }
+  }
+
+  Color _statusColor(PjMonthStatus status) {
+    switch (status) {
+      case PjMonthStatus.lunas:
+        return const Color(0xFF28A745);
+      case PjMonthStatus.tunggakan:
+        return const Color(0xFFB31012);
+      case PjMonthStatus.belumJatuhTempo:
+        return const Color(0xFF6B7280);
+    }
+  }
+
+  IconData _statusIcon(PjMonthStatus status) {
+    switch (status) {
+      case PjMonthStatus.lunas:
+        return Icons.check_circle_rounded;
+      case PjMonthStatus.tunggakan:
+        return Icons.warning_amber_rounded;
+      case PjMonthStatus.belumJatuhTempo:
+        return Icons.schedule_rounded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final aggregateStatus = _aggregateStatus();
+    final aggregateColor = _statusColor(aggregateStatus);
+    final aggregateIcon = _statusIcon(aggregateStatus);
+    final aggregateLabel = _statusLabel(aggregateStatus);
+    final cardBackground = aggregateStatus == PjMonthStatus.lunas
+        ? const Color(0xFFF2FBF4)
+        : aggregateStatus == PjMonthStatus.tunggakan
+        ? const Color(0xFFFFF6F6)
+        : Colors.white;
+    final cardBorder = aggregateStatus == PjMonthStatus.lunas
+        ? const Color(0xFFBFE7C7)
+        : aggregateStatus == PjMonthStatus.tunggakan
+        ? const Color(0xFFF2C8C8)
+        : Colors.white;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBackground,
         borderRadius: BorderRadius.circular(15),
         boxShadow: const [
           BoxShadow(
@@ -35,6 +107,7 @@ class PjVerificationMemberCard extends StatelessWidget {
             offset: Offset(0, 2),
           ),
         ],
+        border: Border.all(color: cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,10 +120,22 @@ class PjVerificationMemberCard extends StatelessWidget {
                 height: 67,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
-                  image: const DecorationImage(
-                    image: NetworkImage('https://placehold.co/59x67'),
-                    fit: BoxFit.cover,
-                  ),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Image.network(
+                  'https://placehold.co/59x67',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: const Color(0xFFF3F4F6),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.person,
+                        color: Color(0xFF9CA3AF),
+                        size: 28,
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 10),
@@ -73,7 +158,7 @@ class PjVerificationMemberCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (isTunggakan) ...[
+                        if (aggregateStatus == PjMonthStatus.tunggakan) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -100,6 +185,43 @@ class PjVerificationMemberCard extends StatelessWidget {
                         ],
                       ],
                     ),
+                    if (aggregateStatus != PjMonthStatus.belumJatuhTempo) ...[
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: aggregateColor.withOpacity(0.14),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: aggregateColor),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                aggregateIcon,
+                                size: 14,
+                                color: aggregateColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                aggregateLabel,
+                                style: TextStyle(
+                                  color: aggregateColor,
+                                  fontSize: 10,
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     if (subtitle.trim().isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -115,28 +237,54 @@ class PjVerificationMemberCard extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: onTapCekKartu,
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: const Color(0x4989CCD1),
-                          foregroundColor: const Color(0xFF02457B),
-                          side: const BorderSide(color: Color(0xFF5DB1BA)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: onTapCekKartu,
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: const Color(0x4989CCD1),
+                              foregroundColor: const Color(0xFF02457B),
+                              side: const BorderSide(color: Color(0xFF5DB1BA)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            child: const Text(
+                              'Cek Kartu Iuran',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
-                        child: const Text(
-                          'Cek Kartu Iuran',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: onTapDetail,
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFFBEA),
+                              foregroundColor: const Color(0xFF073D4D),
+                              side: const BorderSide(color: Color(0xFFFFD700)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            child: const Text(
+                              'Detail',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
                     if (iuranStatuses.isNotEmpty) ...[
                       const SizedBox(height: 10),
@@ -144,26 +292,46 @@ class PjVerificationMemberCard extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children: iuranStatuses.map((status) {
+                          final chipColor = _statusColor(status.status);
+                          final chipLabel = _statusLabel(status.status);
+                          final chipBackground =
+                              status.status == PjMonthStatus.lunas
+                              ? const Color(0xFFE8F7EB)
+                              : status.status == PjMonthStatus.tunggakan
+                              ? const Color(0xFFFFEBEB)
+                              : const Color(0xFFF3F4F6);
+
                           return Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
-                              vertical: 4,
+                              vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F6),
+                              color: chipBackground,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: const Color(0xFFE5E7EB),
+                                color: chipColor.withOpacity(0.35),
                               ),
                             ),
-                            child: Text(
-                              status,
-                              style: const TextStyle(
-                                color: Color(0xFF374151),
-                                fontSize: 10,
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _statusIcon(status.status),
+                                  size: 12,
+                                  color: chipColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${status.label} - $chipLabel',
+                                  style: TextStyle(
+                                    color: chipColor,
+                                    fontSize: 10,
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
                           );
                         }).toList(),

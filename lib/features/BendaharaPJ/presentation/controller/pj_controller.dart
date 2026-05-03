@@ -4,10 +4,10 @@ import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_rem
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
-import 'pj_verif_controller.dart';
+import 'pj_verif_tunai_controller.dart';
 
-export 'pj_verif_controller.dart'
-    show PjMonthStatus, PjPaymentCartItem, PjSubmitResult;
+export 'pj_verif_tunai_controller.dart'
+    show MemberIuranStatusModel, PjMonthStatus;
 
 class PjController extends ChangeNotifier {
   PjController({
@@ -16,13 +16,8 @@ class PjController extends ChangeNotifier {
   }) : _userDataSource =
            userDataSource ?? UserRemoteDataSource(ApiClient.baseUrl),
        _transactionDataSource =
-           transactionDataSource ??
-           TransactionRemoteDataSource(ApiClient.baseUrl) {
-    _verifController = PjVerifController(
-      transactions: _transactions,
-      members: _members,
-      transactionDataSource: _transactionDataSource,
-    );
+           transactionDataSource ?? TransactionRemoteDataSource() {
+    _verifController = PjVerifTunaiController(transactions: _transactions);
     _verifController.addListener(_onVerifChanged);
   }
 
@@ -35,7 +30,7 @@ class PjController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  late final PjVerifController _verifController;
+  late final PjVerifTunaiController _verifController;
 
   List<UserModel> get members => List<UserModel>.unmodifiable(_members);
   List<TransactionModel> get transactions =>
@@ -43,9 +38,7 @@ class PjController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  List<PjPaymentCartItem> get cartItems => _verifController.cartItems;
-  int get cartItemCount => _verifController.cartItemCount;
-  double get cartTotalNominal => _verifController.cartTotalNominal;
+  List<DuesPeriodModel> get duesPeriods => _verifController.duesPeriods;
 
   Future<void> loadInitialData() async {
     if (_isLoading) {
@@ -57,15 +50,25 @@ class PjController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final results = await Future.wait<dynamic>([
-        _userDataSource.getAllUsers(),
-        _transactionDataSource.getHistory(),
-      ]);
+      List<UserModel> users = <UserModel>[];
+      List<TransactionModel> transactions = <TransactionModel>[];
+      List<DuesPeriodModel> duesPeriods = <DuesPeriodModel>[];
 
-      final users = (results[0] as List<UserModel>)
+      try {
+        users = await _userDataSource.getAllUsers();
+      } catch (_) {}
+
+      try {
+        transactions = await _transactionDataSource.getHistory();
+      } catch (_) {}
+
+      try {
+        duesPeriods = await _transactionDataSource.getDuesPeriods();
+      } catch (_) {}
+
+      users = users
           .where((user) => user.id != null && user.id!.trim().isNotEmpty)
           .toList();
-      final transactions = results[1] as List<TransactionModel>;
 
       _members
         ..clear()
@@ -74,6 +77,14 @@ class PjController extends ChangeNotifier {
       _transactions
         ..clear()
         ..addAll(transactions);
+
+      _verifController.updateData(
+        transactions: _transactions,
+        duesPeriods: duesPeriods,
+      );
+      if (_members.isEmpty && _transactions.isEmpty) {
+        _errorMessage = 'Tidak ada data yang bisa dimuat saat offline.';
+      }
     } catch (e) {
       _errorMessage = 'Gagal memuat data anggota/transaksi: $e';
     } finally {
@@ -132,54 +143,6 @@ class PjController extends ChangeNotifier {
     }).toList();
   }
 
-  bool isInCart({
-    required String anggotaId,
-    required int month,
-    required int year,
-  }) {
-    return _verifController.isInCart(
-      anggotaId: anggotaId,
-      month: month,
-      year: year,
-    );
-  }
-
-  void addMonthToCart({
-    required UserModel member,
-    required int month,
-    required int year,
-    double? nominal,
-  }) {
-    _verifController.addMonthToCart(
-      member: member,
-      month: month,
-      year: year,
-      nominal: nominal,
-    );
-  }
-
-  void removeFromCart(String cartItemId) {
-    _verifController.removeFromCart(cartItemId);
-  }
-
-  void removeMemberFromCart(String anggotaId) {
-    _verifController.removeMemberFromCart(anggotaId);
-  }
-
-  void clearCart() {
-    _verifController.clearCart();
-  }
-
-  Future<PjSubmitResult?> submitCart({
-    String paymentMethodId = 'bank_transfer',
-    String? creatorId,
-  }) async {
-    return _verifController.submitCart(
-      paymentMethodId: paymentMethodId,
-      creatorId: creatorId,
-    );
-  }
-
   int tunggakanCountByMember(String anggotaId) {
     return _verifController.tunggakanCountByMember(anggotaId);
   }
@@ -188,8 +151,19 @@ class PjController extends ChangeNotifier {
     return _verifController.tunggakanNominalByMember(anggotaId);
   }
 
+  List<MemberIuranStatusModel> memberIuranStatusItems(
+    String anggotaId, {
+    int limit = 4,
+  }) {
+    return _verifController.memberPeriodStatusItems(anggotaId, limit: limit);
+  }
+
   List<String> memberIuranStatusLabels(String anggotaId, {int limit = 4}) {
     return _verifController.memberPeriodStatusLabels(anggotaId, limit: limit);
+  }
+
+  PjMonthStatus memberCardStatus(String anggotaId) {
+    return _verifController.memberCardStatus(anggotaId);
   }
 
   double getNominalForMemberMonth({
@@ -214,9 +188,5 @@ class PjController extends ChangeNotifier {
       month: month,
       year: year,
     );
-  }
-
-  void accPembayaran(String idIuran, Object roleBendahara) {
-    _verifController.accPembayaran(idIuran, roleBendahara);
   }
 }

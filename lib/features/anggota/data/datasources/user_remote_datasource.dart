@@ -48,6 +48,18 @@ class UserRemoteDataSource {
     return response.statusCode == 200;
   }
 
+  // Get One User
+  Future<UserModel> getOneUsers(String id) async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/users/$id'))
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return UserModel.fromJson(data);
+    }
+    throw Exception('Gagal mengambil data user');
+  }
+
   // Get All Users
   Future<List<UserModel>> getAllUsers() async {
     final response = await http
