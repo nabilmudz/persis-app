@@ -10,15 +10,13 @@ class PaymentMethodRemoteDataSource {
   Future<List<PaymentMethodModel>> getAllPaymentMethods() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/payment-method'));
-      print('Payment Method API Response: ${response.statusCode} - ${response.body}');
       if (response.statusCode == 200) {
         List data = json.decode(response.body);
         return data.map((e) => PaymentMethodModel.fromJson(e)).toList();
       }
-      throw Exception('Gagal mengambil metode pembayaran: Status ${response.statusCode}');
+      return <PaymentMethodModel>[];
     } catch (e) {
-      print('Payment Method API Error: $e');
-      rethrow;
+      return <PaymentMethodModel>[];
     }
   }
 

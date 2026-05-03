@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:persis_app/core/network/api_client.dart';
+import 'package:persis_app/core/network/network_status.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/BendaharaPC/data/datasources/payment_method_remote_datasources.dart';
+import 'package:persis_app/helpers/object_id_helper.dart';
+import 'pj_hive_controller.dart';
 
 class PjVerifTunaiTransactionController extends ChangeNotifier {
   late final TransactionRemoteDataSource _dataSource;
@@ -44,7 +47,8 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
           )
           .toList();
     } catch (e) {
-      _errorMessage = 'Gagal memuat data transaksi: ${e.toString()}';
+      _transactions = [];
+      _errorMessage = null;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -168,42 +172,32 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Load payment method tunai jika belum
-      await _loadTunaiPaymentMethod();
-
-      if (_tunaiPaymentMethodId == null) {
-        _errorMessage = 'Payment method "tunai" tidak ditemukan';
-        notifyListeners();
-        return false;
-      }
-
       // Buat item-item transaksi untuk setiap bulan yang dipilih
       final items = <TransactionItemModel>[];
       int totalAmount = 0;
 
+      // Generate ObjectId valid untuk Transaction ini dari frontend
+      final transactionId = ObjectIdHelper.generateMongoObjectId();
+
       for (final month in selectedMonths) {
-        // Fetch dues period untuk bulan ini
-        final duesPeriod = await _dataSource.getDuesPeriodByMonthYear(
-          month: month,
-          year: year,
-        );
-
-        if (duesPeriod == null) {
-          _errorMessage =
-              'Dues period untuk bulan $month/$year tidak ditemukan';
-          notifyListeners();
-          return false;
-        }
-
-        // Gunakan amount dari dues period
-        final amount = (duesPeriod.amount ?? 0).toInt();
+        final amount = getNominal(month, year).round();
         totalAmount += amount;
+
+        String? duesObjectId;
+        try {
+          final duesPeriod = await _dataSource.getDuesPeriodByMonthYear(
+            month: month,
+            year: year,
+          );
+          duesObjectId = duesPeriod?.id;
+        } catch (_) {}
 
         items.add(
           TransactionItemModel(
             anggotaId: anggotaId,
-            periodId: duesPeriod.id,
-            duesPeriodId: duesPeriod.id,
+            transactionId: transactionId,
+            periodId: duesObjectId, // Hanya kirim jika valid ObjectId
+            duesPeriodId: duesObjectId, // Hanya kirim jika valid ObjectId
             status: 'paid',
             amount: amount,
             description: 'Iuran ${_getMonthName(month)} $year',
@@ -211,27 +205,55 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         );
       }
 
+      // Load payment method tunai jika ada
+      try {
+        await _loadTunaiPaymentMethod();
+      } catch (_) {}
+
       // Buat transaksi dengan payment_method_id yang benar
       final transaction = TransactionModel(
+        id: transactionId,
+        type: 'tunai',
         creatorId: memberId,
-        paymentMethodId: _tunaiPaymentMethodId,
+        paymentMethodId: _tunaiPaymentMethodId, // Akan null jika gagal load, bukan string 'tunai'
         totalAmount: totalAmount,
-        status: 'completed',
+        status: 'pending',
         accStatus: null,
         isSynced: false,
         createdAt: DateTime.now().toIso8601String(),
         items: items,
       );
 
-      // Kirim ke API
-      final isCreated = await _dataSource.createTransaction(transaction);
+      // Simpan ke Hive secara lokal terlebih dahulu
+      final hiveController = PjHiveController();
+      final key = await hiveController.saveTransactionLocally(
+        transaction.toJson(),
+      );
 
-      if (isCreated) {
+      if (!await NetworkStatus.hasInternetConnection()) {
         _errorMessage = null;
         return true;
-      } else {
-        _errorMessage = 'Gagal membuat transaksi, coba lagi';
-        return false;
+      }
+
+      // Mencoba mengirim ke API
+      try {
+        final transactionSync = transaction.copyWith(status: 'completed');
+        final isCreated = await _dataSource.createTransaction(transactionSync);
+
+        if (isCreated) {
+          // Jika berhasil masuk backend (MongoDB), hapus dari Hive
+          await hiveController.removeSyncedTransaction(key);
+          _errorMessage = null;
+          return true;
+        } else {
+          // Gagal dari backend tetapi masih tersimpan di Hive
+          _errorMessage = null;
+          return true;
+        }
+      } catch (e) {
+        // Gagal karena jaringan atau lainnya, tetap tersimpan di Hive
+        _errorMessage = null;
+        return true;
       }
     } catch (e) {
       _errorMessage = 'Error: ${e.toString()}';

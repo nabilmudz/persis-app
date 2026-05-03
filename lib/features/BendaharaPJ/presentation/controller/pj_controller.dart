@@ -38,6 +38,8 @@ class PjController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  List<DuesPeriodModel> get duesPeriods => _verifController.duesPeriods;
+
   Future<void> loadInitialData() async {
     if (_isLoading) {
       return;
@@ -48,17 +50,25 @@ class PjController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final results = await Future.wait<dynamic>([
-        _userDataSource.getAllUsers(),
-        _transactionDataSource.getHistory(),
-        _transactionDataSource.getDuesPeriods(),
-      ]);
+      List<UserModel> users = <UserModel>[];
+      List<TransactionModel> transactions = <TransactionModel>[];
+      List<DuesPeriodModel> duesPeriods = <DuesPeriodModel>[];
 
-      final users = (results[0] as List<UserModel>)
+      try {
+        users = await _userDataSource.getAllUsers();
+      } catch (_) {}
+
+      try {
+        transactions = await _transactionDataSource.getHistory();
+      } catch (_) {}
+
+      try {
+        duesPeriods = await _transactionDataSource.getDuesPeriods();
+      } catch (_) {}
+
+      users = users
           .where((user) => user.id != null && user.id!.trim().isNotEmpty)
           .toList();
-      final transactions = results[1] as List<TransactionModel>;
-      final duesPeriods = results[2] as List<DuesPeriodModel>;
 
       _members
         ..clear()
@@ -72,6 +82,9 @@ class PjController extends ChangeNotifier {
         transactions: _transactions,
         duesPeriods: duesPeriods,
       );
+      if (_members.isEmpty && _transactions.isEmpty) {
+        _errorMessage = 'Tidak ada data yang bisa dimuat saat offline.';
+      }
     } catch (e) {
       _errorMessage = 'Gagal memuat data anggota/transaksi: $e';
     } finally {

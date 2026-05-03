@@ -17,21 +17,6 @@ class MemberIuranStatusModel {
 
 class PjVerifTunaiController extends ChangeNotifier {
   static const int _fallbackNominal = 10000;
-  static const Set<String> _paidStatuses = {
-    'paid',
-    'lunas',
-    'verified',
-    'diverifikasi',
-    'success',
-    'done',
-  };
-  static const Set<String> _unpaidStatuses = {
-    'unpaid',
-    'pending',
-    'belum',
-    'tunggakan',
-    'overdue',
-  };
 
   PjVerifTunaiController({
     required List<TransactionModel> transactions,
@@ -44,6 +29,8 @@ class PjVerifTunaiController extends ChangeNotifier {
 
   List<DuesPeriodModel> get _safeDuesPeriods =>
       _duesPeriods ?? const <DuesPeriodModel>[];
+
+  List<DuesPeriodModel> get duesPeriods => _safeDuesPeriods;
 
   void updateData({
     required List<TransactionModel> transactions,

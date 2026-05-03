@@ -1,71 +1,151 @@
 import 'package:flutter/material.dart';
-import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../controller/pj_controller.dart';
+import '../../controller/pj_hive_controller.dart';
+import '../../widgets/sweet_alert_dialog.dart';
 
-class PendingTransactionViewPage extends StatelessWidget {
+class PendingTransactionViewPage extends StatefulWidget {
   final PjController controller;
 
   const PendingTransactionViewPage({super.key, required this.controller});
 
   @override
+  State<PendingTransactionViewPage> createState() =>
+      _PendingTransactionViewPageState();
+}
+
+class _PendingTransactionViewPageState
+    extends State<PendingTransactionViewPage> {
+  final PjHiveController _hiveController = PjHiveController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PjHiveController.syncPendingTransactions();
+    });
+  }
+
+  Future<void> _syncPendingTransactions() async {
+    await PjHiveController.syncPendingTransactions();
+  }
+
+  Future<void> _deletePendingTransaction(
+    dynamic key,
+    Map<String, dynamic> transactionData,
+  ) async {
+    final paymentMethod =
+        transactionData['paymentMethodId'] ??
+        transactionData['tipe'] ??
+        'Tunai';
+
+    final shouldDelete = await SweetAlertDialog.showConfirmation(
+      context: context,
+      title: 'Hapus transaksi?',
+      message:
+          'Transaksi $paymentMethod akan dihapus dari penyimpanan lokal Hive.',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+    );
+
+    if (!shouldDelete || !mounted) {
+      return;
+    }
+
+    await _hiveController.removeSyncedTransaction(key);
+
+    if (!mounted) {
+      return;
+    }
+
+    await SweetAlertDialog.showSuccess(
+      context: context,
+      title: 'Berhasil',
+      message: 'Data transaksi lokal berhasil dihapus.',
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final pendingTransactions = controller.transactions.where((tx) {
-      final status = (tx.status ?? '').toLowerCase();
-      final accStatus = (tx.accStatus ?? '').toLowerCase();
-      return status == 'pending' || accStatus == 'pending';
-    }).toList();
+    final pendingBox = Hive.box('pj_pending_transactions');
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pending Transaction'),
+        title: const Text('Pending Transaction (Lokal)'),
+        actions: [
+          IconButton(
+            tooltip: 'Sync now',
+            icon: const Icon(Icons.sync),
+            onPressed: _syncPendingTransactions,
+          ),
+        ],
       ),
-      body: ListenableBuilder(
-        listenable: controller,
-        builder: (context, child) {
-          if (controller.isLoading && controller.transactions.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: RefreshIndicator(
+        onRefresh: _syncPendingTransactions,
+        child: ValueListenableBuilder<Box>(
+          valueListenable: pendingBox.listenable(),
+          builder: (context, box, child) {
+            final pendingTransactions = _hiveController
+                .getPendingTransactions();
 
-          if (pendingTransactions.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Tidak ada transaksi pending saat ini.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF4B5563),
-                    fontWeight: FontWeight.w600,
+            if (pendingTransactions.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 120),
+                  Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text(
+                        'Tidak ada transaksi pending (lokal) saat ini.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF4B5563),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            );
-          }
+                ],
+              );
+            }
 
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            itemCount: pendingTransactions.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final transaction = pendingTransactions[index];
-              return _PendingTransactionCard(transaction: transaction);
-            },
-          );
-        },
+            return ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              itemCount: pendingTransactions.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final transactionKey = pendingTransactions[index]['key'];
+                final transactionMap =
+                    pendingTransactions[index]['data'] as Map<String, dynamic>;
+                return _PendingTransactionCard(
+                  transactionData: transactionMap,
+                  onDelete: () =>
+                      _deletePendingTransaction(transactionKey, transactionMap),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
 }
 
 class _PendingTransactionCard extends StatelessWidget {
-  final TransactionModel transaction;
+  final Map<String, dynamic> transactionData;
+  final VoidCallback onDelete;
 
-  const _PendingTransactionCard({required this.transaction});
+  const _PendingTransactionCard({
+    required this.transactionData,
+    required this.onDelete,
+  });
 
-  String _formatCurrency(int? amount) {
-    final value = amount ?? 0;
-    final number = value.toString();
+  String _formatCurrency(dynamic amount) {
+    if (amount == null) return 'Rp. 0';
+    final number = amount.toString();
     final buffer = StringBuffer();
     for (var i = 0; i < number.length; i++) {
       final reverseIndex = number.length - i;
@@ -77,15 +157,61 @@ class _PendingTransactionCard extends StatelessWidget {
     return 'Rp. ${buffer.toString()}';
   }
 
+  int _extractTotalAmount(Map<String, dynamic> data) {
+    final directTotal = data['total_amount'] ?? data['totalAmount'];
+    if (directTotal is num) {
+      return directTotal.toInt();
+    }
+    if (directTotal is String) {
+      return int.tryParse(directTotal.replaceAll('.', '')) ?? 0;
+    }
+
+    final items = data['items'];
+    if (items is List) {
+      return items.fold<int>(0, (sum, item) {
+        if (item is Map) {
+          final amount = item['amount'];
+          if (amount is num) {
+            return sum + amount.toInt();
+          }
+          if (amount is String) {
+            return sum + (int.tryParse(amount) ?? 0);
+          }
+        }
+        return sum;
+      });
+    }
+
+    final nominal = data['nominal'];
+    if (nominal is num) {
+      return nominal.toInt();
+    }
+    if (nominal is String) {
+      return int.tryParse(nominal.replaceAll('.', '')) ?? 0;
+    }
+
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final status = transaction.status ?? transaction.accStatus ?? 'unknown';
-    final createdAt = transaction.createdAt != null
-        ? DateTime.tryParse(transaction.createdAt!)
+    final status =
+        transactionData['status'] ?? transactionData['accStatus'] ?? 'pending';
+    final timestamp =
+        transactionData['local_timestamp'] ?? transactionData['createdAt'];
+    final createdAt = timestamp != null
+        ? DateTime.tryParse(timestamp.toString())
         : null;
     final dateLabel = createdAt != null
         ? '${createdAt.day}/${createdAt.month}/${createdAt.year}'
         : 'Tanggal tidak tersedia';
+
+    // Sesuaikan keys dengan yang Anda simpan sewaktu add() ke Hive
+    final paymentMethod =
+        transactionData['paymentMethodId'] ??
+        transactionData['tipe'] ??
+        'Tunai';
+    final totalAmount = _extractTotalAmount(transactionData);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -104,16 +230,28 @@ class _PendingTransactionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Transaksi ${transaction.paymentMethodId ?? 'N/A'}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  'Transaksi $paymentMethod',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Hapus transaksi',
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
-            'Total: ${_formatCurrency(transaction.totalAmount)}',
+            'Total: ${_formatCurrency(totalAmount)}',
             style: const TextStyle(
               fontSize: 14,
               color: Color(0xFF0B6A3B),
@@ -122,7 +260,7 @@ class _PendingTransactionCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Status: ${status.toUpperCase()}',
+            'Status: ${status.toString().toUpperCase()}',
             style: const TextStyle(
               fontSize: 14,
               color: Color(0xFFB31012),
@@ -132,10 +270,7 @@ class _PendingTransactionCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Dibuat: $dateLabel',
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF6B7280),
-            ),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
           ),
         ],
       ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import '../../controller/pj_controller.dart';
+import '../../controller/pj_transaction_item_controller.dart';
 import '../../controller/pj_verif_tunai_transaction_controller.dart';
+import 'pending_transaction_view.dart';
 
 class PjVerifTunaiViewPage extends StatefulWidget {
   final PjController controller;
@@ -21,6 +23,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
   int _selectedYear = 2026;
   final Set<int> _selectedMonths = <int>{};
   late PjVerifTunaiTransactionController _transactionController;
+  late PjTransactionItemController _itemController;
 
   static const List<String> _monthNames = [
     'Januari',
@@ -41,16 +44,22 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
   void initState() {
     super.initState();
     _transactionController = PjVerifTunaiTransactionController();
+    _itemController = PjTransactionItemController();
 
     final userId = widget.member.id;
     if (userId != null && userId.isNotEmpty) {
       _transactionController.loadTransactions(userId);
+      _itemController.loadByUser(
+        userId,
+        globalDuesPeriods: widget.controller.duesPeriods,
+      );
     }
   }
 
   @override
   void dispose() {
     _transactionController.dispose();
+    _itemController.dispose();
     super.dispose();
   }
 
@@ -146,6 +155,10 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         final refreshedUserId = widget.member.id;
         if (refreshedUserId != null && refreshedUserId.isNotEmpty) {
           await _transactionController.loadTransactions(refreshedUserId);
+          await _itemController.loadByUser(
+            refreshedUserId,
+            globalDuesPeriods: widget.controller.duesPeriods,
+          );
         }
 
         // Reset selected months
@@ -153,6 +166,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
           _selectedMonths.clear();
         });
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Transaksi berhasil dibuat'),
@@ -161,6 +175,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
           ),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -187,11 +202,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final anggotaId = widget.member.id;
     final memberName = widget.controller.memberDisplayName(widget.member);
-    final totalTunggakan = widget.controller.tunggakanNominalByMember(
-      anggotaId ?? '',
-    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -212,240 +223,200 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, thickness: 1, color: Color(0xFFD0D0D0)),
         ),
-        actions: [],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync, color: Color(0xFF073D4D)),
+            tooltip: 'Pending Transaction',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PendingTransactionViewPage(
+                    controller: widget.controller,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: widget.controller,
         builder: (context, child) {
           return ListenableBuilder(
-            listenable: _transactionController,
+            listenable: _itemController,
             builder: (context, child) {
-              if (_transactionController.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
+              return ListenableBuilder(
+                listenable: _transactionController,
+                builder: (context, child) {
+                  if (_transactionController.isLoading || _itemController.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      memberName,
-                      style: const TextStyle(
-                        color: Color(0xFF073D4D),
-                        fontSize: 20,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF4F4),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFF2C8C8)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Total Tunggakan',
-                            style: TextStyle(
-                              color: Color(0xFFA50A0C),
-                              fontSize: 16,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _formatCurrency(totalTunggakan),
-                            style: const TextStyle(
-                              color: Color(0xFFB31012),
-                              fontSize: 32,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF6F6F6),
-                        border: Border.all(color: const Color(0xFFB4B4B4)),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<int>(
-                          value: _selectedYear,
-                          isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  // Total tunggakan dari /transaction-item/user/{userId}
+                  final totalTunggakan = _itemController.totalTunggakan.toDouble();
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          memberName,
                           style: const TextStyle(
-                            color: Color(0xFF6C6C6C),
-                            fontSize: 18,
+                            color: Color(0xFF073D4D),
+                            fontSize: 20,
                             fontFamily: 'Poppins',
                             fontWeight: FontWeight.w700,
                           ),
-                          items: const [2025, 2026, 2027]
-                              .map(
-                                (year) => DropdownMenuItem<int>(
-                                  value: year,
-                                  child: Text('$year'),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) return;
-                            setState(() {
-                              _selectedYear = value;
-                              _selectedMonths.clear();
-                            });
-                          },
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _monthNames.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 1.05,
-                          ),
-                      itemBuilder: (context, index) {
-                        final month = index + 1;
-                        final monthName = _monthNames[index];
-                        final status = widget.controller.getMonthStatus(
-                          anggotaId: anggotaId ?? '',
-                          month: month,
-                          year: _selectedYear,
-                        );
-
-                        return _MonthCard(
-                          name: monthName,
-                          status: status,
-                          isSelected: _selectedMonths.contains(month),
-                          onTap: () => _handleMonthTap(month),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    if (_transactionController.errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF4F4),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: const Color(0xFFF2C8C8)),
                           ),
-                          child: Text(
-                            _transactionController.errorMessage!,
-                            style: const TextStyle(
-                              color: Color(0xFFB31012),
-                              fontFamily: 'Poppins',
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Total Tunggakan',
+                                style: TextStyle(
+                                  color: Color(0xFFA50A0C),
+                                  fontSize: 16,
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _formatCurrency(totalTunggakan),
+                                style: const TextStyle(
+                                  color: Color(0xFFB31012),
+                                  fontSize: 32,
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    if (_transactionController.uncompleted.isNotEmpty ||
-                        _transactionController.completed.isNotEmpty ||
-                        _transactionController.tunggakan.isNotEmpty)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Daftar Transaksi',
-                            style: TextStyle(
-                              color: Color(0xFF073D4D),
-                              fontSize: 16,
-                              fontFamily: 'Poppins',
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ..._transactionController.uncompleted.map((tx) {
-                            final periodLabel = _transactionController
-                                .getPeriodLabel(tx);
-                            final amount = tx.items?.isNotEmpty == true
-                                ? (tx.items!.first.amount ?? 0).toString()
-                                : '0';
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: _TransactionCard(
-                                label: periodLabel,
-                                status: 'uncompleted',
-                                nominal: amount,
-                              ),
-                            );
-                          }).toList(),
-                          ..._transactionController.completed.map((tx) {
-                            final periodLabel = _transactionController
-                                .getPeriodLabel(tx);
-                            final amount = tx.items?.isNotEmpty == true
-                                ? (tx.items!.first.amount ?? 0).toString()
-                                : '0';
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: _TransactionCard(
-                                label: periodLabel,
-                                status: 'paid',
-                                nominal: amount,
-                              ),
-                            );
-                          }).toList(),
-                          ..._transactionController.tunggakan.map((tx) {
-                            final periodLabel = _transactionController
-                                .getPeriodLabel(tx);
-                            final amount = tx.items?.isNotEmpty == true
-                                ? (tx.items!.first.amount ?? 0).toString()
-                                : '0';
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: _TransactionCard(
-                                label: periodLabel,
-                                status: 'tunggakan',
-                                nominal: amount,
-                              ),
-                            );
-                          }).toList(),
-                          const SizedBox(height: 20),
-                        ],
-                      ),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _handleConfirmTransaction,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF073D4D),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF6F6F6),
+                            border: Border.all(color: const Color(0xFFB4B4B4)),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                        ),
-                        child: const Text(
-                          'Konfirmasi Pencatatan',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontFamily: 'Poppins',
-                            fontWeight: FontWeight.w600,
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              value: _selectedYear,
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                              style: const TextStyle(
+                                color: Color(0xFF6C6C6C),
+                                fontSize: 18,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w700,
+                              ),
+                              items: const [2025, 2026, 2027]
+                                  .map(
+                                    (year) => DropdownMenuItem<int>(
+                                      value: year,
+                                      child: Text('$year'),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value == null) return;
+                                setState(() {
+                                  _selectedYear = value;
+                                  _selectedMonths.clear();
+                                });
+                              },
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 20),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _monthNames.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 1.05,
+                              ),
+                          itemBuilder: (context, index) {
+                            final month = index + 1;
+                            final monthName = _monthNames[index];
+                            // Status dari /api/transaction-item/user/{userId}
+                            final status = _itemController.getMonthStatus(
+                              month,
+                              _selectedYear,
+                            );
+
+                            return _MonthCard(
+                              name: monthName,
+                              status: status,
+                              isSelected: _selectedMonths.contains(month),
+                              onTap: () => _handleMonthTap(month),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        if (_transactionController.errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF4F4),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFF2C8C8)),
+                              ),
+                              child: Text(
+                                _transactionController.errorMessage!,
+                                style: const TextStyle(
+                                  color: Color(0xFFB31012),
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _handleConfirmTransaction,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF073D4D),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text(
+                              'Konfirmasi Pencatatan',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               );
             },
           );
@@ -574,101 +545,4 @@ class _MonthCard extends StatelessWidget {
   }
 }
 
-class _TransactionCard extends StatelessWidget {
-  final String label;
-  final String status;
-  final String nominal;
 
-  const _TransactionCard({
-    required this.label,
-    required this.status,
-    required this.nominal,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    late Color backgroundColor;
-    late Color borderColor;
-    late Color textColor;
-    bool isClickable = true;
-
-    if (status == 'paid') {
-      backgroundColor = const Color(0xFFD4EDDA);
-      borderColor = const Color(0xFF28A745);
-      textColor = const Color(0xFF155724);
-      isClickable = false;
-    } else if (status == 'tunggakan') {
-      backgroundColor = const Color(0xFFFFF4F4);
-      borderColor = const Color(0xFFF2C8C8);
-      textColor = const Color(0xFFA50A0C);
-    } else {
-      backgroundColor = const Color(0xFFF8F9FA);
-      borderColor = const Color(0xFFDEE2E6);
-      textColor = const Color(0xFF6C757D);
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: borderColor),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 14,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Rp. $nominal',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 12,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: textColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              status == 'paid'
-                  ? 'Lunas'
-                  : status == 'tunggakan'
-                  ? 'Tunggakan'
-                  : 'Belum Bayar',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 11,
-                fontFamily: 'Poppins',
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          if (!isClickable)
-            const Padding(
-              padding: EdgeInsets.only(left: 8),
-              child: Icon(Icons.lock, size: 18, color: Color(0xFF28A745)),
-            ),
-        ],
-      ),
-    );
-  }
-}

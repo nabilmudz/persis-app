@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controller/pj_controller.dart';
 import 'tunai/pj_anggota_view.dart';
+import 'tunai/pending_transaction_view.dart';
 import 'non-tunai/pj_verif_non_tunai_view.dart';
 import '../widgets/bendahara_shared_cards.dart';
 
@@ -32,7 +33,25 @@ class _PjViewPageState extends State<PjViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('PJ View (Native)'), actions: []),
+      appBar: AppBar(
+        title: const Text('PJ View (Native)'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync, color: Color(0xFF073D4D)),
+            tooltip: 'Pending Transaction',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PendingTransactionViewPage(
+                    controller: _controller,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: ListenableBuilder(
         listenable: _controller,
         builder: (context, child) {

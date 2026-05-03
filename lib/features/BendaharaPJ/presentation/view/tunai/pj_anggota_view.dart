@@ -3,6 +3,7 @@ import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import '../../controller/pj_controller.dart';
 import '../../widgets/pj_verification_member_card.dart';
 import 'pj_verif_tunai_view.dart';
+import 'pending_transaction_view.dart';
 import '../anggota/pj_detail_anggota_view.dart';
 
 class PjAnggotaViewPage extends StatefulWidget {
@@ -52,7 +53,22 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, thickness: 1, color: Color(0xFFD0D0D0)),
         ),
-        actions: [],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync, color: Color(0xFF073D4D)),
+            tooltip: 'Pending Transaction',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PendingTransactionViewPage(
+                    controller: widget.controller,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: widget.controller,
