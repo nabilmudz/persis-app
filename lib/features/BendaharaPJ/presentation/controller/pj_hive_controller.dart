@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/network/network_status.dart';
 import 'package:persis_app/features/BendaharaPC/data/datasources/payment_method_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
@@ -65,7 +66,7 @@ class PjHiveController extends ChangeNotifier {
       final box = Hive.box(_boxName);
       final remoteDataSource = dataSource ?? TransactionRemoteDataSource();
       final paymentMethodDataSource = PaymentMethodRemoteDataSource(
-        'https://avert-casually-plating.ngrok-free.dev/api',
+        AppConfig.baseUrl,
       );
       final entries = box.toMap().entries.toList();
 
@@ -96,7 +97,9 @@ class PjHiveController extends ChangeNotifier {
           }
         } catch (e) {
           // Tetap di Hive jika jaringan belum kembali atau payload gagal dikirim.
-          debugPrint('[PjHiveController] Gagal sync entry key=${entry.key}: $e');
+          debugPrint(
+            '[PjHiveController] Gagal sync entry key=${entry.key}: $e',
+          );
         }
       }
     } finally {
@@ -230,7 +233,11 @@ class PjHiveController extends ChangeNotifier {
   }
 
   static (int, int)? _parseMonthYearFromItem(TransactionItemModel item) {
-    final sources = <String?>[item.periodId, item.duesPeriodId, item.description];
+    final sources = <String?>[
+      item.periodId,
+      item.duesPeriodId,
+      item.description,
+    ];
     for (final source in sources) {
       final parsed = _parseMonthYear(source);
       if (parsed != null) {

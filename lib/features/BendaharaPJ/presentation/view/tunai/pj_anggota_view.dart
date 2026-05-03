@@ -61,9 +61,8 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PendingTransactionViewPage(
-                    controller: widget.controller,
-                  ),
+                  builder: (_) =>
+                      PendingTransactionViewPage(controller: widget.controller),
                 ),
               );
             },
@@ -283,7 +282,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                           },
                         ),
                       );
-                    }).toList(),
+                    }),
                 ],
               );
             },
