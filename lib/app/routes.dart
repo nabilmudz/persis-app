@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:persis_app/features/BendaharaPC/presentation/view/pc_view.dart';
-import 'package:persis_app/features/BendaharaPC/presentation/view/pc_verif_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/non-tunai/pj_verif_non_tunai_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_view.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/auth/login_controller.dart';
@@ -17,7 +17,7 @@ class AppRoutes {
   static const String testBases = '/test-bases';
   static const String bendaharaPC = '/bendahara-pc';
   static const String bendaharaPJ = '/bendahara-pj';
-  static const String verifikasiPC = '/verifikasi-pc';
+  static const String verifikasiNonTunai = '/verifikasi-non-tunai';
 
   static Map<String, WidgetBuilder> get routes {
     return {
@@ -37,7 +37,7 @@ class AppRoutes {
       testBases: (_) => const TestBasesPage(),
       bendaharaPC: (_) => const PcViewPage(),
       bendaharaPJ: (_) => const PjViewPage(),
-      verifikasiPC: (_) => const PcVerifikasiPage(),
+      verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
     };
   }
 }

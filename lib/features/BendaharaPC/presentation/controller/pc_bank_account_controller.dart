@@ -41,28 +41,40 @@ class PcBankAccountController extends ChangeNotifier {
     return null;
   }
 
-  Future<String?> resolveTransferBankPaymentMethodId() async {
-    final cached = transferBankPaymentMethodId;
-    if (cached != null) {
-      return cached;
-    }
-
-    if (_paymentMethods.isEmpty) {
-      await loadPaymentMethods();
-      return transferBankPaymentMethodId;
-    }
-
+  String? get qrisPaymentMethodId {
     for (final method in _paymentMethods) {
-      final code = _normalize(method.code);
-      final label = _normalize(method.label);
-
-      if (code.contains('transfer') || label.contains('transfer bank')) {
+      if (_isQrisMethod(method)) {
         return method.id;
       }
     }
-
     return null;
   }
+
+  List<BankAccountModel> get qrisAccounts =>
+      _bankAccounts.where((account) => isQrisAccount(account)).toList();
+
+  Future<String?> resolveTransferBankPaymentMethodId() async {
+    await _ensurePaymentMethodsLoaded();
+    return _resolvePaymentMethodIdByLabel(
+      const ['Pembayaran via Virtual Account atau transfer antar bank'],
+      exactCodes: const ['Transfer Bank'],
+    );
+  }
+
+  Future<String?> resolveQrisPaymentMethodId() async {
+  await _ensurePaymentMethodsLoaded();
+
+  try {
+    // Mencari item pertama yang memenuhi kriteria QRIS
+    final qrisMethod = _paymentMethods.firstWhere(
+      (method) => _isQrisMethod(method),
+    );
+    return qrisMethod.id;
+  } catch (e) {
+    print('❌ QRIS Method tidak ditemukan di dalam list');
+    return null;
+  }
+}
 
   Future<String?> resolveRegionId() async {
     final token = await SecureStorageService.read(
@@ -135,6 +147,10 @@ class PcBankAccountController extends ChangeNotifier {
 
   Future<bool> addBankAccount(BankAccountModel account) async {
     try {
+      print('===== ADD BANK ACCOUNT =====');
+      print(
+        'Received account with paymentMethodId: "${account.paymentMethodId}"',
+      );
       await _dataSource.create(account);
       await loadBankAccounts(); // Reload data setelah menambah
       return true;
@@ -183,6 +199,90 @@ class PcBankAccountController extends ChangeNotifier {
         code == 'transfer' ||
         label.contains('transfer bank') ||
         label.contains('bank transfer');
+  }
+
+  bool _isQrisMethod(PaymentMethodModel method) {
+    final code = _normalize(method.code);
+    final label = _normalize(method.label);
+
+    return code == 'qris' || code.contains('qris') || label.contains('qris');
+  }
+
+  Future<String?> _resolvePaymentMethodIdByLabel(
+    List<String> labels, {
+    List<String> exactCodes = const [],
+    List<String> exactLabels = const [],
+    List<String> fallbackCodes = const [],
+  }) async {
+    print('===== _RESOLVE PAYMENT METHOD ID BY LABEL =====');
+    print('exactCodes: $exactCodes');
+    print('exactLabels: $exactLabels');
+    print('Payment methods to search: ${_paymentMethods.length}');
+
+    // Check exactCodes first
+    print('Checking exactCodes...');
+    for (final method in _paymentMethods) {
+      final normalizedCode = _normalize(method.code);
+      print('  Comparing normalized code: "$normalizedCode" with exactCodes');
+      if (exactCodes.any((code) => normalizedCode == _normalize(code))) {
+        print('  ✓ MATCH! Returning id: ${method.id}');
+        return method.id;
+      }
+    }
+
+    print('No exactCodes match. Checking exactLabels...');
+    for (final method in _paymentMethods) {
+      final normalizedLabel = _normalize(method.label);
+      print(
+        '  Comparing normalized label: "$normalizedLabel" with exactLabels',
+      );
+      if (exactLabels.any((label) => normalizedLabel == _normalize(label))) {
+        print('  ✓ MATCH! Returning id: ${method.id}');
+        return method.id;
+      }
+    }
+
+    print('No exactLabels match. Checking labels...');
+    for (final method in _paymentMethods) {
+      final normalizedLabel = _normalize(method.label);
+      if (labels.any((label) => normalizedLabel == _normalize(label))) {
+        print('  ✓ MATCH! Returning id: ${method.id}');
+        return method.id;
+      }
+    }
+
+    print('No labels match. Checking fallbackCodes...');
+    for (final method in _paymentMethods) {
+      final normalizedCode = _normalize(method.code);
+      if (fallbackCodes.any((code) => normalizedCode == _normalize(code))) {
+        print('  ✓ MATCH! Returning id: ${method.id}');
+        return method.id;
+      }
+    }
+
+    print('❌ NO MATCH FOUND. Returning null');
+    return null;
+  }
+
+  Future<void> _ensurePaymentMethodsLoaded() async {
+    print('===== ENSURE PAYMENT METHODS LOADED =====');
+    if (_paymentMethods.isEmpty) {
+      print('Payment methods empty. Loading...');
+      await loadPaymentMethods();
+    } else {
+      print('Payment methods already loaded. Count: ${_paymentMethods.length}');
+    }
+  }
+
+  bool isQrisAccount(BankAccountModel account) {
+    final qrisMethodId = qrisPaymentMethodId;
+    if (qrisMethodId != null && account.paymentMethodId == qrisMethodId) {
+      return true;
+    }
+
+    final bankName = _normalize(account.bankName);
+    return bankName == 'qris' ||
+        (account.qrisImageUrl?.isNotEmpty ?? false) && bankName.isEmpty;
   }
 
   String _normalize(String? value) => value?.trim().toLowerCase() ?? '';

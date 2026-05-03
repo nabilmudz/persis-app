@@ -1,12 +1,11 @@
 import 'package:flutter/foundation.dart';
-import 'package:persis_app/core/network/api_client.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 
 class PcController extends ChangeNotifier {
   PcController({TransactionRemoteDataSource? dataSource})
     : _dataSource =
-          dataSource ?? TransactionRemoteDataSource(ApiClient.baseUrl);
+          dataSource ?? TransactionRemoteDataSource();
 
   static const List<String> verificationCategories = <String>[
     'Belum Diverifikasi',

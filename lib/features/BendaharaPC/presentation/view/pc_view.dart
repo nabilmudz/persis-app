@@ -4,7 +4,6 @@ import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.da
 import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_bank_account_view.dart';
-import 'pc_verif_view.dart';
 import '../widgets/sweet_alert_dialog.dart';
 import '../widgets/verifikasi_card.dart';
 
@@ -159,77 +158,6 @@ class _PcViewPageState extends State<PcViewPage> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Perlu Diverifikasi',
-                      style: TextStyle(
-                        color: Color(0xFF074D2C),
-                        fontSize: 16,
-                        fontFamily: 'Poppins',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PcVerifikasiPage(controller: _controller),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Lihat Semua',
-                        style: TextStyle(
-                          color: Color(0xFF10B367),
-                          fontSize: 13,
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (previewItems.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(
-                      child: Text(
-                        'Belum ada data verifikasi',
-                        style: TextStyle(color: Color(0xFF6A6A6A)),
-                      ),
-                    ),
-                  )
-                else
-                  ...previewItems.map((item) {
-                    final viewItem = _controller.toVerifikasiItem(item);
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: VerifikasiCard(
-                        date: viewItem.date,
-                        location: viewItem.location,
-                        name: viewItem.name,
-                        idNumber: viewItem.idNumber,
-                        paymentMethod: viewItem.paymentMethod,
-                        price: viewItem.price,
-                        onAccPressed: () async => _handleAccPressed(item),
-                        onLihatBuktiPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Menampilkan detail transaksi dari ${viewItem.name}',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  }),
               ],
             ),
           );
