@@ -6,7 +6,6 @@ class RoleRemoteDataSource {
   final String baseUrl;
   RoleRemoteDataSource(this.baseUrl);
 
-  // Ambil semua data roles
   Future<List<RoleModel>> getAll() async {
     final response = await http.get(Uri.parse('$baseUrl/roles'));
     if (response.statusCode == 200) {
@@ -16,7 +15,6 @@ class RoleRemoteDataSource {
     throw Exception('Gagal memuat roles');
   }
 
-  // Tambah role baru
   Future<void> create(RoleModel role) async {
     final response = await http.post(
       Uri.parse('$baseUrl/roles'),
@@ -26,7 +24,6 @@ class RoleRemoteDataSource {
     if (response.statusCode != 201) throw Exception('Gagal membuat role');
   }
 
-  // Update role berdasarkan ID
   Future<void> update(String id, RoleModel role) async {
     await http.patch(
       Uri.parse('$baseUrl/roles/$id'),
