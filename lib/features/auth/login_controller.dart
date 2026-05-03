@@ -61,16 +61,16 @@ class LoginController extends ChangeNotifier {
       try {
         if (response['data'] is Map<String, dynamic>) {
           dataMap = Map<String, dynamic>.from(response['data']);
-        } else if (response is Map<String, dynamic>) {
+        } else
           dataMap = Map<String, dynamic>.from(response);
-        }
       } catch (_) {
         dataMap = null;
       }
 
       Map<String, dynamic>? userMap;
-      if (response['user'] is Map<String, dynamic>)
+      if (response['user'] is Map<String, dynamic>) {
         userMap = Map.from(response['user']);
+      }
       userMap ??= dataMap != null && dataMap['user'] is Map<String, dynamic>
           ? Map.from(dataMap['user'])
           : null;

@@ -5,7 +5,6 @@ import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_bank_account_view.dart';
 import '../widgets/sweet_alert_dialog.dart';
-import '../widgets/verifikasi_card.dart';
 
 class PcViewPage extends StatefulWidget {
   const PcViewPage({super.key});

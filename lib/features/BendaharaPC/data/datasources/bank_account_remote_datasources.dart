@@ -38,17 +38,21 @@ class BankAccountRemoteDataSource {
   // Tambah rekening bank baru
   Future<void> create(BankAccountModel bankAccount) async {
     print('===== CREATE BANK ACCOUNT =====');
-    print('Received bankAccount.paymentMethodId: "${bankAccount.paymentMethodId}"');
+    print(
+      'Received bankAccount.paymentMethodId: "${bankAccount.paymentMethodId}"',
+    );
     print('Is null: ${bankAccount.paymentMethodId == null}');
     print('Is empty: ${bankAccount.paymentMethodId?.isEmpty ?? "N/A"}');
-    
+
     if (bankAccount.paymentMethodId == null ||
         bankAccount.paymentMethodId!.trim().isEmpty) {
       print('❌ VALIDATION FAILED: payment_method_id adalah null atau kosong');
       throw Exception('payment_method_id tidak boleh kosong');
     }
 
-    print('✓ Validation passed. Payment Method ID: "${bankAccount.paymentMethodId}"');
+    print(
+      '✓ Validation passed. Payment Method ID: "${bankAccount.paymentMethodId}"',
+    );
 
     final qrisImageBytes = bankAccount.qrisImageBytes;
     if (qrisImageBytes != null && qrisImageBytes.isNotEmpty) {
@@ -59,7 +63,9 @@ class BankAccountRemoteDataSource {
       );
 
       request.fields['payment_method_id'] = bankAccount.paymentMethodId ?? '';
-      print('Set field payment_method_id: "${request.fields['payment_method_id']}"');
+      print(
+        'Set field payment_method_id: "${request.fields['payment_method_id']}"',
+      );
 
       if (bankAccount.isActive != null) {
         request.fields['is_active'] = bankAccount.isActive.toString();
@@ -149,14 +155,16 @@ class BankAccountRemoteDataSource {
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(bankAccount.toJson()),
     );
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw Exception('Gagal mengupdate rekening bank');
+    }
   }
 
   // Hapus rekening bank berdasarkan ID
   Future<void> delete(String id) async {
     final response = await http.delete(Uri.parse('$baseUrl/bank-account/$id'));
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw Exception('Gagal menghapus rekening bank');
+    }
   }
 }

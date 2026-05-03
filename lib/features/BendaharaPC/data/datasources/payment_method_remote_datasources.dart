@@ -36,8 +36,9 @@ class PaymentMethodRemoteDataSource {
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(paymentMethod.toJson()),
     );
-    if (response.statusCode != 201)
+    if (response.statusCode != 201) {
       throw Exception('Gagal membuat metode pembayaran');
+    }
   }
 
   // Update metode pembayaran berdasarkan ID
@@ -47,8 +48,9 @@ class PaymentMethodRemoteDataSource {
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(paymentMethod.toJson()),
     );
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw Exception('Gagal mengupdate metode pembayaran');
+    }
   }
 
   // Hapus metode pembayaran berdasarkan ID
@@ -56,7 +58,8 @@ class PaymentMethodRemoteDataSource {
     final response = await http.delete(
       Uri.parse('$baseUrl/payment-method/$id'),
     );
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw Exception('Gagal menghapus metode pembayaran');
+    }
   }
 }
