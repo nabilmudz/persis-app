@@ -8,6 +8,7 @@ import 'package:persis_app/features/auth/login_controller.dart';
 
 import '../core/widgets/offline_warning_banner.dart';
 import '../features/auth/login_screen.dart';
+import '../core/config/config.dart';
 
 class AppRoutes {
   static const String initial = '/';
@@ -22,17 +23,13 @@ class AppRoutes {
     return {
       initial: (_) => ChangeNotifierProvider(
         create: (_) => LoginController(
-          remoteDataSource: UserRemoteDataSource(
-            'https://avert-casually-plating.ngrok-free.dev/api',
-          ),
+          remoteDataSource: UserRemoteDataSource(AppConfig.baseUrl),
         ),
         child: const LoginScreen(),
       ),
       login: (_) => ChangeNotifierProvider(
         create: (_) => LoginController(
-          remoteDataSource: UserRemoteDataSource(
-            'https://avert-casually-plating.ngrok-free.dev/api',
-          ),
+          remoteDataSource: UserRemoteDataSource(AppConfig.baseUrl),
         ),
         child: const LoginScreen(),
       ),
