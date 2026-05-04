@@ -3,7 +3,7 @@ import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import '../../controller/pj_controller.dart';
 import '../../controller/pj_transaction_item_controller.dart';
 import '../../controller/pj_verif_tunai_transaction_controller.dart';
-import 'pending_transaction_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
 
 class PjVerifTunaiViewPage extends StatefulWidget {
   final PjController controller;
@@ -390,29 +390,6 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                               ),
                             ),
                           ),
-
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _handleConfirmTransaction,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF073D4D),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text(
-                              'Konfirmasi Pencatatan',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   );
@@ -544,3 +521,5 @@ class _MonthCard extends StatelessWidget {
     );
   }
 }
+
+
