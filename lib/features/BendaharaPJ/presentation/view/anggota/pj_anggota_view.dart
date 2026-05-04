@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import '../../controller/pj_controller.dart';
 import '../../widgets/pj_verification_member_card.dart';
-import '../tunai/pj_verif_tunai_view.dart';
-import 'pj_detail_anggota_view.dart';
+import 'pj_verif_tunai_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
+import '../anggota/pj_detail_anggota_view.dart';
 
 class PjAnggotaViewPage extends StatefulWidget {
   final PjController controller;
@@ -16,6 +17,8 @@ class PjAnggotaViewPage extends StatefulWidget {
 
 class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
   final TextEditingController _searchController = TextEditingController();
+  String _filterStatus = 'Semua';
+  final List<String> _statusFilters = ['Semua', 'Tunggakan', 'Lunas'];
 
   @override
   void initState() {
@@ -50,7 +53,22 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
           preferredSize: Size.fromHeight(1),
           child: Divider(height: 1, thickness: 1, color: Color(0xFFD0D0D0)),
         ),
-        actions: [],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.sync, color: Color(0xFF073D4D)),
+            tooltip: 'Pending Transaction',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PendingTransactionViewPage(
+                    controller: widget.controller,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: widget.controller,
@@ -84,87 +102,132 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
             );
           }
 
-          final List<UserModel> members = widget.controller.filterMembers(
+          final List<UserModel> allMembers = widget.controller.filterMembers(
             _searchController.text,
           );
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFECE6F0),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: TextField(
+          // Filter berdasarkan status
+          final List<UserModel> filteredMembers = allMembers.where((member) {
+            final memberId = member.id ?? '';
+            if (memberId.isEmpty) return true;
+
+            final totalTunggakan = widget.controller.tunggakanNominalByMember(
+              memberId,
+            );
+
+            if (_filterStatus == 'Tunggakan') {
+              return totalTunggakan > 0;
+            } else if (_filterStatus == 'Lunas') {
+              return totalTunggakan == 0;
+            }
+            return true;
+          }).toList();
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final horizontalPadding = constraints.maxWidth < 380
+                  ? 12.0
+                  : 20.0;
+
+              return ListView(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  20,
+                  horizontalPadding,
+                  24,
+                ),
+                children: [
+                  TextField(
                     controller: _searchController,
                     onChanged: (_) => setState(() {}),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF49454F),
-                      fontFamily: 'Roboto',
-                    ),
                     decoration: InputDecoration(
                       hintText: 'Cari nama, no anggota, lokasi',
-                      hintStyle: const TextStyle(
-                        color: Color(0xFF49454F),
-                        fontSize: 16,
-                        fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w400,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        color: Color(0xFF49454F),
-                      ),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {});
-                        },
-                        icon: const Icon(Icons.tune, color: Color(0xFF49454F)),
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: const Color(0xFFF7F7F7),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
                       ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(28),
-                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(28),
-                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(28),
-                        borderSide: const BorderSide(color: Color(0xFF5DB1BA)),
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF0C844C)),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                   ),
-                ),
-                const SizedBox(height: 28),
-                if (members.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Center(
-                      child: Text(
-                        'Data anggota tidak ditemukan',
-                        style: TextStyle(
-                          color: Color(0xFF666666),
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w500,
+                  const SizedBox(height: 16),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _statusFilters.map((status) {
+                        final isSelected = status == _filterStatus;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(status),
+                            selected: isSelected,
+                            onSelected: (_) {
+                              setState(() {
+                                _filterStatus = status;
+                              });
+                            },
+                            selectedColor: const Color(0xFF0C844C),
+                            backgroundColor: const Color(0xFFF0F0F0),
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : const Color(0xFF444444),
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? const Color(0xFF0C844C)
+                                    : const Color(0xFFE0E0E0),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (filteredMembers.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 28,
+                        horizontal: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9F9F9),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE8E8E8)),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Data anggota tidak ditemukan',
+                          style: TextStyle(
+                            color: Color(0xFF6A6A6A),
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                  )
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: members.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
-                    itemBuilder: (context, index) {
-                      final member = members[index];
+                    )
+                  else
+                    ...filteredMembers.map((member) {
                       final memberId = member.id ?? '';
                       final totalTunggakan = memberId.isEmpty
                           ? 0.0
@@ -181,45 +244,49 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                           ? null
                           : widget.controller.memberCardStatus(memberId);
 
-                      return PjVerificationMemberCard(
-                        name: widget.controller.memberDisplayName(member),
-                        subtitle: widget.controller.memberDisplayCode(member),
-                        isTunggakan: totalTunggakan > 0,
-                        showTotal: true,
-                        total: _formatCurrency(totalTunggakan),
-                        iuranStatuses: iuranStatuses,
-                        cardStatus: cardStatus,
-                        onTapCekKartu: () {
-                          if (memberId.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('ID anggota tidak tersedia.'),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: PjVerificationMemberCard(
+                          name: widget.controller.memberDisplayName(member),
+                          subtitle: widget.controller.memberDisplayCode(member),
+                          isTunggakan: totalTunggakan > 0,
+                          showTotal: true,
+                          total: _formatCurrency(totalTunggakan),
+                          iuranStatuses: iuranStatuses,
+                          cardStatus: cardStatus,
+                          onTapCekKartu: () {
+                            if (memberId.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('ID anggota tidak tersedia.'),
+                                ),
+                              );
+                              return;
+                            }
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PjVerifTunaiViewPage(
+                                  controller: widget.controller,
+                                  member: member,
+                                ),
                               ),
                             );
-                            return;
-                          }
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PjVerifTunaiViewPage(
-                                controller: widget.controller,
-                                member: member,
-                              ),
-                            ),
-                          );
-                        },
-                        onTapDetail: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => PjDetailAnggotaView(member: member),
-                          );
-                        },
+                          },
+                          onTapDetail: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) =>
+                                  PjDetailAnggotaView(member: member),
+                            );
+                          },
+                        ),
                       );
-                    },
-                  ),
-              ],
-            ),
+                    }).toList(),
+                ],
+              );
+            },
           );
         },
       ),
