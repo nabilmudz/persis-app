@@ -8,7 +8,7 @@ import 'package:persis_app/helpers/auth_helper.dart';
 import 'dart:io'; //[cite: 5]
 
 class TransferBankView extends StatefulWidget {
-  const TransferBankView({Key? key}) : super(key: key);
+  const TransferBankView({super.key});
 
   @override
   State<TransferBankView> createState() => _TransferBankViewState();
@@ -29,7 +29,10 @@ class _TransferBankViewState extends State<TransferBankView> {
   }
 
   Future<void> _showMonthPicker(
-      BuildContext context, bool isMulai, PembayaranController controller) async {
+    BuildContext context,
+    bool isMulai,
+    PembayaranController controller,
+  ) async {
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -45,10 +48,13 @@ class _TransferBankViewState extends State<TransferBankView> {
     }
   }
 
-  void _handleSubmit(BuildContext context, PembayaranController controller) async {
+  void _handleSubmit(
+    BuildContext context,
+    PembayaranController controller,
+  ) async {
     //[cite: 5] Pakai hardcode '123' dulu biar kamu bisa push sekarang
-    final userId = '123'; 
-    
+    final userId = '123';
+
     await controller.submitTransfer(anggotaId: userId);
 
     if (!mounted) return;
@@ -73,8 +79,11 @@ class _TransferBankViewState extends State<TransferBankView> {
 
   @override
   Widget build(BuildContext context) {
-    final formatCurrency =
-        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp. ', decimalDigits: 0);
+    final formatCurrency = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp. ',
+      decimalDigits: 0,
+    );
 
     return Consumer<PembayaranController>(
       builder: (context, controller, _) {
@@ -132,43 +141,95 @@ class _TransferBankViewState extends State<TransferBankView> {
                       ),
                       const SizedBox(height: 16),
                       _buildPeriodeSelector(
-                        controller.periodeMulai.isEmpty ? 'Pilih bulan mulai' : controller.periodeMulai,
+                        controller.periodeMulai.isEmpty
+                            ? 'Pilih bulan mulai'
+                            : controller.periodeMulai,
                         () => _showMonthPicker(context, true, controller),
                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 4),
-                        child: Text('-', style: TextStyle(fontSize: 24, color: Color(0xFF6C6C6C), fontWeight: FontWeight.bold)),
+                        child: Text(
+                          '-',
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: Color(0xFF6C6C6C),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       _buildPeriodeSelector(
-                        controller.periodeAkhir.isEmpty ? 'Pilih bulan akhir' : controller.periodeAkhir,
+                        controller.periodeAkhir.isEmpty
+                            ? 'Pilih bulan akhir'
+                            : controller.periodeAkhir,
                         () => _showMonthPicker(context, false, controller),
                       ),
-                      if (controller.errorMessage != null && controller.errorMessage!.contains('Periode'))
+                      if (controller.errorMessage != null &&
+                          controller.errorMessage!.contains('Periode'))
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
-                          child: Text(controller.errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12, fontFamily: 'Poppins')),
+                          child: Text(
+                            controller.errorMessage!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
                         ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text('Pilih Bank Tujuan', style: TextStyle(color: Color(0xFF074D2C), fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Poppins')),
+                const Text(
+                  'Pilih Bank Tujuan',
+                  style: TextStyle(
+                    color: Color(0xFF074D2C),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF074D2C), Color(0xFF10B367)]),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF074D2C), Color(0xFF10B367)],
+                    ),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
                     children: [
-                      const Text('Total Tagihan', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                      const Text(
+                        'Total Tagihan',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      Text(formatCurrency.format(controller.totalTagihan), style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                      Text(
+                        formatCurrency.format(controller.totalTagihan),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       //[cite: 5] Tampilan periode asli kamu
-                      Text(controller.labelPeriode, style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Poppins')),
+                      Text(
+                        controller.labelPeriode,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -184,12 +245,26 @@ class _TransferBankViewState extends State<TransferBankView> {
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFE9FFE9) : Colors.white,
-                            border: Border.all(color: isSelected ? const Color(0xFF10B367) : const Color(0xFFAFAFAF)),
+                            color: isSelected
+                                ? const Color(0xFFE9FFE9)
+                                : Colors.white,
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF10B367)
+                                  : const Color(0xFFAFAFAF),
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           alignment: Alignment.center,
-                          child: Text(bank, style: const TextStyle(color: Color(0xFF494949), fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                          child: Text(
+                            bank,
+                            style: const TextStyle(
+                              color: Color(0xFF494949),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
                         ),
                       ),
                     );
@@ -210,49 +285,155 @@ class _TransferBankViewState extends State<TransferBankView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Bank Tujuan', style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
-                          Text(controller.selectedBank, style: const TextStyle(color: Color(0xFF464646), fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                          const Text(
+                            'Bank Tujuan',
+                            style: TextStyle(
+                              color: Color(0xFF6B6B6B),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                          Text(
+                            controller.selectedBank,
+                            style: const TextStyle(
+                              color: Color(0xFF464646),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
                         ],
                       ),
                       const Divider(color: Color(0xFFA3A3A3), height: 30),
-                      const Text('Nomor Rekening', style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 12, fontFamily: 'Poppins')),
-                      Text(controller.nomorRekening, style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                      const Text(
+                        'Nomor Rekening',
+                        style: TextStyle(
+                          color: Color(0xFF6B6B6B),
+                          fontSize: 12,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      Text(
+                        controller.nomorRekening,
+                        style: const TextStyle(
+                          color: Color(0xFF6B6B6B),
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
                       const SizedBox(height: 16),
-                      const Text('Atas Nama', style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 12, fontFamily: 'Poppins')),
-                      const Text('PC Pemuda Persis Kab. Bandung', style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 14, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                      const Text(
+                        'Atas Nama',
+                        style: TextStyle(
+                          color: Color(0xFF6B6B6B),
+                          fontSize: 12,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      const Text(
+                        'PC Pemuda Persis Kab. Bandung',
+                        style: TextStyle(
+                          color: Color(0xFF6B6B6B),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text('Upload Bukti Transfer', style: TextStyle(color: Color(0xFF074D2C), fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
+                const Text(
+                  'Upload Bukti Transfer',
+                  style: TextStyle(
+                    color: Color(0xFF074D2C),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
                 const SizedBox(height: 12),
                 GestureDetector(
-                  onTap: controller.isUploading ? null : () => _pickImage(controller),
+                  onTap: controller.isUploading
+                      ? null
+                      : () => _pickImage(controller),
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 30),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF6F6F6),
-                      border: Border.all(color: controller.buktiFile != null ? const Color(0xFF10B367) : const Color(0xFFB4B4B4), width: 1.5),
+                      border: Border.all(
+                        color: controller.buktiFile != null
+                            ? const Color(0xFF10B367)
+                            : const Color(0xFFB4B4B4),
+                        width: 1.5,
+                      ),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: controller.isUploading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B367)))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF10B367),
+                            ),
+                          )
                         : controller.buktiFile != null
-                            ? Column(children: [
-                                const Icon(Icons.check_circle, size: 50, color: Color(0xFF10B367)),
-                                const SizedBox(height: 12),
-                                Text(controller.buktiFile!.path.split('/').last, style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 13, fontFamily: 'Poppins')),
-                                const SizedBox(height: 4),
-                                const Text('Ketuk untuk ganti', style: TextStyle(color: Color(0xFF10B367), fontSize: 12, fontFamily: 'Poppins')),
-                              ])
-                            : const Column(children: [
-                                Icon(Icons.upload_file, size: 50, color: Color(0xFF10B367)),
-                                SizedBox(height: 12),
-                                Text('Ketuk untuk Unggah Bukti Transfer', style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
-                                SizedBox(height: 4),
-                                Text('JPG, PNG, Max 5mb', style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 12, fontFamily: 'Poppins')),
-                              ]),
+                        ? Column(
+                            children: [
+                              const Icon(
+                                Icons.check_circle,
+                                size: 50,
+                                color: Color(0xFF10B367),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                controller.buktiFile!.path.split('/').last,
+                                style: const TextStyle(
+                                  color: Color(0xFF6B6B6B),
+                                  fontSize: 13,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Ketuk untuk ganti',
+                                style: TextStyle(
+                                  color: Color(0xFF10B367),
+                                  fontSize: 12,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Column(
+                            children: [
+                              Icon(
+                                Icons.upload_file,
+                                size: 50,
+                                color: Color(0xFF10B367),
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'Ketuk untuk Unggah Bukti Transfer',
+                                style: TextStyle(
+                                  color: Color(0xFF6B6B6B),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'JPG, PNG, Max 5mb',
+                                style: TextStyle(
+                                  color: Color(0xFF6B6B6B),
+                                  fontSize: 12,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -263,7 +444,13 @@ class _TransferBankViewState extends State<TransferBankView> {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
             ),
             child: Container(
               decoration: BoxDecoration(
@@ -282,11 +469,21 @@ class _TransferBankViewState extends State<TransferBankView> {
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                 ),
                 child: controller.isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Kirim Bukti Pembayaran', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'Poppins')),
+                    : const Text(
+                        'Kirim Bukti Pembayaran',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
               ),
             ),
           ),
@@ -308,7 +505,15 @@ class _TransferBankViewState extends State<TransferBankView> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(text, style: const TextStyle(color: Color(0xFF6C6C6C), fontSize: 13, fontWeight: FontWeight.w500, fontFamily: 'Poppins')),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Color(0xFF6C6C6C),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                fontFamily: 'Poppins',
+              ),
+            ),
             const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6C6C6C)),
           ],
         ),

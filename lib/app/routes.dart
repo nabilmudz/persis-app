@@ -42,8 +42,6 @@ class AppRoutes {
       bendaharaPC: (_) => const PcViewPage(),
       bendaharaPJ: (_) => const PjViewPage(),
       verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
-
-      // INI YANG FIX (UserRemoteDataSource dimasukin ke AnggotaRepository)
       anggota: (_) => ChangeNotifierProvider(
         create: (_) => AnggotaController(
           repository: AnggotaRepository(UserRemoteDataSource(_baseUrl)),

@@ -2,11 +2,15 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:async';
-
 import 'package:persis_app/core/config/config.dart';
+import 'dart:async';
+import '../../app/routes.dart';
+import 'dart:developer';
 
+// ─── API Config ────────────────────────────────────────────────────────────────
 final String _baseUrl = AppConfig.baseUrl;
+
+// ─── Colors ────────────────────────────────────────────────────────────────────
 const Color primaryGreen = Color(0xFF1A7A4A);
 const Color lightGreen = Color(0xFFE8F5EE);
 const Color accentGreen = Color(0xFF2ECC71);
@@ -30,7 +34,6 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _npaController = TextEditingController();
-
   bool _rememberMe = false;
   bool _obscurePassword = true;
   bool _npaNotFound = false;
@@ -238,7 +241,6 @@ class _LoginScreenState extends State<LoginScreen>
           controller: _emailController,
           hint: 'Masukkan Email atau NPA',
           icon: Icons.person_outline_rounded,
-          enabled: !_isCheckingNpa,
         ),
         const SizedBox(height: 18),
         _label('Password'),
@@ -294,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 24),
         ElevatedButton(
-          onPressed: _isCheckingNpa ? null : _handleLogin,
+          onPressed: _handleLogin,
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryGreen,
             foregroundColor: Colors.white,
@@ -461,7 +463,6 @@ class _LoginScreenState extends State<LoginScreen>
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     bool readOnly = false,
-    bool enabled = true,
     ValueChanged<String>? onChanged,
   }) {
     return TextField(
@@ -549,6 +550,7 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _handleLogin() async {
     final input = _emailController.text.trim();
     final password = _passwordController.text.trim();
+
     if (input.isEmpty || password.isEmpty) {
       _snackbar('Email dan Password tidak boleh kosong', isError: true);
       return;
@@ -558,7 +560,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/users/login'),
+        Uri.parse('$_baseUrl/users/login'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -567,12 +569,20 @@ class _LoginScreenState extends State<LoginScreen>
       );
 
       setState(() => _isCheckingNpa = false);
+
       final body = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final role = body['user']?['role'];
+        log('$role');
+
         _snackbar('Login berhasil! Selamat datang 👋');
+
         Future.delayed(const Duration(milliseconds: 800), () {
-          if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
+          if (mounted) {
+            final route = _routeForRole(role?.toString());
+            Navigator.pushReplacementNamed(context, route);
+          }
         });
       } else {
         final msg = body['message'] ?? 'Email atau password salah';
@@ -582,6 +592,31 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() => _isCheckingNpa = false);
       _snackbar('Tidak dapat terhubung ke server', isError: true);
     }
+  }
+
+  String _routeForRole(String? roleValue) {
+    final role = roleValue?.trim().toLowerCase() ?? '';
+
+    if (role.contains('bendahara_pj') ||
+        role.contains('bendaharapj') ||
+        role == 'pj') {
+      return AppRoutes.bendaharaPJ;
+    }
+    if (role.contains('bendahara_pc') ||
+        role.contains('bendaharapc') ||
+        role == 'pc') {
+      return AppRoutes.bendaharaPC;
+    }
+    if (role.contains('bendahara_pd') ||
+        role.contains('bendaharapd') ||
+        role == 'pd') {
+      return AppRoutes.dashboard;
+    }
+    if (role.contains('anggota') || role == 'anggota') {
+      return AppRoutes.anggota;
+    }
+
+    return AppRoutes.dashboard;
   }
 
   // Tombol Daftar — cek NPA dulu via API, baru ke form
@@ -600,7 +635,7 @@ class _LoginScreenState extends State<LoginScreen>
     try {
       final response = await http
           .get(
-            Uri.parse('$_baseUrl/api/users/check-npa/$npa'),
+            Uri.parse('$_baseUrl/users/check-npa/$npa'),
             headers: {'ngrok-skip-browser-warning': 'true'},
           )
           .timeout(const Duration(seconds: 8));
@@ -704,7 +739,7 @@ class _LoginScreenState extends State<LoginScreen>
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ISI DATA SCREEN — hit API /api/users/activate
+// ISI DATA SCREEN — hit API /users/activate
 // ══════════════════════════════════════════════════════════════════════════════
 class IsiDataScreen extends StatefulWidget {
   final String npa;
@@ -865,10 +900,8 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
     required String hint,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
-    bool enabled = true,
   }) {
     return TextField(
-      enabled: enabled,
       controller: controller,
       keyboardType: keyboardType,
       style: const TextStyle(fontSize: 14, color: darkText),
@@ -888,12 +921,8 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: primaryGreen, width: 1.5),
         ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
-        ),
         filled: true,
-        fillColor: enabled ? Colors.white : Colors.grey.shade100,
+        fillColor: Colors.white,
       ),
     );
   }
@@ -915,7 +944,7 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/users/activate'),
+        Uri.parse('$_baseUrl/users/activate'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -969,7 +998,7 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// OTP SCREEN — hit API /api/users/verify-otp
+// OTP SCREEN — hit API /users/verify-otp
 // ══════════════════════════════════════════════════════════════════════════════
 class OtpScreen extends StatefulWidget {
   final String npa;
@@ -1251,7 +1280,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/users/verify-otp'),
+        Uri.parse('$_baseUrl/users/verify-otp'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -1275,7 +1304,9 @@ class _OtpScreenState extends State<OtpScreen> {
       } else {
         // OTP salah
         setState(() {
-          for (int i = 0; i < 4; i++) _otp[i] = '';
+          for (int i = 0; i < 4; i++) {
+            _otp[i] = '';
+          }
         });
         final msg = body['message'] ?? 'Kode OTP salah. Silakan coba lagi.';
         _snackbar(msg, isError: true);
@@ -1283,7 +1314,9 @@ class _OtpScreenState extends State<OtpScreen> {
     } catch (e) {
       setState(() {
         _isVerifying = false;
-        for (int i = 0; i < 4; i++) _otp[i] = '';
+        for (int i = 0; i < 4; i++) {
+          _otp[i] = '';
+        }
       });
       _snackbar('Tidak dapat terhubung ke server.', isError: true);
     }
@@ -1293,7 +1326,7 @@ class _OtpScreenState extends State<OtpScreen> {
     _startResendTimer();
     try {
       await http.post(
-        Uri.parse('$_baseUrl/api/users/activate'),
+        Uri.parse('$_baseUrl/users/activate'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -1467,7 +1500,6 @@ class _BuatPasswordScreenState extends State<BuatPasswordScreen> {
     required bool obscure,
     required VoidCallback onToggle,
     String hint = 'Minimal 8 Karakter',
-    bool enabled = true,
   }) {
     return TextField(
       controller: controller,
@@ -1502,12 +1534,8 @@ class _BuatPasswordScreenState extends State<BuatPasswordScreen> {
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: primaryGreen, width: 1.5),
         ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
-        ),
         filled: true,
-        fillColor: enabled ? Colors.white : Colors.grey.shade100,
+        fillColor: Colors.white,
       ),
     );
   }
@@ -1574,7 +1602,7 @@ class _BuatPasswordScreenState extends State<BuatPasswordScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/api/users/set-password'),
+        Uri.parse('$_baseUrl/users/set-password'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',

@@ -7,7 +7,7 @@ import '../controller/pembayaran_controller.dart';
 import '../widgets/bulan_iuran_bottom_sheet.dart';
 
 class QrisView extends StatefulWidget {
-  const QrisView({Key? key}) : super(key: key);
+  const QrisView({super.key});
 
   @override
   State<QrisView> createState() => _QrisViewState();

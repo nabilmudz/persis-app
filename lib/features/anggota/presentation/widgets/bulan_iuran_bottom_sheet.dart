@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class BulanIuranBottomSheet extends StatefulWidget {
-  const BulanIuranBottomSheet({Key? key}) : super(key: key);
+  const BulanIuranBottomSheet({super.key});
 
   @override
   State<BulanIuranBottomSheet> createState() => _BulanIuranBottomSheetState();
@@ -12,8 +12,18 @@ class _BulanIuranBottomSheetState extends State<BulanIuranBottomSheet> {
   String selectedMonth = 'Januari';
 
   final List<String> months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
 
   @override
@@ -39,18 +49,23 @@ class _BulanIuranBottomSheetState extends State<BulanIuranBottomSheet> {
                   SizedBox(width: 8),
                   Text(
                     'Bulan Mulai Iuran',
-                    style: TextStyle(color: Color(0xFF074D2C), fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+                    style: TextStyle(
+                      color: Color(0xFF074D2C),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
                 ],
               ),
               IconButton(
                 icon: const Icon(Icons.close, color: Color(0xFF074D2C)),
                 onPressed: () => Navigator.pop(context),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
@@ -62,15 +77,26 @@ class _BulanIuranBottomSheetState extends State<BulanIuranBottomSheet> {
               children: [
                 InkWell(
                   onTap: () => setState(() => selectedYear--),
-                  child: const Icon(Icons.chevron_left, color: Color(0xFF6C6C6C)),
+                  child: const Icon(
+                    Icons.chevron_left,
+                    color: Color(0xFF6C6C6C),
+                  ),
                 ),
                 Text(
                   selectedYear.toString(),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Poppins', color: Color(0xFF363636)),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                    color: Color(0xFF363636),
+                  ),
                 ),
                 InkWell(
                   onTap: () => setState(() => selectedYear++),
-                  child: const Icon(Icons.chevron_right, color: Color(0xFF6C6C6C)),
+                  child: const Icon(
+                    Icons.chevron_right,
+                    color: Color(0xFF6C6C6C),
+                  ),
                 ),
               ],
             ),
@@ -100,16 +126,24 @@ class _BulanIuranBottomSheetState extends State<BulanIuranBottomSheet> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isSelected ? const Color(0xFF10B367) : Colors.white,
-                    border: Border.all(color: isSelected ? const Color(0xFF10B367) : const Color(0xFFD0D0D0)),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF10B367)
+                          : const Color(0xFFD0D0D0),
+                    ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     month,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF6C6C6C),
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF6C6C6C),
                       fontSize: 13,
                       fontFamily: 'Poppins',
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
                     ),
                   ),
                 ),

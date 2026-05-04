@@ -7,7 +7,7 @@ import 'transfer_bank_view.dart';
 import 'qris_view.dart';
 
 class PilihPembayaranView extends StatelessWidget {
-  const PilihPembayaranView({Key? key}) : super(key: key);
+  const PilihPembayaranView({super.key});
 
   PembayaranController _buildPembayaranController(
     BuildContext context,
