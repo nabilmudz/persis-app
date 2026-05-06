@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:persis_app/features/BendaharaPC/presentation/view/pc_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/non-tunai/pj_verif_non_tunai_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_view.dart';
+import 'package:persis_app/core/network/api_client.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/auth/login_controller.dart';
 
@@ -21,17 +22,17 @@ class AppRoutes {
   static Map<String, WidgetBuilder> get routes {
     return {
       initial: (_) => ChangeNotifierProvider(
-          create: (_) => LoginController(
-            remoteDataSource: UserRemoteDataSource('https://avert-casually-plating.ngrok-free.dev/api'),
-          ),
-          child: const LoginScreen(),
+        create: (_) => LoginController(
+          remoteDataSource: UserRemoteDataSource(ApiClient.baseUrl),
         ),
-    login: (_) => ChangeNotifierProvider(
-          create: (_) => LoginController(
-            remoteDataSource: UserRemoteDataSource('https://avert-casually-plating.ngrok-free.dev/api'),
-          ),
-          child: const LoginScreen(),
+        child: const LoginScreen(),
+      ),
+      login: (_) => ChangeNotifierProvider(
+        create: (_) => LoginController(
+          remoteDataSource: UserRemoteDataSource(ApiClient.baseUrl),
         ),
+        child: const LoginScreen(),
+      ),
       dashboard: (_) => const DashboardPage(),
       testBases: (_) => const TestBasesPage(),
       bendaharaPC: (_) => const PcViewPage(),

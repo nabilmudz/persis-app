@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:persis_app/core/network/api_client.dart';
 import 'package:persis_app/core/network/network_status.dart';
 import 'package:persis_app/features/BendaharaPC/data/datasources/payment_method_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
@@ -64,9 +65,8 @@ class PjHiveController extends ChangeNotifier {
     try {
       final box = Hive.box(_boxName);
       final remoteDataSource = dataSource ?? TransactionRemoteDataSource();
-      final paymentMethodDataSource = PaymentMethodRemoteDataSource(
-        'https://avert-casually-plating.ngrok-free.dev/api',
-      );
+      final paymentMethodDataSource =
+          PaymentMethodRemoteDataSource(ApiClient.baseUrl);
       final entries = box.toMap().entries.toList();
 
       for (final entry in entries) {
