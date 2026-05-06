@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:persis_app/core/config/config.dart';
-import 'dart:async';
 import '../../app/routes.dart';
 import 'dart:developer';
 
@@ -79,17 +78,17 @@ class _LoginScreenState extends State<LoginScreen>
           Positioned(
             top: -60,
             left: -60,
-            child: _circle(200, primaryGreen.withOpacity(0.08)),
+            child: _circle(200, primaryGreen.withValues(alpha: 0.08)),
           ),
           Positioned(
             bottom: 80,
             right: -40,
-            child: _circle(160, primaryGreen.withOpacity(0.06)),
+            child: _circle(160, primaryGreen.withValues(alpha: 0.06)),
           ),
           Positioned(
             top: 120,
             right: 20,
-            child: _circle(80, accentGreen.withOpacity(0.15)),
+            child: _circle(80, accentGreen.withValues(alpha: 0.15)),
           ),
           Center(
             child: Padding(
@@ -103,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen>
                     height: 260,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                     ),
                     child: const Icon(
                       Icons.account_balance_wallet_rounded,
@@ -193,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen>
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),

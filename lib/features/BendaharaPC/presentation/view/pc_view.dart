@@ -87,7 +87,6 @@ class _PcViewPageState extends State<PcViewPage> {
 
   @override
   void dispose() {
-    // 2. Wajib membuang controller saat pindah/menutup halaman agar tidak bocor memori (memory leak)
     _controller.dispose();
     super.dispose();
   }
@@ -99,8 +98,6 @@ class _PcViewPageState extends State<PcViewPage> {
       body: ListenableBuilder(
         listenable: _controller,
         builder: (context, child) {
-          final previewItems = _controller.previewTransactions;
-
           if (_controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
