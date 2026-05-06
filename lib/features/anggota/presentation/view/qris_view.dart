@@ -1,14 +1,13 @@
-import 'dart:io'; 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../controller/pembayaran_controller.dart';
-import '../widgets/bulan_iuran_bottom_sheet.dart'; 
-import 'package:persis_app/helpers/auth_helper.dart';
+import '../widgets/bulan_iuran_bottom_sheet.dart';
 
 class QrisView extends StatefulWidget {
-  const QrisView({Key? key}) : super(key: key);
+  const QrisView({super.key});
 
   @override
   State<QrisView> createState() => _QrisViewState();
@@ -37,12 +36,15 @@ class _QrisViewState extends State<QrisView> {
   }
 
   Future<void> _showMonthPicker(
-      BuildContext context, bool isMulai, PembayaranController controller) async {
+    BuildContext context,
+    bool isMulai,
+    PembayaranController controller,
+  ) async {
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => BulanIuranBottomSheet(), 
+      builder: (_) => BulanIuranBottomSheet(),
     );
     if (result != null) {
       if (isMulai) {
@@ -53,10 +55,13 @@ class _QrisViewState extends State<QrisView> {
     }
   }
 
-  void _handleSubmit(BuildContext context, PembayaranController controller) async {
+  void _handleSubmit(
+    BuildContext context,
+    PembayaranController controller,
+  ) async {
     // FIX: Hardcode userId biar gak error Member Not Found
-    final userId = '123'; 
-    
+    final userId = '123';
+
     await controller.submitQris(anggotaId: userId);
 
     if (!mounted) return;
@@ -81,8 +86,11 @@ class _QrisViewState extends State<QrisView> {
 
   @override
   Widget build(BuildContext context) {
-    final formatCurrency =
-        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp. ', decimalDigits: 0);
+    final formatCurrency = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp. ',
+      decimalDigits: 0,
+    );
 
     return Consumer<PembayaranController>(
       builder: (context, controller, _) {
@@ -181,25 +189,40 @@ class _QrisViewState extends State<QrisView> {
                   padding: const EdgeInsets.symmetric(vertical: 24),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                        colors: [Color(0xFF074D2C), Color(0xFF10B367)]),
+                      colors: [Color(0xFF074D2C), Color(0xFF10B367)],
+                    ),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
                     children: [
                       const Text(
                         'Total Tagihan',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         formatCurrency.format(controller.totalTagihan),
-                        style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
                       ),
                       const SizedBox(height: 8),
                       // UI ASLI KAMU
                       Text(
                         controller.labelPeriode,
-                        style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'Poppins'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontFamily: 'Poppins',
+                        ),
                       ),
                     ],
                   ),
@@ -212,57 +235,130 @@ class _QrisViewState extends State<QrisView> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(15),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 4))],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 15,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: controller.isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B367)))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF10B367),
+                            ),
+                          )
                         : controller.qrisImageUrl != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(15),
-                                child: Image.network(controller.qrisImageUrl!, fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.qr_code_2, size: 180, color: Colors.black87),
-                                ),
-                              )
-                            : const Icon(Icons.qr_code_2, size: 180, color: Colors.black87),
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(15),
+                            child: Image.network(
+                              controller.qrisImageUrl!,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.qr_code_2,
+                                size: 180,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.qr_code_2,
+                            size: 180,
+                            color: Colors.black87,
+                          ),
                   ),
                 ),
                 const SizedBox(height: 32),
                 const Text(
                   'Upload Bukti Pembayaran',
-                  style: TextStyle(color: Color(0xFF074D2C), fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+                  style: TextStyle(
+                    color: Color(0xFF074D2C),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
-                  onTap: controller.isUploading ? null : () => _pickImage(controller),
+                  onTap: controller.isUploading
+                      ? null
+                      : () => _pickImage(controller),
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 30),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF6F6F6),
-                      border: Border.all(color: controller.buktiFile != null ? const Color(0xFF10B367) : const Color(0xFFB4B4B4), width: 1.5),
+                      border: Border.all(
+                        color: controller.buktiFile != null
+                            ? const Color(0xFF10B367)
+                            : const Color(0xFFB4B4B4),
+                        width: 1.5,
+                      ),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: controller.isUploading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF10B367)))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF10B367),
+                            ),
+                          )
                         : controller.buktiFile != null
-                            ? Column(
-                                children: [
-                                  const Icon(Icons.check_circle, size: 50, color: Color(0xFF10B367)),
-                                  const SizedBox(height: 12),
-                                  Text(controller.buktiFile!.path.split('/').last, style: const TextStyle(color: Color(0xFF6B6B6B), fontSize: 13, fontFamily: 'Poppins')),
-                                  const SizedBox(height: 4),
-                                  const Text('Ketuk untuk ganti', style: TextStyle(color: Color(0xFF10B367), fontSize: 12, fontFamily: 'Poppins')),
-                                ],
-                              )
-                            : const Column(
-                                children: [
-                                  Icon(Icons.upload_file, size: 50, color: Color(0xFF10B367)),
-                                  SizedBox(height: 12),
-                                  Text('Ketuk untuk Unggah Bukti Transfer', style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
-                                  SizedBox(height: 4),
-                                  Text('JPG, PNG, Max 5mb', style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 12, fontFamily: 'Poppins')),
-                                ],
+                        ? Column(
+                            children: [
+                              const Icon(
+                                Icons.check_circle,
+                                size: 50,
+                                color: Color(0xFF10B367),
                               ),
+                              const SizedBox(height: 12),
+                              Text(
+                                controller.buktiFile!.path.split('/').last,
+                                style: const TextStyle(
+                                  color: Color(0xFF6B6B6B),
+                                  fontSize: 13,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Ketuk untuk ganti',
+                                style: TextStyle(
+                                  color: Color(0xFF10B367),
+                                  fontSize: 12,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Column(
+                            children: [
+                              Icon(
+                                Icons.upload_file,
+                                size: 50,
+                                color: Color(0xFF10B367),
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'Ketuk untuk Unggah Bukti Transfer',
+                                style: TextStyle(
+                                  color: Color(0xFF6B6B6B),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'JPG, PNG, Max 5mb',
+                                style: TextStyle(
+                                  color: Color(0xFF6B6B6B),
+                                  fontSize: 12,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -273,7 +369,13 @@ class _QrisViewState extends State<QrisView> {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
             ),
             child: Container(
               decoration: BoxDecoration(
@@ -285,16 +387,28 @@ class _QrisViewState extends State<QrisView> {
                 borderRadius: BorderRadius.circular(15),
               ),
               child: ElevatedButton(
-                onPressed: controller.isLoading || controller.buktiUrl == null ? null : () => _handleSubmit(context, controller),
+                onPressed: controller.isLoading || controller.buktiUrl == null
+                    ? null
+                    : () => _handleSubmit(context, controller),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                 ),
                 child: controller.isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Kirim Bukti Pembayaran', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white, fontFamily: 'Poppins')),
+                    : const Text(
+                        'Kirim Bukti Pembayaran',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
               ),
             ),
           ),
@@ -316,7 +430,15 @@ class _QrisViewState extends State<QrisView> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(text, style: const TextStyle(color: Color(0xFF6C6C6C), fontSize: 13, fontWeight: FontWeight.w500, fontFamily: 'Poppins')),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Color(0xFF6C6C6C),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                fontFamily: 'Poppins',
+              ),
+            ),
             const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6C6C6C)),
           ],
         ),

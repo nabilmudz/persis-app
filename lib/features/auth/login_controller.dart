@@ -1,14 +1,25 @@
+// login_controller.dart
+
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'package:persis_app/helpers/auth_helper.dart';
 import 'package:persis_app/app/routes.dart';
 
+// ─── Result Models ────────────────────────────────────────────────────────────
+
+enum NpaStatus { valid, alreadyActive, notFound, empty, error }
+
+class CekNpaResult {
+  final NpaStatus status;
+  final String? message;
+  const CekNpaResult({required this.status, this.message});
+}
+
 class LoginResult {
   final bool success;
   final String message;
   final String nextRoute;
-
   const LoginResult({
     required this.success,
     required this.message,
@@ -16,23 +27,26 @@ class LoginResult {
   });
 }
 
+// ─── Controller ───────────────────────────────────────────────────────────────
+
 class LoginController extends ChangeNotifier {
   final UserRemoteDataSource remoteDataSource;
-
   LoginController({required this.remoteDataSource});
 
   bool _isLoading = false;
+  bool _npaNotFound = false;
   String? _errorMessage;
   UserModel? _user;
 
   bool get isLoading => _isLoading;
+  bool get npaNotFound => _npaNotFound;
   String? get errorMessage => _errorMessage;
   UserModel? get user => _user;
 
+  // ─── Login ────────────────────────────────────────────────────────────────
   Future<LoginResult> login(
     String emailOrNpa,
-    String password,
-    BuildContext context, {
+    String password, {
     bool rememberMe = false,
   }) async {
     final identifier = emailOrNpa.trim();
@@ -56,34 +70,35 @@ class LoginController extends ChangeNotifier {
     try {
       final response = await remoteDataSource.login(identifier, pwd);
 
-      // locate candidate data / user map in multiple possible shapes
+      // ── Parse user map ───────────────────────────────────────────────────
       Map<String, dynamic>? dataMap;
       try {
-        if (response['data'] is Map<String, dynamic>) {
-          dataMap = Map<String, dynamic>.from(response['data']);
-        } else if (response is Map<String, dynamic>) {
-          dataMap = Map<String, dynamic>.from(response);
-        }
+        dataMap = response['data'] is Map<String, dynamic>
+            ? Map<String, dynamic>.from(response['data'])
+            : Map<String, dynamic>.from(response);
       } catch (_) {
         dataMap = null;
       }
 
       Map<String, dynamic>? userMap;
-      if (response['user'] is Map<String, dynamic>) userMap = Map.from(response['user']);
-      userMap ??= dataMap != null && dataMap['user'] is Map<String, dynamic> ? Map.from(dataMap['user']) : null;
+      if (response['user'] is Map<String, dynamic>) {
+        userMap = Map.from(response['user']);
+      }
+      userMap ??= dataMap?['user'] is Map<String, dynamic>
+          ? Map.from(dataMap!['user'])
+          : null;
       userMap ??= dataMap;
 
       UserModel? parsedUser;
       try {
         if (userMap != null) parsedUser = UserModel.fromJson(userMap);
       } catch (_) {}
-
       _user = parsedUser;
 
-      // extract token from several possible locations
+      // ── Parse token ──────────────────────────────────────────────────────
       String? token;
       for (final key in ['access_token', 'accessToken', 'token', 'jwt']) {
-        final v = (response[key] ?? (dataMap != null ? dataMap[key] : null));
+        final v = response[key] ?? dataMap?[key];
         if (v is String && v.trim().isNotEmpty) {
           token = v.trim();
           break;
@@ -92,18 +107,18 @@ class LoginController extends ChangeNotifier {
 
       String? refreshToken;
       for (final key in ['refresh_token', 'refreshToken']) {
-        final v = (response[key] ?? (dataMap != null ? dataMap[key] : null));
+        final v = response[key] ?? dataMap?[key];
         if (v is String && v.trim().isNotEmpty) {
           refreshToken = v.trim();
           break;
         }
       }
 
-      // role: check root, data, user, or parsed model
-      String? role = (response['role'] is String) ? response['role'] : null;
-      role ??= (dataMap != null && dataMap['role'] is String) ? dataMap['role'] : null;
-      role ??= (userMap != null && userMap['role'] is String) ? userMap['role'] : null;
-      if (role == null && parsedUser != null) role = parsedUser.role;
+      // ── Parse role ───────────────────────────────────────────────────────
+      String? role = response['role'] is String ? response['role'] : null;
+      role ??= dataMap?['role'] is String ? dataMap!['role'] : null;
+      role ??= userMap?['role'] is String ? userMap!['role'] : null;
+      role ??= parsedUser?.role;
 
       if (token != null) {
         await AuthHelper.saveSession(
@@ -143,20 +158,80 @@ class LoginController extends ChangeNotifier {
     }
   }
 
+  // ─── Cek NPA ──────────────────────────────────────────────────────────────
+  Future<CekNpaResult> cekNpa(String npa) async {
+    final trimmed = npa.trim();
+
+    if (trimmed.isEmpty) {
+      return const CekNpaResult(
+        status: NpaStatus.empty,
+        message: 'NPA tidak boleh kosong',
+      );
+    }
+
+    _isLoading = true;
+    _npaNotFound = false;
+    notifyListeners();
+
+    try {
+      _isLoading = false;
+
+      // checkNpa throws kalau gagal, jadi kalau sampai sini = NPA valid
+      _npaNotFound = false;
+      notifyListeners();
+
+      return const CekNpaResult(status: NpaStatus.valid);
+    } on Exception catch (e) {
+      _isLoading = false;
+      final msg = e.toString().replaceFirst('Exception: ', '');
+
+      if (msg.toLowerCase().contains('sudah')) {
+        notifyListeners();
+        return CekNpaResult(status: NpaStatus.alreadyActive, message: msg);
+      }
+
+      _npaNotFound = true;
+      notifyListeners();
+      return CekNpaResult(status: NpaStatus.notFound, message: msg);
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return const CekNpaResult(
+        status: NpaStatus.error,
+        message: 'Tidak dapat terhubung ke server',
+      );
+    }
+  }
+
+  // ─── Reset ────────────────────────────────────────────────────────────────
+  void resetNpaNotFound() {
+    _npaNotFound = false;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // ─── Role Routing ─────────────────────────────────────────────────────────
   String _routeForRole(String? roleValue) {
     final role = roleValue?.trim().toLowerCase() ?? '';
     if (role.contains('bendahara_pj') ||
         role.contains('bendaharapj') ||
-        role == 'pj')
+        role == 'pj') {
       return AppRoutes.bendaharaPJ;
+    }
     if (role.contains('bendahara_pc') ||
         role.contains('bendaharapc') ||
-        role == 'pc')
+        role == 'pc') {
       return AppRoutes.bendaharaPC;
+    }
     if (role.contains('bendahara_pd') ||
         role.contains('bendaharapd') ||
-        role == 'pd')
+        role == 'pd') {
       return AppRoutes.dashboard;
+    }
     return AppRoutes.dashboard;
   }
 }

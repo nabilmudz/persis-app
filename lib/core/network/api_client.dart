@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiClient {
   ApiClient._();
 
-  static const String baseUrl =
-      'https://avert-casually-plating.ngrok-free.dev/api';
+  static final String baseUrl = dotenv.env['BASE_URL'] ?? '';
 
   static Future<Map<String, String>> _defaultHeaders({String? token}) async {
     return {

@@ -11,6 +11,7 @@ class PjVerificationMemberCard extends StatelessWidget {
   final PjMonthStatus? cardStatus;
   final VoidCallback? onTapCekKartu;
   final VoidCallback? onTapDetail;
+  final bool showIuranList;
 
   const PjVerificationMemberCard({
     super.key,
@@ -23,6 +24,7 @@ class PjVerificationMemberCard extends StatelessWidget {
     this.cardStatus,
     this.onTapCekKartu,
     this.onTapDetail,
+    this.showIuranList = false,
   });
 
   PjMonthStatus _aggregateStatus() {
@@ -286,7 +288,7 @@ class PjVerificationMemberCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (iuranStatuses.isNotEmpty) ...[
+                    if (showIuranList && iuranStatuses.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 6,

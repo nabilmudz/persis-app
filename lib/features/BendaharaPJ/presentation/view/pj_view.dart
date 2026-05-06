@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controller/pj_controller.dart';
-import 'tunai/pj_anggota_view.dart';
+import 'anggota/pj_anggota_view.dart';
+import 'tunai/pj_anggota_view.dart' as tunai_anggota;
 import 'tunai/pending_transaction_view.dart';
 import 'non-tunai/pj_verif_non_tunai_view.dart';
 import '../widgets/bendahara_shared_cards.dart';
@@ -89,7 +90,7 @@ class _PjViewPageState extends State<PjViewPage> {
                             context,
                             MaterialPageRoute(
                               builder: (_) =>
-                                  PjAnggotaViewPage(controller: _controller),
+                                  tunai_anggota.PjAnggotaViewPage(controller: _controller),
                             ),
                           );
                         },
@@ -114,13 +115,40 @@ class _PjViewPageState extends State<PjViewPage> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                BendaharaMenuCard(
-                  title: 'Data Anggota',
-                  icon: Icons.people_outline,
-                  iconBackgroundColor: const Color(0xFFFFFBEA),
-                  onTap: () {
-                    // Navigate to member data
-                  },
+                Row(
+                  children: [
+                    Expanded(
+                      child: BendaharaMenuCard(
+                        title: 'Data Anggota',
+                        icon: Icons.people_outline,
+                        iconBackgroundColor: const Color(0xFFFFFBEA),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PjAnggotaViewPage(controller: _controller),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: BendaharaMenuCard(
+                        title: 'Bayar Iuran',
+                        icon: Icons.paid_outlined,
+                        iconBackgroundColor: const Color(0xFFFFFBEA),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PjVerifNonTunaiViewPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
               ],

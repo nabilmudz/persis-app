@@ -62,19 +62,19 @@ class PcBankAccountController extends ChangeNotifier {
   }
 
   Future<String?> resolveQrisPaymentMethodId() async {
-  await _ensurePaymentMethodsLoaded();
+    await _ensurePaymentMethodsLoaded();
 
-  try {
-    // Mencari item pertama yang memenuhi kriteria QRIS
-    final qrisMethod = _paymentMethods.firstWhere(
-      (method) => _isQrisMethod(method),
-    );
-    return qrisMethod.id;
-  } catch (e) {
-    print('❌ QRIS Method tidak ditemukan di dalam list');
-    return null;
+    try {
+      // Mencari item pertama yang memenuhi kriteria QRIS
+      final qrisMethod = _paymentMethods.firstWhere(
+        (method) => _isQrisMethod(method),
+      );
+      return qrisMethod.id;
+    } catch (e) {
+      print('❌ QRIS Method tidak ditemukan di dalam list');
+      return null;
+    }
   }
-}
 
   Future<String?> resolveRegionId() async {
     final token = await SecureStorageService.read(
@@ -183,11 +183,6 @@ class PcBankAccountController extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   bool _isTransferBankMethod(PaymentMethodModel method) {

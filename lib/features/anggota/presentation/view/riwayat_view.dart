@@ -4,7 +4,7 @@ import '../widgets/anggota_card.dart';
 import '../controller/anggota_controller.dart';
 
 class RiwayatView extends StatefulWidget {
-  const RiwayatView({Key? key}) : super(key: key);
+  const RiwayatView({super.key});
 
   @override
   State<RiwayatView> createState() => _RiwayatViewState();
@@ -27,7 +27,12 @@ class _RiwayatViewState extends State<RiwayatView> {
         ),
         title: const Text(
           'Riwayat',
-          style: TextStyle(color: Color(0xFF363636), fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
+          style: TextStyle(
+            color: Color(0xFF363636),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Poppins',
+          ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
@@ -36,13 +41,15 @@ class _RiwayatViewState extends State<RiwayatView> {
       ),
       body: Consumer<AnggotaController>(
         builder: (context, controller, child) {
-
           final filteredTransactions = controller.riwayatTransaksi.where((tx) {
             if (selectedFilter == 'Semua') return true;
             final deskripsi = (tx.description ?? '').toLowerCase();
-            if (selectedFilter == 'Tahun 2026') return deskripsi.contains('2026');
-            if (selectedFilter == 'Tahun 2025') return deskripsi.contains('2025');
-            if (selectedFilter == 'Tahun 2024') return deskripsi.contains('2024');
+            if (selectedFilter == 'Tahun 2026')
+              return deskripsi.contains('2026');
+            if (selectedFilter == 'Tahun 2025')
+              return deskripsi.contains('2025');
+            if (selectedFilter == 'Tahun 2024')
+              return deskripsi.contains('2024');
             return true;
           }).toList();
 
@@ -66,24 +73,29 @@ class _RiwayatViewState extends State<RiwayatView> {
               ),
               const SizedBox(height: 24),
               Expanded(
-                child: filteredTransactions.isEmpty 
-                  ? const Center(
-                      child: Text(
-                        'Tidak ada riwayat transaksi.',
-                        style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
+                child: filteredTransactions.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Tidak ada riwayat transaksi.',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        itemCount: filteredTransactions.length,
+                        itemBuilder: (context, index) {
+                          return AnggotaCard(
+                            transaction: filteredTransactions[index],
+                          );
+                        },
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      itemCount: filteredTransactions.length,
-                      itemBuilder: (context, index) {
-                        return AnggotaCard(transaction: filteredTransactions[index]);
-                      },
-                    ),
               ),
             ],
           );
-        }
+        },
       ),
     );
   }

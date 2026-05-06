@@ -5,7 +5,6 @@ import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_bank_account_view.dart';
 import '../widgets/sweet_alert_dialog.dart';
-import '../widgets/verifikasi_card.dart';
 
 class PcViewPage extends StatefulWidget {
   const PcViewPage({super.key});
@@ -88,7 +87,6 @@ class _PcViewPageState extends State<PcViewPage> {
 
   @override
   void dispose() {
-    // 2. Wajib membuang controller saat pindah/menutup halaman agar tidak bocor memori (memory leak)
     _controller.dispose();
     super.dispose();
   }
@@ -100,8 +98,6 @@ class _PcViewPageState extends State<PcViewPage> {
       body: ListenableBuilder(
         listenable: _controller,
         builder: (context, child) {
-          final previewItems = _controller.previewTransactions;
-
           if (_controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }

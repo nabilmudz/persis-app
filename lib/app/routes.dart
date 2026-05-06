@@ -11,6 +11,7 @@ import 'package:persis_app/features/anggota/data/repositories/anggota_repository
 
 import '../core/widgets/offline_warning_banner.dart';
 import '../features/auth/login_screen.dart';
+import '../core/config/config.dart';
 
 class AppRoutes {
   static const String initial = '/';
@@ -21,24 +22,21 @@ class AppRoutes {
   static const String bendaharaPJ = '/bendahara-pj';
   static const String verifikasiPC = '/verifikasi-pc';
   static const String anggota = '/anggota';
-
   static const String _baseUrl = 'https://avert-casually-plating.ngrok-free.dev/api';
   static const String verifikasiNonTunai = '/verifikasi-non-tunai';
 
   static Map<String, WidgetBuilder> get routes {
     return {
       initial: (_) => ChangeNotifierProvider(
-          create: (_) => LoginController(
-            remoteDataSource: UserRemoteDataSource(_baseUrl),
-          ),
-          child: const LoginScreen(),
-        ),
+        create: (_) =>
+            LoginController(remoteDataSource: UserRemoteDataSource(_baseUrl)),
+        child: const LoginScreen(),
+      ),
       login: (_) => ChangeNotifierProvider(
-          create: (_) => LoginController(
-            remoteDataSource: UserRemoteDataSource(_baseUrl),
-          ),
-          child: const LoginScreen(),
-        ),
+        create: (_) =>
+            LoginController(remoteDataSource: UserRemoteDataSource(_baseUrl)),
+        child: const LoginScreen(),
+      ),
       dashboard: (_) => const DashboardPage(),
       testBases: (_) => const TestBasesPage(),
       bendaharaPC: (_) => const PcViewPage(),
@@ -69,22 +67,26 @@ class DashboardPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.anggota),
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.anggota),
                 child: const Text('Buka Halaman Anggota (PersisPay)'),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.testBases),
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.testBases),
                 child: const Text('Buka Test Bases'),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.bendaharaPC),
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.bendaharaPC),
                 child: const Text('Buka Bendahara PC'),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.bendaharaPJ),
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.bendaharaPJ),
                 child: const Text('Buka Bendahara PJ (Teman)'),
               ),
               const SizedBox(height: 12),
@@ -127,7 +129,11 @@ class _TestBasesPageState extends State<TestBasesPage> {
                         showOfflineBanner = !showOfflineBanner;
                       });
                     },
-                    child: Text(showOfflineBanner ? 'Hide Offline Warning' : 'Show Offline Warning'),
+                    child: Text(
+                      showOfflineBanner
+                          ? 'Hide Offline Warning'
+                          : 'Show Offline Warning',
+                    ),
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(

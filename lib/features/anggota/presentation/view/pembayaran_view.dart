@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/features/anggota/data/repositories/payment_repository.dart';
 import 'package:provider/provider.dart';
 import '../controller/anggota_controller.dart';
 import '../controller/pembayaran_controller.dart';
@@ -6,10 +7,12 @@ import 'transfer_bank_view.dart';
 import 'qris_view.dart';
 
 class PilihPembayaranView extends StatelessWidget {
-  const PilihPembayaranView({Key? key}) : super(key: key);
+  const PilihPembayaranView({super.key});
 
   PembayaranController _buildPembayaranController(
-      BuildContext context, PaymentRepository repository) {
+    BuildContext context,
+    PaymentRepository repository,
+  ) {
     final anggota = context.read<AnggotaController>();
     final ctrl = PembayaranController(repository: repository);
 
@@ -38,10 +41,7 @@ class PilihPembayaranView extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ChangeNotifierProvider.value(
-          value: ctrl,
-          child: child,
-        ),
+        builder: (_) => ChangeNotifierProvider.value(value: ctrl, child: child),
       ),
     );
   }
@@ -112,7 +112,7 @@ class PilihPembayaranView extends StatelessWidget {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -139,7 +139,7 @@ class PilihPembayaranView extends StatelessWidget {
               color: Colors.black.withOpacity(0.06),
               blurRadius: 10,
               offset: const Offset(0, 2),
-            )
+            ),
           ],
         ),
         child: Row(
@@ -178,7 +178,7 @@ class PilihPembayaranView extends StatelessWidget {
                   ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),

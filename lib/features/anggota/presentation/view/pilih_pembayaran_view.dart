@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; 
+import 'package:persis_app/core/config/config.dart';
+import 'package:provider/provider.dart';
 // --- FIX IMPORT: Pakai PaymentRemoteDataSource ---
 import 'package:persis_app/features/anggota/data/datasources/payment_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/repositories/payment_repository.dart';
@@ -8,9 +9,9 @@ import 'transfer_bank_view.dart';
 import 'qris_view.dart';
 
 class PilihPembayaranView extends StatelessWidget {
-  const PilihPembayaranView({Key? key}) : super(key: key);
+  PilihPembayaranView({super.key});
 
-  final String _baseUrl = 'https://avert-casually-plating.ngrok-free.dev/api';
+  final String _baseUrl = AppConfig.baseUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +27,12 @@ class PilihPembayaranView extends StatelessWidget {
         ),
         title: const Text(
           'Bayar Sekarang',
-          style: TextStyle(color: Color(0xFF363636), fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
+          style: TextStyle(
+            color: Color(0xFF363636),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Poppins',
+          ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
@@ -41,7 +47,12 @@ class PilihPembayaranView extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 31),
             child: Text(
               'Non-tunai',
-              style: TextStyle(color: Color(0xFF074D2C), fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
+              style: TextStyle(
+                color: Color(0xFF074D2C),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Poppins',
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -62,7 +73,9 @@ class PilihPembayaranView extends StatelessWidget {
                         builder: (context) => ChangeNotifierProvider(
                           create: (_) => PembayaranController(
                             // --- FIX: Pakai PaymentRemoteDataSource ---
-                            repository: PaymentRepository(PaymentRemoteDataSource(_baseUrl)),
+                            repository: PaymentRepository(
+                              PaymentRemoteDataSource(_baseUrl),
+                            ),
                           ),
                           child: const TransferBankView(),
                         ),
@@ -84,7 +97,9 @@ class PilihPembayaranView extends StatelessWidget {
                         builder: (context) => ChangeNotifierProvider(
                           create: (_) => PembayaranController(
                             // --- FIX: Pakai PaymentRemoteDataSource ---
-                            repository: PaymentRepository(PaymentRemoteDataSource(_baseUrl)),
+                            repository: PaymentRepository(
+                              PaymentRemoteDataSource(_baseUrl),
+                            ),
                           ),
                           child: const QrisView(),
                         ),
@@ -94,7 +109,7 @@ class PilihPembayaranView extends StatelessWidget {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -121,7 +136,7 @@ class PilihPembayaranView extends StatelessWidget {
               color: Colors.black.withOpacity(0.06),
               blurRadius: 10,
               offset: const Offset(0, 2),
-            )
+            ),
           ],
         ),
         child: Row(
@@ -142,15 +157,25 @@ class PilihPembayaranView extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(color: Color(0xFF494949), fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Poppins'),
+                  style: const TextStyle(
+                    color: Color(0xFF494949),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Poppins',
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: Color(0xFF949494), fontSize: 11, fontWeight: FontWeight.w600, fontFamily: 'Poppins'),
+                  style: const TextStyle(
+                    color: Color(0xFF949494),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Poppins',
+                  ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),

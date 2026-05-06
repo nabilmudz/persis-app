@@ -29,7 +29,7 @@ class CustomCard extends StatelessWidget {
             blurRadius: 8,
             offset: Offset(0, 2),
             spreadRadius: 0,
-          )
+          ),
         ],
       ),
       child: Stack(
@@ -120,7 +120,10 @@ class CustomCard extends StatelessWidget {
           Positioned(
             left: 151,
             top: 23,
-            child: Container(width: 24, height: 24), // Ini sepertinya tempat untuk icon/gambar
+            child: SizedBox(
+              width: 24,
+              height: 24,
+            ), // Ini sepertinya tempat untuk icon/gambar
           ),
         ],
       ),
