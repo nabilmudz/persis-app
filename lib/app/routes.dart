@@ -6,9 +6,13 @@ import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_view.dart';
 import 'package:persis_app/core/network/api_client.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/auth/login_controller.dart';
+import 'package:persis_app/features/anggota/presentation/view/anggota_view.dart';
+import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
+import 'package:persis_app/features/anggota/data/repositories/anggota_repository.dart';
 
 import '../core/widgets/offline_warning_banner.dart';
 import '../features/auth/login_screen.dart';
+import '../core/config/config.dart';
 
 class AppRoutes {
   static const String initial = '/';
@@ -18,19 +22,20 @@ class AppRoutes {
   static const String bendaharaPC = '/bendahara-pc';
   static const String bendaharaPJ = '/bendahara-pj';
   static const String verifikasiNonTunai = '/verifikasi-non-tunai';
+  static const String anggota = '/anggota';
+
+  static final String _baseUrl = AppConfig.baseUrl;
 
   static Map<String, WidgetBuilder> get routes {
     return {
       initial: (_) => ChangeNotifierProvider(
-        create: (_) => LoginController(
-          remoteDataSource: UserRemoteDataSource(ApiClient.baseUrl),
-        ),
+        create: (_) =>
+            LoginController(remoteDataSource: UserRemoteDataSource(_baseUrl)),
         child: const LoginScreen(),
       ),
       login: (_) => ChangeNotifierProvider(
-        create: (_) => LoginController(
-          remoteDataSource: UserRemoteDataSource(ApiClient.baseUrl),
-        ),
+        create: (_) =>
+            LoginController(remoteDataSource: UserRemoteDataSource(_baseUrl)),
         child: const LoginScreen(),
       ),
       dashboard: (_) => const DashboardPage(),
@@ -38,45 +43,57 @@ class AppRoutes {
       bendaharaPC: (_) => const PcViewPage(),
       bendaharaPJ: (_) => const PjViewPage(),
       verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
+      anggota: (_) => ChangeNotifierProvider(
+        create: (_) => AnggotaController(
+          repository: AnggotaRepository(UserRemoteDataSource(_baseUrl)),
+        ),
+        child: const AnggotaView(),
+      ),
     };
   }
 }
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard Page')),
+      appBar: AppBar(title: const Text('Dashboard Utama')),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('This is the dashboard page.'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pushNamed(context, AppRoutes.login),
-              child: const Text('Go to Login'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.testBases),
-              child: const Text('Open Test Bases'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.bendaharaPC),
-              child: const Text('Open Bendahara PC'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Back'),
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.anggota),
+                child: const Text('Buka Halaman Anggota (PersisPay)'),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.testBases),
+                child: const Text('Buka Test Bases'),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.bendaharaPC),
+                child: const Text('Buka Bendahara PC'),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.bendaharaPJ),
+                child: const Text('Buka Bendahara PJ (Teman)'),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, AppRoutes.login),
+                child: const Text('Keluar / Ke Login Screen'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -85,14 +102,12 @@ class DashboardPage extends StatelessWidget {
 
 class TestBasesPage extends StatefulWidget {
   const TestBasesPage({super.key});
-
   @override
   State<TestBasesPage> createState() => _TestBasesPageState();
 }
 
 class _TestBasesPageState extends State<TestBasesPage> {
   bool showOfflineBanner = false;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,40 +118,27 @@ class _TestBasesPageState extends State<TestBasesPage> {
           OfflineWarningBanner(isOffline: showOfflineBanner),
           Expanded(
             child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Trigger testable bases below.',
-                      textAlign: TextAlign.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        showOfflineBanner = !showOfflineBanner;
+                      });
+                    },
+                    child: Text(
+                      showOfflineBanner
+                          ? 'Hide Offline Warning'
+                          : 'Show Offline Warning',
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          showOfflineBanner = !showOfflineBanner;
-                        });
-                      },
-                      child: Text(
-                        showOfflineBanner
-                            ? 'Hide Offline Warning'
-                            : 'Show Offline Warning',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Back'),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Other testable bases can be added here as buttons or widgets.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Back'),
+                  ),
+                ],
               ),
             ),
           ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
+import '../models/transaction_item_model.dart';
 
 class UserRemoteDataSource {
   final String baseUrl;
@@ -21,14 +22,6 @@ class UserRemoteDataSource {
             body: jsonEncode({credentialKey: identifier, 'password': password}),
           )
           .timeout(const Duration(seconds: 10));
-
-      // debug prints (safe for dev) - remove or guard in production
-      // ignore: avoid_print
-      print('LOGIN URL: $url');
-      // ignore: avoid_print
-      print('STATUS: ${response.statusCode}');
-      // ignore: avoid_print
-      print('BODY: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return jsonDecode(response.body);
@@ -79,5 +72,36 @@ class UserRemoteDataSource {
       return data.map((e) => UserModel.fromJson(e)).toList();
     }
     throw Exception('Gagal mengambil data user');
+  }
+
+  // Get Riwayat Iuran dari API
+  Future<List<TransactionItemModel>> getRiwayatIuran(String userId) async {
+    final url = Uri.parse('$baseUrl/transaction-item/user/$userId');
+    final response = await http.get(url).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      List data = json.decode(response.body);
+      return data.map((e) => TransactionItemModel.fromJson(e)).toList();
+    }
+    throw Exception('Gagal mengambil data riwayat iuran');
+  }
+
+  Future<void> checkNpa(String npa) async {
+    final response = await http
+        .get(
+          Uri.parse('$baseUrl/users/check-npa/$npa'),
+          headers: {'Content-Type': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 8));
+
+    final body = jsonDecode(response.body);
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      // NPA valid & belum aktif → return void, controller nggak perlu data
+      return;
+    }
+
+    // Lempar pesan dari server — controller yang interpret statusnya
+    throw Exception(body['message'] ?? 'NPA tidak ditemukan');
   }
 }

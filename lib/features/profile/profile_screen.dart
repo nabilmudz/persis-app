@@ -1,13 +1,19 @@
-import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:persis_app/core/config/config.dart';
-import '../../app/routes.dart';
-import 'dart:developer';
 
-// ─── API Config ────────────────────────────────────────────────────────────────
-final String _baseUrl = AppConfig.baseUrl;
+// ─── Dummy Data ────────────────────────────────────────────────────────────────
+const Map<String, Map<String, String>> _npaDatabase = {
+  '26150403': {'nama': 'Ahmad Fauzi', 'cabang': 'Bandung Timur'},
+  '26150404': {'nama': 'Siti Rahma', 'cabang': 'Bandung Barat'},
+  '26150405': {'nama': 'Rizky Maulana', 'cabang': 'Bandung Selatan'},
+};
+
+final Map<String, String> _activeAccounts = {
+  'admin@persis.id': 'admin123',
+  'nashwa@persis.id': 'nashwa123',
+  '26150400': 'anggota123',
+  '26150401': 'anggota456',
+  '26150402': 'anggota789',
+};
 
 // ─── Colors ────────────────────────────────────────────────────────────────────
 const Color primaryGreen = Color(0xFF1A7A4A);
@@ -36,7 +42,6 @@ class _LoginScreenState extends State<LoginScreen>
   bool _rememberMe = false;
   bool _obscurePassword = true;
   bool _npaNotFound = false;
-  bool _isCheckingNpa = false;
 
   @override
   void initState() {
@@ -180,6 +185,7 @@ class _LoginScreenState extends State<LoginScreen>
             style: TextStyle(fontSize: 13, color: greyText),
           ),
           const SizedBox(height: 32),
+          // Tab Bar
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFFF0F0F0),
@@ -305,19 +311,10 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             elevation: 0,
           ),
-          child: _isCheckingNpa
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Text(
-                  'Masuk',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                ),
+          child: const Text(
+            'Masuk',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
         ),
       ],
     );
@@ -339,9 +336,11 @@ class _LoginScreenState extends State<LoginScreen>
           controller: _npaController,
           hint: 'Masukkan NPA',
           icon: Icons.badge_outlined,
-          keyboardType: TextInputType.text,
+          keyboardType: TextInputType.number,
           onChanged: (_) => setState(() => _npaNotFound = false),
         ),
+
+        // Pesan error NPA tidak ditemukan
         if (_npaNotFound) ...[
           const SizedBox(height: 12),
           Container(
@@ -374,7 +373,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'NPA tidak ditemukan di database. Silakan hubungi admin.',
+                  'NPA tidak ditemukan di database. Silakan hubungi admin untuk informasi lebih lanjut.',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.red.shade500,
@@ -416,9 +415,10 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         ],
+
         const Spacer(),
         ElevatedButton(
-          onPressed: _isCheckingNpa ? null : _handleCekNpa,
+          onPressed: _handleCekNpa,
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryGreen,
             foregroundColor: Colors.white,
@@ -428,19 +428,10 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             elevation: 0,
           ),
-          child: _isCheckingNpa
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Text(
-                  'Daftar',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                ),
+          child: const Text(
+            'Daftar',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
         ),
       ],
     );
@@ -546,124 +537,55 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   // ─── Logic ────────────────────────────────────────────────────────────────
-  Future<void> _handleLogin() async {
+  void _handleLogin() {
     final input = _emailController.text.trim();
     final password = _passwordController.text.trim();
-
     if (input.isEmpty || password.isEmpty) {
-      _snackbar('Email dan Password tidak boleh kosong', isError: true);
+      _snackbar('Email/NPA dan Password tidak boleh kosong', isError: true);
       return;
     }
-
-    setState(() => _isCheckingNpa = true);
-
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/users/login'),
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: jsonEncode({'email': input, 'password': password}),
-      );
-
-      setState(() => _isCheckingNpa = false);
-
-      final body = jsonDecode(response.body);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final role = body['user']?['role'];
-        log('$role');
-
-        _snackbar('Login berhasil! Selamat datang 👋');
-
-        Future.delayed(const Duration(milliseconds: 800), () {
-          if (mounted) {
-            final route = _routeForRole(role?.toString());
-            Navigator.pushReplacementNamed(context, route);
-          }
-        });
-      } else {
-        final msg = body['message'] ?? 'Email atau password salah';
-        _snackbar(msg, isError: true);
-      }
-    } catch (e) {
-      setState(() => _isCheckingNpa = false);
-      _snackbar('Tidak dapat terhubung ke server', isError: true);
+    if (_npaDatabase.containsKey(input)) {
+      _snackbar('Akun belum diaktivasi. Silakan aktivasi dulu.', isError: true);
+      _tabController.animateTo(1);
+      return;
     }
+    final correct = _activeAccounts[input];
+    if (correct == null) {
+      _snackbar('Akun tidak ditemukan', isError: true);
+      return;
+    }
+    if (correct != password) {
+      _snackbar('Password salah', isError: true);
+      return;
+    }
+    _snackbar('Login berhasil! Selamat datang 👋');
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
+    });
   }
 
-  String _routeForRole(String? roleValue) {
-    final role = roleValue?.trim().toLowerCase() ?? '';
-
-    if (role.contains('bendahara_pj') ||
-        role.contains('bendaharapj') ||
-        role == 'pj') {
-      return AppRoutes.bendaharaPJ;
-    }
-    if (role.contains('bendahara_pc') ||
-        role.contains('bendaharapc') ||
-        role == 'pc') {
-      return AppRoutes.bendaharaPC;
-    }
-    if (role.contains('bendahara_pd') ||
-        role.contains('bendaharapd') ||
-        role == 'pd') {
-      return AppRoutes.dashboard;
-    }
-    if (role.contains('anggota') || role == 'anggota') {
-      return AppRoutes.anggota;
-    }
-
-    return AppRoutes.dashboard;
-  }
-
-  // Tombol Daftar — cek NPA dulu via API, baru ke form
-  Future<void> _handleCekNpa() async {
+  void _handleCekNpa() {
     final npa = _npaController.text.trim();
     if (npa.isEmpty) {
       _snackbar('NPA tidak boleh kosong', isError: true);
       return;
     }
-
-    setState(() {
-      _isCheckingNpa = true;
-      _npaNotFound = false;
-    });
-
-    try {
-      final response = await http
-          .get(
-            Uri.parse('$_baseUrl/users/check-npa/$npa'),
-            headers: {'ngrok-skip-browser-warning': 'true'},
-          )
-          .timeout(const Duration(seconds: 8));
-
-      setState(() => _isCheckingNpa = false);
-      final body = jsonDecode(response.body);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // NPA valid & belum aktif → lanjut isi data
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => IsiDataScreen(npa: npa)),
-        );
-      } else {
-        // NPA tidak ditemukan atau sudah aktif
-        final msg = body['message'] ?? 'NPA tidak ditemukan';
-        if (msg.toLowerCase().contains('sudah')) {
-          // Sudah aktif → suruh login
-          _snackbar('NPA sudah aktif. Silakan login langsung.', isError: true);
-          _tabController.animateTo(0);
-        } else {
-          setState(() => _npaNotFound = true);
-        }
-      }
-    } catch (e) {
-      setState(() => _isCheckingNpa = false);
-      _snackbar('Tidak dapat terhubung ke server', isError: true);
+    if (_activeAccounts.containsKey(npa)) {
+      _snackbar('NPA ini sudah aktif. Silakan login langsung.', isError: true);
+      _tabController.animateTo(0);
+      return;
     }
+    if (_npaDatabase.containsKey(npa)) {
+      final data = _npaDatabase[npa]!;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => IsiDataScreen(npa: npa, cabang: data['cabang']!),
+        ),
+      );
+      return;
+    }
+    setState(() => _npaNotFound = true);
   }
 
   void _hubungiAdmin() {
@@ -738,11 +660,12 @@ class _LoginScreenState extends State<LoginScreen>
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ISI DATA SCREEN — hit API /users/activate
+// ISI DATA SCREEN (Email, No Telp — NPA & Cabang readonly)
 // ══════════════════════════════════════════════════════════════════════════════
 class IsiDataScreen extends StatefulWidget {
   final String npa;
-  const IsiDataScreen({super.key, required this.npa});
+  final String cabang;
+  const IsiDataScreen({super.key, required this.npa, required this.cabang});
   @override
   State<IsiDataScreen> createState() => _IsiDataScreenState();
 }
@@ -750,7 +673,6 @@ class IsiDataScreen extends StatefulWidget {
 class _IsiDataScreenState extends State<IsiDataScreen> {
   final _emailController = TextEditingController();
   final _noTelpController = TextEditingController();
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -794,11 +716,13 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
             ),
             const SizedBox(height: 24),
 
+            // NPA (readonly)
             _label('NPA'),
             const SizedBox(height: 8),
             _readonlyField(widget.npa, Icons.badge_outlined),
             const SizedBox(height: 16),
 
+            // Email
             _label('Email'),
             const SizedBox(height: 8),
             _inputField(
@@ -809,6 +733,7 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
             ),
             const SizedBox(height: 16),
 
+            // No Telp
             _label('Nomor Telepon'),
             const SizedBox(height: 8),
             _inputField(
@@ -819,15 +744,16 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
             ),
             const SizedBox(height: 16),
 
+            // Cabang (readonly)
             _label('Cabang'),
             const SizedBox(height: 8),
-            _readonlyField('1', Icons.location_city_outlined),
+            _readonlyField(widget.cabang, Icons.location_city_outlined),
             const SizedBox(height: 32),
 
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleDaftar,
+                onPressed: _handleDaftar,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
@@ -837,22 +763,10 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Daftar',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                child: const Text(
+                  'Daftar',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -926,78 +840,39 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
     );
   }
 
-  Future<void> _handleDaftar() async {
+  void _handleDaftar() {
     final email = _emailController.text.trim();
     final noTelp = _noTelpController.text.trim();
-
     if (email.isEmpty || noTelp.isEmpty) {
-      _snackbar('Email dan No Telepon wajib diisi', isError: true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Email dan No Telepon wajib diisi'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       return;
     }
     if (!email.contains('@')) {
-      _snackbar('Format email tidak valid', isError: true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Format email tidak valid'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
       return;
     }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/users/activate'),
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: jsonEncode({
-          'npa': widget.npa,
-          'email': email,
-          'no_hp': noTelp,
-          'cabang': 1, // default cabang, sesuaikan jika ada dropdown
-        }),
-      );
-
-      setState(() => _isLoading = false);
-
-      final body = jsonDecode(response.body);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // Sukses → OTP berhasil dikirim ke email
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => OtpScreen(npa: widget.npa, email: email),
-          ),
-        );
-      } else {
-        // Gagal — tampilkan pesan dari server
-        final msg = body['message'] ?? 'Terjadi kesalahan. Coba lagi.';
-        _snackbar(msg, isError: true);
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _snackbar(
-        'Tidak dapat terhubung ke server. Periksa koneksi internet.',
-        isError: true,
-      );
-    }
-  }
-
-  void _snackbar(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.redAccent : primaryGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
+    // Navigasi ke OTP screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OtpScreen(npa: widget.npa, email: email),
       ),
     );
   }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// OTP SCREEN — hit API /users/verify-otp
+// OTP SCREEN
 // ══════════════════════════════════════════════════════════════════════════════
 class OtpScreen extends StatefulWidget {
   final String npa;
@@ -1009,9 +884,10 @@ class OtpScreen extends StatefulWidget {
 
 class _OtpScreenState extends State<OtpScreen> {
   final List<String> _otp = ['', '', '', ''];
+  // Kode OTP dummy (simulasi dikirim via email)
+  static const String _dummyOtp = '1234';
   int _resendSeconds = 30;
   bool _canResend = false;
-  bool _isVerifying = false;
 
   @override
   void initState() {
@@ -1020,10 +896,6 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 
   void _startResendTimer() {
-    setState(() {
-      _resendSeconds = 30;
-      _canResend = false;
-    });
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return false;
@@ -1113,7 +985,34 @@ class _OtpScreenState extends State<OtpScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
+            // Hint untuk demo
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: lightGreen,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    color: primaryGreen,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Demo: kode OTP adalah $_dummyOtp',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: primaryGreen,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
 
             // 4 kotak OTP
             Row(
@@ -1153,7 +1052,19 @@ class _OtpScreenState extends State<OtpScreen> {
             Center(
               child: _canResend
                   ? TextButton(
-                      onPressed: _handleResend,
+                      onPressed: () {
+                        setState(() {
+                          _resendSeconds = 30;
+                          _canResend = false;
+                        });
+                        _startResendTimer();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Kode OTP telah dikirim ulang'),
+                            backgroundColor: primaryGreen,
+                          ),
+                        );
+                      },
                       child: const Text(
                         'Kirim Ulang',
                         style: TextStyle(
@@ -1173,9 +1084,7 @@ class _OtpScreenState extends State<OtpScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: (_otpString.length == 4 && !_isVerifying)
-                    ? _handleVerifikasi
-                    : null,
+                onPressed: _otpString.length == 4 ? _handleVerifikasi : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
@@ -1186,22 +1095,10 @@ class _OtpScreenState extends State<OtpScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: _isVerifying
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Verifikasi OTP',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                child: const Text(
+                  'Verifikasi OTP',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -1250,108 +1147,55 @@ class _OtpScreenState extends State<OtpScreen> {
     );
   }
 
-  Widget _numpadRow(List<String> digits) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: digits.map(_numpadButton).toList(),
-  );
+  Widget _numpadRow(List<String> digits) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: digits.map(_numpadButton).toList(),
+    );
+  }
 
-  Widget _numpadButton(String digit) => SizedBox(
-    width: 80,
-    height: 56,
-    child: TextButton(
-      onPressed: () => _inputDigit(digit),
-      style: TextButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: Text(
-        digit,
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w500,
-          color: darkText,
+  Widget _numpadButton(String digit) {
+    return SizedBox(
+      width: 80,
+      height: 56,
+      child: TextButton(
+        onPressed: () => _inputDigit(digit),
+        style: TextButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Text(
+          digit,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w500,
+            color: darkText,
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
-  Future<void> _handleVerifikasi() async {
-    setState(() => _isVerifying = true);
-
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/users/verify-otp'),
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: jsonEncode({'npa': widget.npa, 'otp': _otpString}),
-      );
-
-      setState(() => _isVerifying = false);
-
-      final body = jsonDecode(response.body);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // OTP benar → lanjut buat password
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => BuatPasswordScreen(npa: widget.npa),
-          ),
-        );
-      } else {
-        // OTP salah
-        setState(() {
-          for (int i = 0; i < 4; i++) {
-            _otp[i] = '';
-          }
-        });
-        final msg = body['message'] ?? 'Kode OTP salah. Silakan coba lagi.';
-        _snackbar(msg, isError: true);
-      }
-    } catch (e) {
+  void _handleVerifikasi() {
+    if (_otpString != _dummyOtp) {
       setState(() {
-        _isVerifying = false;
         for (int i = 0; i < 4; i++) {
           _otp[i] = '';
         }
       });
-      _snackbar('Tidak dapat terhubung ke server.', isError: true);
-    }
-  }
-
-  Future<void> _handleResend() async {
-    _startResendTimer();
-    try {
-      await http.post(
-        Uri.parse('$_baseUrl/users/activate'),
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: jsonEncode({
-          'npa': widget.npa,
-          'email': widget.email,
-          'no_hp': '',
-          'cabang': 1,
-        }),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kode OTP salah. Silakan coba lagi.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
-      _snackbar('Kode OTP telah dikirim ulang ke ${widget.email}');
-    } catch (_) {
-      _snackbar('Gagal kirim ulang OTP', isError: true);
+      return;
     }
-  }
-
-  void _snackbar(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.redAccent : primaryGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
-      ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => BuatPasswordScreen(npa: widget.npa)),
     );
   }
 }
@@ -1596,32 +1440,11 @@ class _BuatPasswordScreenState extends State<BuatPasswordScreen> {
       _snackbar('Password dan konfirmasi tidak sama', isError: true);
       return;
     }
-
     setState(() => _isLoading = true);
-
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/users/set-password'),
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: jsonEncode({'npa': widget.npa, 'password': pass}),
-      );
-
-      setState(() => _isLoading = false);
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        final body = jsonDecode(response.body);
-        _snackbar(body['message'] ?? 'Gagal menyimpan password', isError: true);
-        return;
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _snackbar('Tidak dapat terhubung ke server', isError: true);
-      return;
-    }
-
+    await Future.delayed(const Duration(seconds: 2));
+    _activeAccounts[widget.npa] = pass;
+    _npaDatabase.remove(widget.npa);
+    setState(() => _isLoading = false);
     if (!mounted) return;
     showDialog(
       context: context,
@@ -1664,11 +1487,9 @@ class _BuatPasswordScreenState extends State<BuatPasswordScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/',
-                  (route) => false,
-                ),
+                onPressed: () {
+                  Navigator.popUntil(context, ModalRoute.withName('/'));
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,

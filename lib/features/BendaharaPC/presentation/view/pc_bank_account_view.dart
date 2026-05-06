@@ -184,9 +184,9 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memilih gambar QRIS: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal memilih gambar QRIS: $e')));
     }
   }
 
@@ -200,14 +200,18 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
 
     print('===== _HANDLE SAVE QRIS =====');
     // Di dalam _handleSaveQris
-final paymentMethodId = await _controller.resolveQrisPaymentMethodId();
+    final paymentMethodId = await _controller.resolveQrisPaymentMethodId();
 
-if (paymentMethodId == null || paymentMethodId.isEmpty) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Sistem tidak menemukan ID Metode Pembayaran QRIS. Hubungi Admin.')),
-  );
-  return; // Hentikan proses agar tidak terjadi error 400
-}
+    if (paymentMethodId == null || paymentMethodId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Sistem tidak menemukan ID Metode Pembayaran QRIS. Hubungi Admin.',
+          ),
+        ),
+      );
+      return; // Hentikan proses agar tidak terjadi error 400
+    }
 
     setState(() {
       _isSavingQris = true;
@@ -223,9 +227,11 @@ if (paymentMethodId == null || paymentMethodId.isEmpty) {
       isActive: true,
     );
 
-    print('QRIS Account model created with paymentMethodId: ${qrisAccount.paymentMethodId}');
+    print(
+      'QRIS Account model created with paymentMethodId: ${qrisAccount.paymentMethodId}',
+    );
 
-      final result = existingQris == null
+    final result = existingQris == null
         ? await _controller.addBankAccount(qrisAccount)
         : await _controller.updateBankAccount(existingQris.id!, qrisAccount);
 
@@ -241,22 +247,22 @@ if (paymentMethodId == null || paymentMethodId.isEmpty) {
       }
     });
 
-      if (result) {
-        await SweetAlertDialog.showSuccess(
-          context: context,
-          title: 'Berhasil',
-          message: existingQris == null
-              ? 'QRIS berhasil ditambahkan.'
-              : 'QRIS berhasil diperbarui.',
-        );
-      } else {
-        await SweetAlertDialog.showSuccess(
-          context: context,
-          title: 'Gagal',
-          message: _controller.errorMessage ?? 'Gagal menyimpan QRIS.',
-        );
-      }
+    if (result) {
+      await SweetAlertDialog.showSuccess(
+        context: context,
+        title: 'Berhasil',
+        message: existingQris == null
+            ? 'QRIS berhasil ditambahkan.'
+            : 'QRIS berhasil diperbarui.',
+      );
+    } else {
+      await SweetAlertDialog.showSuccess(
+        context: context,
+        title: 'Gagal',
+        message: _controller.errorMessage ?? 'Gagal menyimpan QRIS.',
+      );
     }
+  }
 
   Future<void> _handleDeleteQris(BankAccountModel qrisAccount) async {
     if (qrisAccount.id == null) {
@@ -341,7 +347,9 @@ if (paymentMethodId == null || paymentMethodId.isEmpty) {
           builder: (context, child) {
             final accounts = _controller.bankAccounts;
             final qrisAccounts = _controller.qrisAccounts;
-            final qrisAccount = qrisAccounts.isNotEmpty ? qrisAccounts.first : null;
+            final qrisAccount = qrisAccounts.isNotEmpty
+                ? qrisAccounts.first
+                : null;
 
             if (_controller.isLoading) {
               return const Center(child: CircularProgressIndicator());
@@ -469,7 +477,7 @@ if (paymentMethodId == null || paymentMethodId.isEmpty) {
                             },
                           ),
                         );
-                      }).toList(),
+                      }),
                     const SizedBox(height: 24),
                     // Section: Gambar QRIS
                     const Text(
@@ -538,8 +546,7 @@ if (paymentMethodId == null || paymentMethodId.isEmpty) {
                                         ],
                                       )
                                     : ClipRRect(
-                                        borderRadius:
-                                            BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(16),
                                         child: Image.memory(
                                           _selectedQrisImageBytes!,
                                           fit: BoxFit.cover,
@@ -593,27 +600,28 @@ if (paymentMethodId == null || paymentMethodId.isEmpty) {
                                         fit: BoxFit.cover,
                                       )
                                     : (qrisAccount.qrisImageUrl != null &&
-                                            qrisAccount.qrisImageUrl!.isNotEmpty)
-                                        ? Image.network(
-                                            qrisAccount.qrisImageUrl!,
-                                            fit: BoxFit.cover,
-                                            errorBuilder:
-                                                (context, error, stackTrace) {
+                                          qrisAccount.qrisImageUrl!.isNotEmpty)
+                                    ? Image.network(
+                                        qrisAccount.qrisImageUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
                                               return const Center(
                                                 child: Text(
                                                   'Preview QRIS gagal dimuat',
                                                 ),
                                               );
                                             },
-                                          )
-                                        : const Center(
-                                            child: Text('QRIS belum tersedia'),
-                                          ),
+                                      )
+                                    : const Center(
+                                        child: Text('QRIS belum tersedia'),
+                                      ),
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(16),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     TextButton.icon(
                                       onPressed: _pickQrisImage,
