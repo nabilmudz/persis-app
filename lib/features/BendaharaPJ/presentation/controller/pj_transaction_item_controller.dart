@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/adapters.dart';
+import 'package:persis_app/core/storage/hive_service.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_item_detail_model.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
@@ -16,6 +18,16 @@ class PjTransactionItemController extends ChangeNotifier {
     : _dataSource = dataSource ?? TransactionRemoteDataSource();
 
   final TransactionRemoteDataSource _dataSource;
+
+  static const String _cacheBoxName = 'pj_item_cache';
+
+  static Future<void> initCache() async {
+    if (!Hive.isBoxOpen(_cacheBoxName)) {
+      await Hive.openBox(_cacheBoxName);
+    }
+  }
+
+  Box get _cacheBox => HiveService.box(_cacheBoxName);
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -50,16 +62,43 @@ class PjTransactionItemController extends ChangeNotifier {
 
   /// Memuat semua transaction-item untuk userId tertentu dan
   /// membangun map status per bulan-tahun.
-  Future<void> loadByUser(String userId, {List<DuesPeriodModel>? globalDuesPeriods}) async {
+  Future<void> loadByUser(
+    String userId, {
+    List<DuesPeriodModel>? globalDuesPeriods,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
+      // 1. Load dari Cache dulu
+      final cached = _cacheBox.get(userId) as List?;
+      if (cached != null) {
+        final cachedItems =
+            cached
+                .map(
+                  (e) => TransactionItemDetailModel.fromJson(
+                    Map<String, dynamic>.from(e),
+                  ),
+                )
+                .toList();
+        _buildStatusMap(cachedItems, globalDuesPeriods: globalDuesPeriods);
+        notifyListeners();
+      }
+
+      // 2. Fetch network
       final items = await _dataSource.getTransactionItemsByUser(userId);
+
+      // Save ke Cache
+      await _cacheBox.put(userId, items.map((e) => e.toJson()).toList());
+
+      // Rebuild map dengan data terbaru
       _buildStatusMap(items, globalDuesPeriods: globalDuesPeriods);
     } catch (e) {
-      _errorMessage = 'Gagal memuat data iuran: $e';
+      debugPrint('[PjTransactionItemController] Error: $e');
+      if (_monthStatusMap.isEmpty) {
+        _errorMessage = 'Gagal memuat data iuran: $e';
+      }
     } finally {
       _isLoading = false;
       notifyListeners();

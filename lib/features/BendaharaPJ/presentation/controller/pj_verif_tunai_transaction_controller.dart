@@ -215,7 +215,7 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         id: transactionId,
         type: 'tunai',
         creatorId: memberId,
-        paymentMethodId: _tunaiPaymentMethodId, // Akan null jika gagal load, bukan string 'tunai'
+        paymentMethodId: _tunaiPaymentMethodId ?? 'tunai', // Pastikan tidak null agar bisa di-resolve PjHiveController
         totalAmount: totalAmount,
         status: 'pending',
         accStatus: null,

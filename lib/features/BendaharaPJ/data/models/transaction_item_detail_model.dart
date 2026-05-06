@@ -103,6 +103,8 @@ class TransactionItemDetailModel {
     final yearMatch = RegExp(r'(19|20)\d{2}').firstMatch(src);
     return yearMatch != null ? int.tryParse(yearMatch.group(0)!) : null;
   }
+
+  Object? toJson() {}
 }
 
 /// Info dues period yang mungkin di-embed oleh backend.

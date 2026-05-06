@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:persis_app/core/network/api_client.dart';
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/network/network_status.dart';
 import 'package:persis_app/features/BendaharaPC/data/datasources/payment_method_remote_datasources.dart';
@@ -28,18 +27,30 @@ class PjHiveController extends ChangeNotifier {
 
   /// 1. Simpan transaksi tunai secara lokal sebelum dikirim ke BE/MongoDB.
   Future<int> saveTransactionLocally(
-    Map<String, dynamic> transactionData,
-  ) async {
-    // Menyimpan data dengan key auto-increment atau timestamp
-    // Tambahkan timestamp lokal untuk tracking jika dibutuhkan
+    Map<String, dynamic> transactionData, {
+    TransactionRemoteDataSource? dataSource,
+  }) async {
     transactionData['local_timestamp'] = DateTime.now().toIso8601String();
+    transactionData['status'] = 'pending';
+    transactionData['isSynced'] = false;
 
-    int key = await _box.add(transactionData);
+    final int key = await _box.add(transactionData);
     notifyListeners();
 
-    if (await NetworkStatus.hasInternetConnection()) {
-      syncPendingTransactions();
-    }
+    unawaited(
+      NetworkStatus.hasInternetConnection().then((isOnline) {
+        if (isOnline) {
+          syncPendingTransactions(dataSource: dataSource).then((syncedCount) {
+            if (syncedCount > 0) {
+              debugPrint(
+                '[PjHiveController] Auto-sync setelah save: $syncedCount transaksi terkirim.',
+              );
+              notifyListeners();
+            }
+          });
+        }
+      }),
+    );
 
     return key;
   }
@@ -134,15 +145,24 @@ class PjHiveController extends ChangeNotifier {
 
     try {
       transaction = TransactionModel.fromJson(rawValue);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[PjHiveController] ❌ fromJson gagal: $e');
+      debugPrint('[PjHiveController] rawValue: $rawValue');
       return null;
     }
+
+    debugPrint(
+      '[PjHiveController] ✅ Memproses sync untuk transaksi: ${transaction.id}',
+    );
 
     final resolvedPaymentMethodId = await _resolvePaymentMethodId(
       transaction.paymentMethodId,
       paymentMethodDataSource,
     );
     if (resolvedPaymentMethodId == null || resolvedPaymentMethodId.isEmpty) {
+      debugPrint(
+        '[PjHiveController] ❌ paymentMethodId tidak resolve: "${transaction.paymentMethodId}"',
+      );
       return null;
     }
 
@@ -153,6 +173,9 @@ class PjHiveController extends ChangeNotifier {
         remoteDataSource,
       );
       if (resolvedItem == null) {
+        debugPrint(
+          '[PjHiveController] ❌ item gagal resolve (period tidak ditemukan): periodId="${item.periodId}" duesPeriodId="${item.duesPeriodId}" desc="${item.description}"',
+        );
         return null;
       }
       normalizedItems.add(resolvedItem);

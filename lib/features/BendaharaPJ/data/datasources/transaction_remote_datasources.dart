@@ -7,6 +7,20 @@ import '../models/transaction_model.dart';
 class TransactionRemoteDataSource {
   List<DuesPeriodModel>? _cachedDuesPeriods;
 
+  Map<String, dynamic> _buildCreatePayload(TransactionModel transaction) {
+    final payload = Map<String, dynamic>.from(transaction.toJson());
+    final items = (payload['items'] as List?)
+        ?.map((item) {
+          final itemMap = Map<String, dynamic>.from(item as Map);
+          itemMap.remove('status');
+          return itemMap;
+        })
+        .toList();
+
+    payload['items'] = items;
+    return payload;
+  }
+
   // Update transaksi yang sudah ada (untuk ACC)
   Future<bool> updateTransaction(
     String transactionId,
@@ -29,7 +43,7 @@ class TransactionRemoteDataSource {
     try {
       final response = await ApiClient.post(
         '/transaction',
-        body: transaction.toJson(),
+        body: _buildCreatePayload(transaction),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
