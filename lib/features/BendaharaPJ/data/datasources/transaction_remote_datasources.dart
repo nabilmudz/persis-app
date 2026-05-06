@@ -9,13 +9,11 @@ class TransactionRemoteDataSource {
 
   Map<String, dynamic> _buildCreatePayload(TransactionModel transaction) {
     final payload = Map<String, dynamic>.from(transaction.toJson());
-    final items = (payload['items'] as List?)
-        ?.map((item) {
-          final itemMap = Map<String, dynamic>.from(item as Map);
-          itemMap.remove('status');
-          return itemMap;
-        })
-        .toList();
+    final items = (payload['items'] as List?)?.map((item) {
+      final itemMap = Map<String, dynamic>.from(item as Map);
+      itemMap.remove('status');
+      return itemMap;
+    }).toList();
 
     payload['items'] = items;
     return payload;
@@ -49,7 +47,9 @@ class TransactionRemoteDataSource {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       }
-      debugPrint('Error API Create Transaction: ${response.statusCode} - ${response.body}');
+      debugPrint(
+        'Error API Create Transaction: ${response.statusCode} - ${response.body}',
+      );
       return false;
     } catch (e) {
       debugPrint('Error API Create Transaction: $e');
@@ -117,8 +117,9 @@ class TransactionRemoteDataSource {
         final List data = json.decode(response.body);
         return data
             .map(
-              (e) =>
-                  TransactionItemDetailModel.fromJson(e as Map<String, dynamic>),
+              (e) => TransactionItemDetailModel.fromJson(
+                e as Map<String, dynamic>,
+              ),
             )
             .toList();
       }

@@ -231,9 +231,8 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PendingTransactionViewPage(
-                    controller: widget.controller,
-                  ),
+                  builder: (_) =>
+                      PendingTransactionViewPage(controller: widget.controller),
                 ),
               );
             },
@@ -249,12 +248,15 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
               return ListenableBuilder(
                 listenable: _transactionController,
                 builder: (context, child) {
-                  if (_transactionController.isLoading || _itemController.isLoading) {
+                  final anggotaId = widget.member.id ?? '';
+                  final totalTunggakan = anggotaId.isEmpty
+                      ? 0.0
+                      : _itemController.totalTunggakan.toDouble();
+
+                  if (_transactionController.isLoading ||
+                      _itemController.isLoading) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
-                  // Total tunggakan dari /transaction-item/user/{userId}
-                  final totalTunggakan = _itemController.totalTunggakan.toDouble();
 
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
@@ -316,7 +318,9 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                             child: DropdownButton<int>(
                               value: _selectedYear,
                               isExpanded: true,
-                              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                              ),
                               style: const TextStyle(
                                 color: Color(0xFF6C6C6C),
                                 fontSize: 18,
@@ -379,7 +383,9 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFF4F4),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFF2C8C8)),
+                                border: Border.all(
+                                  color: const Color(0xFFF2C8C8),
+                                ),
                               ),
                               child: Text(
                                 _transactionController.errorMessage!,

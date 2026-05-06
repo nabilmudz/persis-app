@@ -10,9 +10,9 @@ import 'pj_verif_tunai_controller.dart';
 /// berdasarkan data dari endpoint /api/transaction-item/user/{userId}.
 ///
 /// Status warna:
-///   - [PjMonthStatus.lunas]           → Hijau  (status == 'paid')
-///   - [PjMonthStatus.tunggakan]        → Merah  (status == 'tunggakan' / period sudah lewat & belum dibayar)
-///   - [PjMonthStatus.belumJatuhTempo]  → Default putih/abu
+///   - [PjMonthStatus.lunas]           → Hijau  (status API == 'paid')
+///   - [PjMonthStatus.tunggakan]        → Merah  (status API == 'tunggakan')
+///   - [PjMonthStatus.belumJatuhTempo]       → Putih/abu (status API == 'pending' = belum jatuh tempo)
 class PjTransactionItemController extends ChangeNotifier {
   PjTransactionItemController({TransactionRemoteDataSource? dataSource})
     : _dataSource = dataSource ?? TransactionRemoteDataSource();
@@ -35,15 +35,14 @@ class PjTransactionItemController extends ChangeNotifier {
   /// Map dari key "$year-$month" → [PjMonthStatus]
   final Map<String, PjMonthStatus> _monthStatusMap = {};
 
-  /// Map dari key "$year-$month" → nominal iuran (untuk keperluan konfirmasi)
+  /// Map dari key "$year-$month" → nominal iuran
   final Map<String, int> _monthAmountMap = {};
 
   List<TransactionItemDetailModel> _items = [];
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-
-  List<TransactionItemDetailModel> get items => _items;
+  List<TransactionItemDetailModel> get items => List.unmodifiable(_items);
 
   List<TransactionItemDetailModel> get completed => _items.where((item) {
     final s = (item.status ?? '').trim().toLowerCase();
@@ -60,42 +59,53 @@ class PjTransactionItemController extends ChangeNotifier {
     return s != 'paid' && s != 'lunas' && s != 'tunggakan' && s != 'overdue';
   }).toList();
 
-  /// Memuat semua transaction-item untuk userId tertentu dan
-  /// membangun map status per bulan-tahun.
   Future<void> loadByUser(
     String userId, {
     List<DuesPeriodModel>? globalDuesPeriods,
+    bool forceRefresh = false,
   }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // 1. Load dari Cache dulu
-      final cached = _cacheBox.get(userId) as List?;
-      if (cached != null) {
-        final cachedItems =
-            cached
-                .map(
-                  (e) => TransactionItemDetailModel.fromJson(
+      if (!forceRefresh) {
+        final rawCache = _cacheBox.get(userId);
+        if (rawCache is List) {
+          final cachedItems = <TransactionItemDetailModel>[];
+          for (final e in rawCache) {
+            try {
+              if (e is Map) {
+                cachedItems.add(
+                  TransactionItemDetailModel.fromJson(
                     Map<String, dynamic>.from(e),
                   ),
-                )
-                .toList();
-        _buildStatusMap(cachedItems, globalDuesPeriods: globalDuesPeriods);
-        notifyListeners();
+                );
+              }
+            } catch (_) {}
+          }
+          if (cachedItems.isNotEmpty) {
+            _buildStatusMap(cachedItems, globalDuesPeriods: globalDuesPeriods);
+            notifyListeners();
+          }
+        }
+      } else {
+        await _cacheBox.delete(userId);
       }
 
-      // 2. Fetch network
-      final items = await _dataSource.getTransactionItemsByUser(userId);
+      final freshItems = await _dataSource.getTransactionItemsByUser(userId);
 
-      // Save ke Cache
-      await _cacheBox.put(userId, items.map((e) => e.toJson()).toList());
+      try {
+        await _cacheBox.put(userId, freshItems.map((e) => e.toJson()).toList());
+      } catch (cacheError) {
+        debugPrint(
+          '[PjTransactionItemController] Gagal simpan cache: $cacheError',
+        );
+      }
 
-      // Rebuild map dengan data terbaru
-      _buildStatusMap(items, globalDuesPeriods: globalDuesPeriods);
+      _buildStatusMap(freshItems, globalDuesPeriods: globalDuesPeriods);
     } catch (e) {
-      debugPrint('[PjTransactionItemController] Error: $e');
+      debugPrint('[PjTransactionItemController] Error loadByUser: $e');
       if (_monthStatusMap.isEmpty) {
         _errorMessage = 'Gagal memuat data iuran: $e';
       }
@@ -105,12 +115,13 @@ class PjTransactionItemController extends ChangeNotifier {
     }
   }
 
-  void _buildStatusMap(List<TransactionItemDetailModel> items, {List<DuesPeriodModel>? globalDuesPeriods}) {
-    _items = items;
+  void _buildStatusMap(
+    List<TransactionItemDetailModel> items, {
+    List<DuesPeriodModel>? globalDuesPeriods,
+  }) {
+    _items = List.of(items);
     _monthStatusMap.clear();
     _monthAmountMap.clear();
-
-
 
     for (final item in items) {
       final month = item.resolveMonth(globalDuesPeriods: globalDuesPeriods);
@@ -120,43 +131,48 @@ class PjTransactionItemController extends ChangeNotifier {
       final key = _key(month, year);
       final rawStatus = (item.status ?? '').trim().toLowerCase();
 
-      final PjMonthStatus newStatus;
-      if (rawStatus == 'paid' || rawStatus == 'lunas' || rawStatus == 'completed') {
-        newStatus = PjMonthStatus.lunas;
-      } else if (rawStatus == 'tunggakan' || rawStatus == 'overdue') {
-        newStatus = PjMonthStatus.tunggakan;
-      } else {
-        // Jika belum ada status eksplisit, anggap tunggakan (merah)
-        newStatus = PjMonthStatus.tunggakan;
-      }
+      // ✅ FIX: mapping status sesuai fakta API
+      // API mengembalikan 3 kemungkinan:
+      //   "paid"      → sudah dibayar        → lunas (hijau)
+      //   "tunggakan" → lewat jatuh tempo    → tunggakan (merah)
+      //   "pending"   → belum jatuh tempo    → belumJatuhTempo (putih/abu)
+      final PjMonthStatus newStatus = switch (rawStatus) {
+        'paid' || 'lunas' || 'completed' => PjMonthStatus.lunas,
+        'tunggakan' || 'overdue' => PjMonthStatus.tunggakan,
+        _ => PjMonthStatus.belumJatuhTempo,
+        // ↑ "pending" dan status tidak dikenal → belumJatuhTempo, BUKAN tunggakan
+      };
 
-      // Jika bulan ini sudah lunas di entry sebelumnya, jangan overwrite
+      // Jika entry sebelumnya sudah lunas, jangan overwrite
       final existing = _monthStatusMap[key];
       if (existing == PjMonthStatus.lunas) continue;
 
       _monthStatusMap[key] = newStatus;
 
-      if (item.amount != null && item.amount! > 0) {
-        _monthAmountMap[key] = item.amount!;
+      // Ambil nominal dari item, fallback ke info dues_period jika ada
+      final nominal = (item.amount != null && item.amount! > 0)
+          ? item.amount!
+          : (item.duesPeriod?.amount?.round() ?? 0);
+
+      if (nominal > 0) {
+        _monthAmountMap[key] = nominal;
       }
     }
   }
 
-  /// Kembalikan status warna kartu bulan tertentu.
+  /// Status warna kartu bulan tertentu.
   PjMonthStatus getMonthStatus(int month, int year) {
-    if (_monthStatusMap.containsKey(_key(month, year))) {
-      return _monthStatusMap[_key(month, year)]!;
-    }
-    // Jika tidak ada data transaksi item untuk bulan ini, anggap tunggakan (merah)
-    return PjMonthStatus.tunggakan;
+    // ✅ FIX: jika bulan tidak ada di map sama sekali → belumJatuhTempo
+    // (bukan tunggakan — bisa jadi period belum dibuat di backend)
+    return _monthStatusMap[_key(month, year)] ?? PjMonthStatus.belumJatuhTempo;
   }
 
-  /// Kembalikan nominal iuran bulan tertentu (0 jika tidak ada data).
+  /// Nominal iuran bulan tertentu (0 jika tidak ada data).
   int getMonthAmount(int month, int year) {
     return _monthAmountMap[_key(month, year)] ?? 0;
   }
 
-  /// Hitung total tunggakan (rupiah).
+  /// Total tunggakan dalam rupiah.
   int get totalTunggakan {
     int total = 0;
     for (final entry in _monthStatusMap.entries) {
@@ -166,6 +182,10 @@ class PjTransactionItemController extends ChangeNotifier {
     }
     return total;
   }
+
+  /// Jumlah bulan tunggakan.
+  int get tunggakanCount =>
+      _monthStatusMap.values.where((s) => s == PjMonthStatus.tunggakan).length;
 
   static String _key(int month, int year) =>
       '$year-${month.toString().padLeft(2, '0')}';

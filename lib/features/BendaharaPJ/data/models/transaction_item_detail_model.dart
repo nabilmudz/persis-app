@@ -27,19 +27,30 @@ class TransactionItemDetailModel {
   });
 
   factory TransactionItemDetailModel.fromJson(Map<String, dynamic> json) {
+    final itemJson = json['item'] is Map
+        ? Map<String, dynamic>.from(json['item'] as Map)
+        : json;
+    final periodJson = json['period'] is Map
+        ? Map<String, dynamic>.from(json['period'] as Map)
+        : json['dues_period'] is Map
+        ? Map<String, dynamic>.from(json['dues_period'] as Map)
+        : null;
+
+    final source = <String, dynamic>{...json, ...itemJson};
+
     return TransactionItemDetailModel(
-      id: json['_id'] ?? json['id'],
-      anggotaId: json['anggota_id'],
-      transactionId: json['transaction_id'],
-      duesPeriodId: json['dues_period_id'],
-      periodId: json['period_id'],
-      status: json['status'],
-      amount: (json['amount'] as num?)?.toInt(),
-      description: json['description'],
-      duesPeriod: json['dues_period'] != null
-          ? DuesPeriodInfo.fromJson(
-              json['dues_period'] as Map<String, dynamic>,
-            )
+      id: source['_id'] ?? source['id'],
+      anggotaId: source['anggota_id'],
+      transactionId: source['transaction_id'],
+      duesPeriodId: source['dues_period_id'],
+      periodId: source['period_id'],
+      status: source['status'],
+      amount: source['amount'] is num
+          ? (source['amount'] as num).toInt()
+          : int.tryParse(source['amount']?.toString() ?? ''),
+      description: source['description'],
+      duesPeriod: periodJson != null
+          ? DuesPeriodInfo.fromJson(periodJson)
           : null,
     );
   }
@@ -58,7 +69,7 @@ class TransactionItemDetailModel {
     }
 
     final src = periodId ?? duesPeriodId ?? description ?? '';
-    
+
     // Format YYYY-MM
     final match = RegExp(r'(\d{4})[-_/](\d{1,2})').firstMatch(src);
     if (match != null) {
@@ -68,8 +79,18 @@ class TransactionItemDetailModel {
     // Format teks nama bulan, misal: "Iuran Maret 2026"
     final lowerSrc = src.toLowerCase();
     const months = [
-      'januari', 'februari', 'maret', 'april', 'mei', 'juni',
-      'juli', 'agustus', 'september', 'oktober', 'november', 'desember'
+      'januari',
+      'februari',
+      'maret',
+      'april',
+      'mei',
+      'juni',
+      'juli',
+      'agustus',
+      'september',
+      'oktober',
+      'november',
+      'desember',
     ];
     for (int i = 0; i < months.length; i++) {
       if (lowerSrc.contains(months[i])) {
@@ -79,6 +100,7 @@ class TransactionItemDetailModel {
 
     return null;
   }
+
   int? resolveYear({List<DuesPeriodModel>? globalDuesPeriods}) {
     if (duesPeriod?.year != null) return duesPeriod!.year;
 
@@ -92,7 +114,7 @@ class TransactionItemDetailModel {
     }
 
     final src = periodId ?? duesPeriodId ?? description ?? '';
-    
+
     // Format YYYY-MM
     final match = RegExp(r'(\d{4})[-_/](\d{1,2})').firstMatch(src);
     if (match != null) {
@@ -104,7 +126,35 @@ class TransactionItemDetailModel {
     return yearMatch != null ? int.tryParse(yearMatch.group(0)!) : null;
   }
 
-  Object? toJson() {}
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    '_id': id,
+    'anggota_id': anggotaId,
+    'transaction_id': transactionId,
+    'dues_period_id': duesPeriodId,
+    'period_id': periodId,
+    'status': status,
+    'amount': amount,
+    'description': description,
+    'period': duesPeriod != null
+        ? {
+            '_id': duesPeriod!.id,
+            'month': duesPeriod!.month,
+            'year': duesPeriod!.year,
+            'amount': duesPeriod!.amount,
+          }
+        : null,
+    'item': {
+      '_id': id,
+      'anggota_id': anggotaId,
+      'transaction_id': transactionId,
+      'dues_period_id': duesPeriodId,
+      'period_id': periodId,
+      'status': status,
+      'amount': amount,
+      'description': description,
+    },
+  };
 }
 
 /// Info dues period yang mungkin di-embed oleh backend.
