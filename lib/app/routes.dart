@@ -8,6 +8,7 @@ import 'package:persis_app/features/auth/login_controller.dart';
 import 'package:persis_app/features/anggota/presentation/view/anggota_view.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/data/repositories/anggota_repository.dart';
+import 'package:persis_app/features/BendaharaPC/presentation/view/pc_verifikasi_view.dart';
 
 import '../core/widgets/offline_warning_banner.dart';
 import '../features/auth/login_screen.dart';
