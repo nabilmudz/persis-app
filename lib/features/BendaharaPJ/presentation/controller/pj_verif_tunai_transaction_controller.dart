@@ -5,6 +5,7 @@ import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_rem
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/BendaharaPC/data/datasources/payment_method_remote_datasources.dart';
 import 'package:persis_app/helpers/object_id_helper.dart';
+import 'pj_invoice_controller.dart';
 import 'pj_hive_controller.dart';
 
 class PjVerifTunaiTransactionController extends ChangeNotifier {
@@ -154,23 +155,26 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
   }
 
   // Buat transaksi baru untuk bulan-bulan yang dipilih
-  Future<bool> createTransactionForSelectedMonths({
+  Future<PjTransactionCreationResult?> createTransactionForSelectedMonths({
     required String anggotaId,
     required String memberId,
     required Set<int> selectedMonths,
     required int year,
     required double Function(int month, int year) getNominal,
+    required String? Function(int month, int year) getPeriodId,
   }) async {
     if (selectedMonths.isEmpty) {
       _errorMessage = 'Pilih minimal satu bulan';
       notifyListeners();
-      return false;
+      return null;
     }
 
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
+
+      final orderedMonths = selectedMonths.toList()..sort();
 
       // Buat item-item transaksi untuk setiap bulan yang dipilih
       final items = <TransactionItemModel>[];
@@ -179,25 +183,25 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
       // Generate ObjectId valid untuk Transaction ini dari frontend
       final transactionId = ObjectIdHelper.generateMongoObjectId();
 
-      for (final month in selectedMonths) {
+      for (final month in orderedMonths) {
         final amount = getNominal(month, year).round();
         totalAmount += amount;
 
-        String? duesObjectId;
-        try {
-          final duesPeriod = await _dataSource.getDuesPeriodByMonthYear(
-            month: month,
-            year: year,
-          );
-          duesObjectId = duesPeriod?.id;
-        } catch (_) {}
+        final duesObjectId = getPeriodId(month, year);
+        if (duesObjectId == null || duesObjectId.isEmpty) {
+          _errorMessage =
+              'Period ID tidak ditemukan untuk ${_getMonthName(month)} $year. Silakan hubungi admin.';
+          _isLoading = false;
+          notifyListeners();
+          return null;
+        }
 
         items.add(
           TransactionItemModel(
             anggotaId: anggotaId,
             transactionId: transactionId,
-            periodId: duesObjectId, // Hanya kirim jika valid ObjectId
-            duesPeriodId: duesObjectId, // Hanya kirim jika valid ObjectId
+            periodId: duesObjectId,
+            duesPeriodId: duesObjectId,
             status: 'paid',
             amount: amount,
             description: 'Iuran ${_getMonthName(month)} $year',
@@ -230,34 +234,75 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         transaction.toJson(),
       );
 
+      final generatedAt = DateTime.tryParse(transaction.createdAt ?? '') ??
+          DateTime.now();
+
       if (!await NetworkStatus.hasInternetConnection()) {
         _errorMessage = null;
-        return true;
+        return PjTransactionCreationResult(
+          transaction: transaction.copyWith(
+            status: 'pending',
+            isSynced: false,
+          ),
+          selectedMonths: orderedMonths,
+          year: year,
+          totalAmount: totalAmount,
+          syncedToBackend: false,
+          generatedAt: generatedAt,
+        );
       }
 
       // Mencoba mengirim ke API
       try {
         final transactionSync = transaction.copyWith(status: 'completed');
         final isCreated = await _dataSource.createTransaction(transactionSync);
+        final syncedTransaction = transaction.copyWith(
+          status: 'completed',
+          isSynced: isCreated,
+        );
 
         if (isCreated) {
           // Jika berhasil masuk backend (MongoDB), hapus dari Hive
           await hiveController.removeSyncedTransaction(key);
           _errorMessage = null;
-          return true;
+          return PjTransactionCreationResult(
+            transaction: syncedTransaction,
+            selectedMonths: orderedMonths,
+            year: year,
+            totalAmount: totalAmount,
+            syncedToBackend: true,
+            generatedAt: generatedAt,
+          );
         } else {
           // Gagal dari backend tetapi masih tersimpan di Hive
           _errorMessage = null;
-          return true;
+          return PjTransactionCreationResult(
+            transaction: syncedTransaction,
+            selectedMonths: orderedMonths,
+            year: year,
+            totalAmount: totalAmount,
+            syncedToBackend: false,
+            generatedAt: generatedAt,
+          );
         }
       } catch (e) {
         // Gagal karena jaringan atau lainnya, tetap tersimpan di Hive
         _errorMessage = null;
-        return true;
+        return PjTransactionCreationResult(
+          transaction: transaction.copyWith(
+            status: 'pending',
+            isSynced: false,
+          ),
+          selectedMonths: orderedMonths,
+          year: year,
+          totalAmount: totalAmount,
+          syncedToBackend: false,
+          generatedAt: generatedAt,
+        );
       }
     } catch (e) {
       _errorMessage = 'Error: ${e.toString()}';
-      return false;
+      return null;
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -38,6 +38,9 @@ class PjTransactionItemController extends ChangeNotifier {
   /// Map dari key "$year-$month" → nominal iuran
   final Map<String, int> _monthAmountMap = {};
 
+  /// Map dari key "$year-$month" → periodId (Mongo ID)
+  final Map<String, String?> _monthPeriodIdMap = {};
+
   List<TransactionItemDetailModel> _items = [];
 
   bool get isLoading => _isLoading;
@@ -61,7 +64,6 @@ class PjTransactionItemController extends ChangeNotifier {
 
   Future<void> loadByUser(
     String userId, {
-    List<DuesPeriodModel>? globalDuesPeriods,
     bool forceRefresh = false,
   }) async {
     _isLoading = true;
@@ -85,7 +87,7 @@ class PjTransactionItemController extends ChangeNotifier {
             } catch (_) {}
           }
           if (cachedItems.isNotEmpty) {
-            _buildStatusMap(cachedItems, globalDuesPeriods: globalDuesPeriods);
+            _buildStatusMap(cachedItems);
             notifyListeners();
           }
         }
@@ -103,7 +105,7 @@ class PjTransactionItemController extends ChangeNotifier {
         );
       }
 
-      _buildStatusMap(freshItems, globalDuesPeriods: globalDuesPeriods);
+      _buildStatusMap(freshItems);
     } catch (e) {
       debugPrint('[PjTransactionItemController] Error loadByUser: $e');
       if (_monthStatusMap.isEmpty) {
@@ -115,32 +117,24 @@ class PjTransactionItemController extends ChangeNotifier {
     }
   }
 
-  void _buildStatusMap(
-    List<TransactionItemDetailModel> items, {
-    List<DuesPeriodModel>? globalDuesPeriods,
-  }) {
+  void _buildStatusMap(List<TransactionItemDetailModel> items) {
     _items = List.of(items);
     _monthStatusMap.clear();
     _monthAmountMap.clear();
+    _monthPeriodIdMap.clear();
 
     for (final item in items) {
-      final month = item.resolveMonth(globalDuesPeriods: globalDuesPeriods);
-      final year = item.resolveYear(globalDuesPeriods: globalDuesPeriods);
+      final month = item.resolveMonth();
+      final year = item.resolveYear();
       if (month == null || year == null) continue;
 
       final key = _key(month, year);
       final rawStatus = (item.status ?? '').trim().toLowerCase();
 
-      // ✅ FIX: mapping status sesuai fakta API
-      // API mengembalikan 3 kemungkinan:
-      //   "paid"      → sudah dibayar        → lunas (hijau)
-      //   "tunggakan" → lewat jatuh tempo    → tunggakan (merah)
-      //   "pending"   → belum jatuh tempo    → belumJatuhTempo (putih/abu)
       final PjMonthStatus newStatus = switch (rawStatus) {
         'paid' || 'lunas' || 'completed' => PjMonthStatus.lunas,
         'tunggakan' || 'overdue' => PjMonthStatus.tunggakan,
         _ => PjMonthStatus.belumJatuhTempo,
-        // ↑ "pending" dan status tidak dikenal → belumJatuhTempo, BUKAN tunggakan
       };
 
       // Jika entry sebelumnya sudah lunas, jangan overwrite
@@ -149,13 +143,19 @@ class PjTransactionItemController extends ChangeNotifier {
 
       _monthStatusMap[key] = newStatus;
 
-      // Ambil nominal dari item, fallback ke info dues_period jika ada
+      // Ambil nominal dari item, fallback ke info dues_period jika ada, default ke 20000
       final nominal = (item.amount != null && item.amount! > 0)
           ? item.amount!
-          : (item.duesPeriod?.amount?.round() ?? 0);
+          : (item.duesPeriod?.amount?.round() ?? 20000);
 
       if (nominal > 0) {
         _monthAmountMap[key] = nominal;
+      }
+
+      // Simpan periodId untuk digunakan saat create transaction
+      final periodId = item.periodId ?? item.duesPeriodId ?? item.duesPeriod?.id;
+      if (periodId != null) {
+        _monthPeriodIdMap[key] = periodId;
       }
     }
   }
@@ -170,6 +170,11 @@ class PjTransactionItemController extends ChangeNotifier {
   /// Nominal iuran bulan tertentu (0 jika tidak ada data).
   int getMonthAmount(int month, int year) {
     return _monthAmountMap[_key(month, year)] ?? 0;
+  }
+
+  /// Mendapatkan periodId (Mongo ID) untuk bulan/tahun tertentu.
+  String? getMonthPeriodId(int month, int year) {
+    return _monthPeriodIdMap[_key(month, year)];
   }
 
   /// Total tunggakan dalam rupiah.

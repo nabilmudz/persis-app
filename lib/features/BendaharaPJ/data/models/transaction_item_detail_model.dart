@@ -56,17 +56,8 @@ class TransactionItemDetailModel {
   }
 
   /// Resolve bulan dari data yang tersedia (nested dues_period, periodId, description).
-  int? resolveMonth({List<DuesPeriodModel>? globalDuesPeriods}) {
+  int? resolveMonth() {
     if (duesPeriod?.month != null) return duesPeriod!.month;
-
-    // Coba lookup dari list DuesPeriods global
-    if (globalDuesPeriods != null && duesPeriodId != null) {
-      for (final dp in globalDuesPeriods) {
-        if (dp.id == duesPeriodId && dp.month != null) {
-          return dp.month;
-        }
-      }
-    }
 
     final src = periodId ?? duesPeriodId ?? description ?? '';
 
@@ -101,17 +92,8 @@ class TransactionItemDetailModel {
     return null;
   }
 
-  int? resolveYear({List<DuesPeriodModel>? globalDuesPeriods}) {
+  int? resolveYear() {
     if (duesPeriod?.year != null) return duesPeriod!.year;
-
-    // Coba lookup dari list DuesPeriods global
-    if (globalDuesPeriods != null && duesPeriodId != null) {
-      for (final dp in globalDuesPeriods) {
-        if (dp.id == duesPeriodId && dp.year != null) {
-          return dp.year;
-        }
-      }
-    }
 
     final src = periodId ?? duesPeriodId ?? description ?? '';
 

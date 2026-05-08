@@ -50,7 +50,6 @@ class PjController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  List<DuesPeriodModel> get duesPeriods => _verifController.duesPeriods;
 
   Future<void> loadInitialData() async {
     if (_isLoading) {
@@ -89,7 +88,6 @@ class PjController extends ChangeNotifier {
     try {
       final cachedUsers = _cacheBox.get('members') as List?;
       final cachedTransactions = _cacheBox.get('transactions') as List?;
-      final cachedDues = _cacheBox.get('duesPeriods') as List?;
 
       if (cachedUsers != null) {
         _members
@@ -113,20 +111,8 @@ class PjController extends ChangeNotifier {
           );
       }
 
-      final List<DuesPeriodModel> dues = [];
-      if (cachedDues != null) {
-        dues.addAll(
-          cachedDues
-              .map(
-                (e) => DuesPeriodModel.fromJson(Map<String, dynamic>.from(e)),
-              )
-              .toList(),
-        );
-      }
-
       _verifController.updateData(
         transactions: _transactions,
-        duesPeriods: dues,
       );
     } catch (e) {
       debugPrint('[PjController] Gagal load dari cache: $e');
@@ -137,7 +123,6 @@ class PjController extends ChangeNotifier {
     try {
       final users = await _userDataSource.getAllUsers();
       final transactions = await _transactionDataSource.getHistory();
-      final duesPeriods = await _transactionDataSource.getDuesPeriods();
 
       final filteredUsers =
           users
@@ -153,7 +138,6 @@ class PjController extends ChangeNotifier {
         ..addAll(transactions);
       _verifController.updateData(
         transactions: _transactions,
-        duesPeriods: duesPeriods,
       );
 
       // Save ke Cache
@@ -164,10 +148,6 @@ class PjController extends ChangeNotifier {
       await _cacheBox.put(
         'transactions',
         transactions.map((e) => e.toJson()).toList(),
-      );
-      await _cacheBox.put(
-        'duesPeriods',
-        duesPeriods.map((e) => e.toJson()).toList(),
       );
 
       debugPrint('[PjController] Data berhasil di-cache untuk offline.');

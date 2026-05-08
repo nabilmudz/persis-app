@@ -16,58 +16,24 @@ class MemberIuranStatusModel {
 }
 
 class PjVerifTunaiController extends ChangeNotifier {
-  static const int _fallbackNominal = 10000;
+  static const int _fallbackNominal = 20000;
 
   PjVerifTunaiController({
     required List<TransactionModel> transactions,
-    List<DuesPeriodModel> duesPeriods = const [],
-  }) : _transactions = List<TransactionModel>.from(transactions),
-       _duesPeriods = List<DuesPeriodModel>.from(duesPeriods);
+  }) : _transactions = List<TransactionModel>.from(transactions);
 
   List<TransactionModel> _transactions;
-  List<DuesPeriodModel>? _duesPeriods;
-
-  List<DuesPeriodModel> get _safeDuesPeriods =>
-      _duesPeriods ?? const <DuesPeriodModel>[];
-
-  List<DuesPeriodModel> get duesPeriods => _safeDuesPeriods;
 
   void updateData({
     required List<TransactionModel> transactions,
-    required List<DuesPeriodModel> duesPeriods,
   }) {
     _transactions = List<TransactionModel>.from(transactions);
-    _duesPeriods = List<DuesPeriodModel>.from(duesPeriods);
     notifyListeners();
   }
 
   String _periodKey(int month, int year) {
     final mm = month.toString().padLeft(2, '0');
     return '$year-$mm';
-  }
-
-  DuesPeriodModel? _findDuesPeriodByMonthYear(int month, int year) {
-    for (final period in _safeDuesPeriods) {
-      if (period.month == month && period.year == year) {
-        return period;
-      }
-    }
-    return null;
-  }
-
-  DuesPeriodModel? _findDuesPeriodById(String? id) {
-    final normalized = id?.trim();
-    if (normalized == null || normalized.isEmpty) {
-      return null;
-    }
-
-    for (final period in _safeDuesPeriods) {
-      if (period.id == normalized) {
-        return period;
-      }
-    }
-
-    return null;
   }
 
   bool _isPastPeriod(int month, int year) {
@@ -129,13 +95,6 @@ class PjVerifTunaiController extends ChangeNotifier {
   String _resolveItemPeriodKey(TransactionItemModel item, TransactionModel tx) {
     final periodSources = [item.periodId, item.duesPeriodId];
     for (final source in periodSources) {
-      final duesPeriod = _findDuesPeriodById(source);
-      if (duesPeriod != null &&
-          duesPeriod.month != null &&
-          duesPeriod.year != null) {
-        return _periodKey(duesPeriod.month!, duesPeriod.year!);
-      }
-
       final parsed = _parsePeriodKey(source);
       if (parsed != null) {
         return _periodKey(parsed.month, parsed.year);
@@ -159,17 +118,14 @@ class PjVerifTunaiController extends ChangeNotifier {
     required TransactionItemModel item,
   }) {
     final itemStatus = (item.status ?? '').trim().toLowerCase();
-    // Prioritaskan status 'paid' sesuai instruksi user
-    if (itemStatus == 'paid') {
+    if (itemStatus == 'paid' || itemStatus == 'lunas' || itemStatus == 'completed') {
       return true;
     }
 
-    // Fallback manual jika status item adalah 'unpaid'
-    if (itemStatus == 'unpaid') {
+    if (itemStatus == 'unpaid' || itemStatus == 'tunggakan') {
       return false;
     }
 
-    // Jika item status tidak eksplisit, cek status transaksi utama
     final txStatus = (tx.status ?? '').trim().toLowerCase();
     if (txStatus == 'completed' || txStatus == 'paid') {
       return true;
@@ -178,135 +134,49 @@ class PjVerifTunaiController extends ChangeNotifier {
     return false;
   }
 
-  PjMonthStatus _resolvePeriodStatus({
-    required String anggotaId,
-    required int month,
-    required int year,
-  }) {
-    final duesPeriod = _findDuesPeriodByMonthYear(month, year);
-    if (duesPeriod == null) {
-      return PjMonthStatus.belumJatuhTempo;
-    }
-
-    final periodId = duesPeriod.id;
-    bool hasPaidItem = false;
+  Map<String, _MemberPeriodState> periodStatesByMember(String anggotaId) {
+    final map = <String, _MemberPeriodState>{};
 
     for (final tx in _transactions) {
       final items = tx.items ?? const <TransactionItemModel>[];
       for (final item in items) {
-        // Cek apakah anggotaId sama dengan anggota kartu iuran
         if (item.anggotaId != anggotaId) {
           continue;
         }
 
-        // Ambil dues-periods ID dari item (biasanya di periodId atau duesPeriodId)
-        final itemPeriodSource = item.periodId ?? item.duesPeriodId ?? '';
+        final periodKey = _resolveItemPeriodKey(item, tx);
+        final current = map[periodKey];
+        final nominal = item.amount ?? 0;
+        final paid = _hasPaidTransaction(tx: tx, item: item);
+        final parsed = _parsePeriodKey(periodKey);
+        
+        final status = paid 
+            ? PjMonthStatus.lunas 
+            : (parsed != null && _isPastPeriod(parsed.month, parsed.year) 
+                ? PjMonthStatus.tunggakan 
+                : PjMonthStatus.belumJatuhTempo);
 
-        // Cek apakah dues-periods sama dengan bulan dan tahun pada kartu iuran
-        // Kita bandingkan via ID karena ID tersebut unik untuk kombinasi bulan/tahun
-        if (itemPeriodSource == periodId &&
-            periodId != null &&
-            periodId.isNotEmpty) {
-          // Cek status transaction-item = "paid"
-          if (_hasPaidTransaction(tx: tx, item: item)) {
-            hasPaidItem = true;
-            break;
-          }
-        }
-      }
-      if (hasPaidItem) break;
-    }
-
-    if (hasPaidItem) {
-      return PjMonthStatus.lunas; // Warna Hijau
-    }
-
-    if (_isPastPeriod(month, year)) {
-      return PjMonthStatus.tunggakan; // Warna Merah
-    }
-
-    return PjMonthStatus.belumJatuhTempo; // Warna Putih
-  }
-
-  Map<String, _MemberPeriodState> periodStatesByMember(String anggotaId) {
-    final map = <String, _MemberPeriodState>{};
-
-    if (_safeDuesPeriods.isEmpty) {
-      for (final tx in _transactions) {
-        final items = tx.items ?? const <TransactionItemModel>[];
-        for (final item in items) {
-          if (item.anggotaId != anggotaId) {
-            continue;
-          }
-
-          final periodKey = _resolveItemPeriodKey(item, tx);
-          final current = map[periodKey];
-          final nominal = item.amount ?? 0;
-          final paid = _hasPaidTransaction(tx: tx, item: item);
-          final parsed = _parsePeriodKey(periodKey);
-          final status =
-              parsed != null && _isPastPeriod(parsed.month, parsed.year)
-              ? (paid ? PjMonthStatus.lunas : PjMonthStatus.tunggakan)
-              : (paid ? PjMonthStatus.lunas : PjMonthStatus.belumJatuhTempo);
-
-          if (current == null) {
-            map[periodKey] = _MemberPeriodState(
-              periodKey: periodKey,
-              nominal: nominal,
-              status: status,
-            );
-            continue;
-          }
-
+        if (current == null) {
           map[periodKey] = _MemberPeriodState(
             periodKey: periodKey,
-            nominal: nominal > 0 ? nominal : current.nominal,
-            status:
-                current.status == PjMonthStatus.lunas ||
-                    status == PjMonthStatus.lunas
-                ? PjMonthStatus.lunas
-                : status,
+            nominal: nominal > 0 ? nominal : _fallbackNominal,
+            status: status,
           );
+          continue;
         }
-      }
 
-      return map;
-    }
-
-    for (final period in _safeDuesPeriods) {
-      final month = period.month;
-      final year = period.year;
-      if (month == null || year == null) {
-        continue;
-      }
-
-      final periodKey = _periodKey(month, year);
-      final current = map[periodKey];
-      final nominal = (period.amount ?? 0).round();
-      final status = _resolvePeriodStatus(
-        anggotaId: anggotaId,
-        month: month,
-        year: year,
-      );
-
-      if (current == null) {
         map[periodKey] = _MemberPeriodState(
           periodKey: periodKey,
-          nominal: nominal,
-          status: status,
+          nominal: nominal > 0 ? nominal : (current.nominal > 0 ? current.nominal : _fallbackNominal),
+          status:
+              current.status == PjMonthStatus.lunas ||
+                  status == PjMonthStatus.lunas
+              ? PjMonthStatus.lunas
+              : (current.status == PjMonthStatus.tunggakan || status == PjMonthStatus.tunggakan
+                  ? PjMonthStatus.tunggakan
+                  : PjMonthStatus.belumJatuhTempo),
         );
-        continue;
       }
-
-      map[periodKey] = _MemberPeriodState(
-        periodKey: periodKey,
-        nominal: nominal > 0 ? nominal : current.nominal,
-        status:
-            current.status == PjMonthStatus.lunas ||
-                status == PjMonthStatus.lunas
-            ? PjMonthStatus.lunas
-            : status,
-      );
     }
 
     return map;
@@ -397,18 +267,7 @@ class PjVerifTunaiController extends ChangeNotifier {
       return latestAmount.toDouble();
     }
 
-    final memberStates = periodStatesByMember(anggotaId).values.toList();
-    if (memberStates.isEmpty) {
-      return _fallbackNominal.toDouble();
-    }
-
-    memberStates.sort((a, b) => b.periodKey.compareTo(a.periodKey));
-    final nominal = memberStates.first.nominal;
-    if (nominal <= 0) {
-      return _fallbackNominal.toDouble();
-    }
-
-    return nominal.toDouble();
+    return _fallbackNominal.toDouble();
   }
 
   PjMonthStatus getMonthStatus({
@@ -417,16 +276,19 @@ class PjVerifTunaiController extends ChangeNotifier {
     int? year,
   }) {
     final targetYear = year ?? DateTime.now().year;
-    final duesPeriod = _findDuesPeriodByMonthYear(month, targetYear);
-    if (duesPeriod == null) {
-      return PjMonthStatus.belumJatuhTempo;
+    final periodKey = _periodKey(month, targetYear);
+    final states = periodStatesByMember(anggotaId);
+    final state = states[periodKey];
+    
+    if (state != null) {
+      return state.status;
     }
 
-    return _resolvePeriodStatus(
-      anggotaId: anggotaId,
-      month: month,
-      year: targetYear,
-    );
+    if (_isPastPeriod(month, targetYear)) {
+      return PjMonthStatus.tunggakan;
+    }
+
+    return PjMonthStatus.belumJatuhTempo;
   }
 
   String _statusLabel(PjMonthStatus status) {

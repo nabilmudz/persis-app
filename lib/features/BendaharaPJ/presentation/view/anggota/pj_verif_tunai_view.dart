@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import '../../controller/pj_controller.dart';
+import '../../controller/pj_invoice_controller.dart';
 import '../../controller/pj_transaction_item_controller.dart';
 import '../../controller/pj_verif_tunai_transaction_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
+import '../pj_invoice.view.dart';
 
 class PjVerifTunaiViewPage extends StatefulWidget {
   final PjController controller;
@@ -57,10 +59,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
       final userId = widget.member.id;
       if (userId != null && userId.isNotEmpty) {
         _transactionController.loadTransactions(userId);
-        _itemController.loadByUser(
-          userId,
-          globalDuesPeriods: widget.controller.duesPeriods,
-        );
+        _itemController.loadByUser(userId);
       }
     });
   }
@@ -74,6 +73,11 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
   }
 
   void _handleMonthTap(int month) {
+    final status = _itemController.getMonthStatus(month, _selectedYear);
+    if (status == PjMonthStatus.lunas) {
+      return; // Tidak bisa di-klik jika sudah lunas
+    }
+
     final anggotaId = widget.member.id;
     if (anggotaId == null || anggotaId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -92,6 +96,127 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         _selectedMonths.add(month);
       }
     });
+  }
+
+  Future<void> _handleConfirmTransaction() async {
+    final anggotaId = widget.member.id;
+    if (anggotaId == null || anggotaId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ID anggota tidak tersedia.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedMonths.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih minimal satu bulan.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                const Text(
+                  'Memproses pembayaran...',
+                  style: TextStyle(fontSize: 16, fontFamily: 'Poppins'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      final invoiceResult = await _transactionController
+          .createTransactionForSelectedMonths(
+            anggotaId: anggotaId,
+            memberId: widget.member.id ?? '',
+            selectedMonths: _selectedMonths,
+            year: _selectedYear,
+            getNominal: (month, year) {
+              return widget.controller.getNominalForMemberMonth(
+                anggotaId: anggotaId,
+                month: month,
+                year: year,
+              );
+            },
+            getPeriodId: (month, year) {
+              return _itemController.getMonthPeriodId(month, year);
+            },
+          );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      if (invoiceResult != null) {
+        await widget.controller.loadInitialData();
+        final refreshedUserId = widget.member.id;
+        if (refreshedUserId != null && refreshedUserId.isNotEmpty) {
+          await _transactionController.loadTransactions(refreshedUserId);
+          await _itemController.loadByUser(
+            refreshedUserId,
+            forceRefresh: true,
+          );
+        }
+
+        final invoiceData = PjInvoiceData.fromCreationResult(
+          member: widget.member,
+          result: invoiceResult,
+        );
+
+        setState(() {
+          _selectedMonths.clear();
+        });
+
+        if (!mounted) return;
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _transactionController.errorMessage ?? 'Gagal membuat invoice',
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFFB31012),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFFB31012),
+        ),
+      );
+    }
   }
 
   @override
@@ -289,6 +414,23 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                               ),
                             ),
                           ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _handleConfirmTransaction,
+                            icon: const Icon(Icons.receipt_long_rounded),
+                            label: const Text('Konfirmasi Pembayaran'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF073D4D),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -390,7 +532,7 @@ class _MonthCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
+        onTap: isLunas ? null : onTap,
         child: Ink(
           decoration: decoration,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),

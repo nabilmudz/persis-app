@@ -232,24 +232,8 @@ class PjHiveController extends ChangeNotifier {
       );
     }
 
-    final parsedMonthYear = _parseMonthYearFromItem(item);
-    if (parsedMonthYear == null) {
-      return null;
-    }
-
-    final duesPeriod = await remoteDataSource.getDuesPeriodByMonthYear(
-      month: parsedMonthYear.$1,
-      year: parsedMonthYear.$2,
-    );
-    if (duesPeriod?.id == null || duesPeriod!.id!.isEmpty) {
-      return null;
-    }
-
-    return item.copyWith(
-      periodId: duesPeriod.id,
-      duesPeriodId: duesPeriod.id,
-      status: 'completed',
-    );
+    // Note: getDuesPeriodByMonthYear removed as per user instruction
+    return item.copyWith(status: 'completed');
   }
 
   static bool _looksLikeBackendId(String value) {
