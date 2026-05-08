@@ -9,6 +9,9 @@ import 'package:persis_app/features/anggota/presentation/view/anggota_view.dart'
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/data/repositories/anggota_repository.dart';
 
+// === TAMBAHAN IMPORT PROFILE SCREEN DI SINI ===
+import 'package:persis_app/features/profile/profile_screen.dart';
+
 import '../core/widgets/offline_warning_banner.dart';
 import '../features/auth/login_screen.dart';
 import '../core/config/config.dart';
@@ -22,6 +25,9 @@ class AppRoutes {
   static const String bendaharaPJ = '/bendahara-pj';
   static const String verifikasiNonTunai = '/verifikasi-non-tunai';
   static const String anggota = '/anggota';
+  
+  // === NAMA ROUTE PROFILE BARU ===
+  static const String profile = '/profile';
 
   static final String _baseUrl = AppConfig.baseUrl;
 
@@ -48,6 +54,8 @@ class AppRoutes {
         ),
         child: const AnggotaView(),
       ),
+      // === DAFTARKAN HALAMAN PROFILE DI SINI ===
+      profile: (_) => const ProfileScreen(),
     };
   }
 }
