@@ -15,6 +15,7 @@ Future<void> main() async {
   await HiveService.init();
   await PjHiveController.init(); // Inisialisasi Box untuk PjHiveController
   await PjHiveController.syncPendingTransactions(); // Sync saat startup
+  await Hive.openBox('riwayat_anggota'); // Box untuk data riwayat anggota (local-first)
 
   // Mulai listener konektivitas — sync dipicu event-driven saat internet kembali
   await ConnectivityService.init();
