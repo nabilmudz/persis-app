@@ -41,6 +41,18 @@ class _PcViewPageState extends State<PcViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('PC View (Native)'),
+        // === TAMBAHAN TOMBOL PROFIL DI SINI ===
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.account_circle, size: 30),
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text(
