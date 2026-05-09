@@ -41,21 +41,22 @@ class _RiwayatViewState extends State<RiwayatView> {
       ),
       body: Consumer<AnggotaController>(
         builder: (context, controller, child) {
+          // Filter berdasarkan tahun
           final filteredTransactions = controller.riwayatTransaksi.where((tx) {
-            if (selectedFilter == 'Semua') return true;
-            final deskripsi = (tx.description ?? '').toLowerCase();
-            if (selectedFilter == 'Tahun 2026')
-              return deskripsi.contains('2026');
-            if (selectedFilter == 'Tahun 2025')
-              return deskripsi.contains('2025');
-            if (selectedFilter == 'Tahun 2024')
-              return deskripsi.contains('2024');
-            return true;
+            bool passesYearFilter = true;
+            if (selectedFilter != 'Semua') {
+              final deskripsi = (tx.description ?? '').toLowerCase();
+              passesYearFilter = deskripsi.contains(selectedFilter
+                  .toLowerCase()
+                  .replaceAll('tahun ', ''));
+            }
+            return passesYearFilter;
           }).toList();
 
           return Column(
             children: [
               const SizedBox(height: 16),
+
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -71,16 +72,29 @@ class _RiwayatViewState extends State<RiwayatView> {
                   ],
                 ),
               ),
+
               const SizedBox(height: 24),
+
               Expanded(
                 child: filteredTransactions.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Tidak ada riwayat transaksi.',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Colors.grey,
-                          ),
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.receipt_long_outlined,
+                              size: 48,
+                              color: Colors.grey.shade300,
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Tidak ada riwayat transaksi.',
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       )
                     : ListView.builder(

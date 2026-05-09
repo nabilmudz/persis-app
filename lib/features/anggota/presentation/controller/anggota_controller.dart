@@ -36,7 +36,9 @@ class AnggotaController extends ChangeNotifier {
   void _hitungTotalTagihan() {
     totalTagihan = 0;
     for (final item in riwayatTransaksi) {
-      if (item.status == 'pending' || item.status == 'tunggakan') {
+      if (item.status == 'pending' ||
+          item.status == 'tunggakan' ||
+          item.status == 'unpaid') {
         totalTagihan += (item.amount ?? 0);
       }
     }
@@ -47,9 +49,10 @@ class AnggotaController extends ChangeNotifier {
 
   List<TransactionItemModel> filterByTahun(String tahun) {
     if (tahun == 'Semua') return riwayatTransaksi;
+    
     return riwayatTransaksi.where((tx) {
       final deskripsi = (tx.description ?? '').toLowerCase();
-      return deskripsi.contains(tahun);
+      return deskripsi.contains(tahun.toLowerCase().replaceAll('tahun ', ''));
     }).toList();
   }
 }

@@ -15,6 +15,7 @@ import 'package:persis_app/features/auth/login_controller.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/repositories/anggota_repository.dart';
+import 'package:persis_app/features/BendaharaPC/presentation/view/pc_verifikasi_view.dart';
 
 // Import Core & Config
 import 'package:persis_app/core/config/config.dart';
@@ -28,10 +29,10 @@ class AppRoutes {
   static const String testBases = '/test-bases';
   static const String bendaharaPC = '/bendahara-pc';
   static const String bendaharaPJ = '/bendahara-pj';
-  static const String verifikasiNonTunai = '/verifikasi-non-tunai';
+  static const String verifikasiPC = '/verifikasi-pc';
   static const String anggota = '/anggota';
   static const String profile = '/profile';
-
+  static const String verifikasiNonTunai = '/verifikasi-non-tunai';
   static final String _baseUrl = AppConfig.baseUrl;
 
   static Map<String, WidgetBuilder> get routes {
@@ -71,6 +72,16 @@ class AppRoutes {
 
       // 9. Halaman Testing
       testBases: (_) => const TestBasesPage(),
+      verifikasiPC: (_) => const PcVerifikasiPage(),
+      
+      // INI YANG FIX (UserRemoteDataSource dimasukin ke AnggotaRepository)
+      anggota: (_) => ChangeNotifierProvider(
+            create: (_) => AnggotaController(
+              repository: AnggotaRepository(UserRemoteDataSource(_baseUrl)),
+            ),
+            child: const AnggotaView(),
+          ),
+      verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
     };
   }
 }
