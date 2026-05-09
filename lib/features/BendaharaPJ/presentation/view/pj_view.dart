@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/laporan/pj_payment_data_view.dart';
 import '../controller/pj_controller.dart';
 import 'anggota/pj_anggota_view.dart';
 import 'tunai/pj_anggota_view.dart' as tunai_anggota;
@@ -51,6 +52,15 @@ class _PjViewPageState extends State<PjViewPage> {
               );
             },
           ),
+          // === TAMBAHAN TOMBOL PROFIL DI SINI ===
+          IconButton(
+            icon: const Icon(Icons.account_circle, size: 30, color: Color(0xFF073D4D)),
+            tooltip: 'Profil',
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
+            },
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: ListenableBuilder(
@@ -72,7 +82,7 @@ class _PjViewPageState extends State<PjViewPage> {
                 ),
                 const SizedBox(height: 16),
                 const BendaharaSaldoCard(
-                  badgeText: 'Porsi pj (20%)',
+                  badgeText: 'Porsi PJ (30%)',
                   title: 'Saldo Terkumpul',
                   saldo: 'Rp 1.450.000',
                   subtitle: '320 Anggota Lunas Bulan Agustus',
@@ -143,6 +153,42 @@ class _PjViewPageState extends State<PjViewPage> {
                             context,
                             MaterialPageRoute(
                               builder: (_) => const PjVerifNonTunaiViewPage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: BendaharaMenuCard(
+                        title: 'Riwayat Pembayaran',
+                        icon: Icons.history,
+                        iconBackgroundColor: const Color(0xFFE9EDFF),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PjPaymentDataViewPage(controller: _controller),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: BendaharaMenuCard(
+                        title: 'Laporan Keuangan',
+                        icon: Icons.bar_chart_outlined,
+                        iconBackgroundColor: const Color(0xFFE9EDFF),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PjPaymentDataViewPage(controller: _controller),
                             ),
                           );
                         },

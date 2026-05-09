@@ -5,7 +5,17 @@ import '../models/transaction_item_detail_model.dart';
 import '../models/transaction_model.dart';
 
 class TransactionRemoteDataSource {
-  List<DuesPeriodModel>? _cachedDuesPeriods;
+  Map<String, dynamic> _buildCreatePayload(TransactionModel transaction) {
+    final payload = Map<String, dynamic>.from(transaction.toJson());
+    final items = (payload['items'] as List?)?.map((item) {
+      final itemMap = Map<String, dynamic>.from(item as Map);
+      itemMap.remove('status');
+      return itemMap;
+    }).toList();
+
+    payload['items'] = items;
+    return payload;
+  }
 
   // Update transaksi yang sudah ada (untuk ACC)
   Future<bool> updateTransaction(
@@ -29,13 +39,15 @@ class TransactionRemoteDataSource {
     try {
       final response = await ApiClient.post(
         '/transaction',
-        body: transaction.toJson(),
+        body: _buildCreatePayload(transaction),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return true;
       }
-      debugPrint('Error API Create Transaction: ${response.statusCode} - ${response.body}');
+      debugPrint(
+        'Error API Create Transaction: ${response.statusCode} - ${response.body}',
+      );
       return false;
     } catch (e) {
       debugPrint('Error API Create Transaction: $e');
@@ -57,41 +69,6 @@ class TransactionRemoteDataSource {
     }
   }
 
-  // Ambil semua dues periods (dengan cache)
-  Future<List<DuesPeriodModel>> getDuesPeriods() async {
-    if (_cachedDuesPeriods != null) {
-      return _cachedDuesPeriods!;
-    }
-
-    try {
-      final response = await ApiClient.get('/dues-periods');
-      if (response.statusCode == 200) {
-        List data = json.decode(response.body);
-        _cachedDuesPeriods = data
-            .map((e) => DuesPeriodModel.fromJson(e))
-            .toList();
-        return _cachedDuesPeriods!;
-      }
-      return <DuesPeriodModel>[];
-    } catch (e) {
-      return <DuesPeriodModel>[];
-    }
-  }
-
-  // Ambil dues period berdasarkan bulan dan tahun
-  Future<DuesPeriodModel?> getDuesPeriodByMonthYear({
-    required int month,
-    required int year,
-  }) async {
-    final allPeriods = await getDuesPeriods();
-    for (final period in allPeriods) {
-      if (period.month == month && period.year == year) {
-        return period;
-      }
-    }
-    return null;
-  }
-
   /// Ambil semua transaction-item milik anggota tertentu.
   /// Endpoint: GET /transaction-item/user/{userId}
   Future<List<TransactionItemDetailModel>> getTransactionItemsByUser(
@@ -103,14 +80,41 @@ class TransactionRemoteDataSource {
         final List data = json.decode(response.body);
         return data
             .map(
-              (e) =>
-                  TransactionItemDetailModel.fromJson(e as Map<String, dynamic>),
+              (e) => TransactionItemDetailModel.fromJson(
+                e as Map<String, dynamic>,
+              ),
             )
             .toList();
       }
       return <TransactionItemDetailModel>[];
     } catch (e) {
       return <TransactionItemDetailModel>[];
+    }
+  }
+
+  /// Export transaksi berdasarkan bulan dan tahun.
+  /// Endpoint: GET /transaction/export?month={month}&year={year}&type={type}
+  Future<Map<String, dynamic>?> exportTransactions(int month, int year, {String? type}) async {
+    try {
+      String url = '/transaction/export?month=$month&year=$year';
+      if (type != null) url += '&type=$type';
+      
+      final response = await ApiClient.get(url);
+      final decoded = json.decode(response.body);
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
+      }
+      
+      if (decoded is Map && decoded.containsKey('message')) {
+        return {'message': decoded['message']};
+      }
+      
+      debugPrint("Error API Export: ${response.statusCode} - ${response.body}");
+      return null;
+    } catch (e) {
+      debugPrint("Error API Export: $e");
+      return null;
     }
   }
 }

@@ -14,6 +14,8 @@ class TransactionModel {
   final bool? isSynced;
   final String? createdAt;
   final String? updatedAt; // Ditambahkan agar sesuai copyWith
+  final String? memberName; // Dari API: member_name
+  final String? npa; // Dari API: npa
   final List<TransactionItemModel>? items;
 
   TransactionModel({
@@ -32,30 +34,36 @@ class TransactionModel {
     this.isSynced,
     this.createdAt,
     this.updatedAt,
+    this.memberName,
+    this.npa,
     this.items,
   });
 
-  factory TransactionModel.fromJson(Map<String, dynamic> json) =>
-      TransactionModel(
-        id: json['_id'] ?? json['id'],
-        code: json['code'],
-        type: json['type'],
-        creatorId: json['creator_id'],
-        paymentMethodId: json['payment_method_id'],
-        proofUrl: json['proof_url'],
-        bankName: json['bank_name'],
-        bankAccountName: json['bank_account_name'],
-        verifiedBy: json['verified_by'],
-        totalAmount: json['total_amount'],
-        status: json['status'],
-        accStatus: json['acc_status'],
-        isSynced: json['is_synced'],
-        createdAt: json['created_at'],
-        updatedAt: json['updated_at'],
-        items: (json['items'] as List?)
-            ?.map((x) => TransactionItemModel.fromJson(x))
-            .toList(),
-      );
+  factory TransactionModel.fromJson(Map<dynamic, dynamic> json) {
+    final map = Map<String, dynamic>.from(json);
+    return TransactionModel(
+      id: map['_id'] ?? map['id'],
+      code: map['code'],
+      type: map['type'],
+      creatorId: map['creator_id'],
+      paymentMethodId: map['payment_method_id'],
+      proofUrl: map['proof_url'],
+      bankName: map['bank_name'],
+      bankAccountName: map['bank_account_name'],
+      verifiedBy: map['verified_by'],
+      totalAmount: map['total_amount'],
+      status: map['status'],
+      accStatus: map['acc_status'],
+      isSynced: map['is_synced'],
+      createdAt: map['created_at'],
+      updatedAt: map['updated_at'],
+      memberName: map['member_name'],
+      npa: map['npa'],
+      items: (map['items'] as List?)
+          ?.map((x) => TransactionItemModel.fromJson(Map<String, dynamic>.from(x as Map)))
+          .toList(),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         "_id": id,
@@ -73,6 +81,8 @@ class TransactionModel {
         "is_synced": isSynced,
         "created_at": createdAt,
         "updated_at": updatedAt,
+        "member_name": memberName,
+        "npa": npa,
         "items": items?.map((x) => x.toJson()).toList(),
       };
 

@@ -63,9 +63,12 @@ class UserRemoteDataSource {
   }
 
   // Get All Users
-  Future<List<UserModel>> getAllUsers() async {
+  Future<List<UserModel>> getAllUsers({String? regionId}) async {
+    final url = regionId != null
+        ? '$baseUrl/users/region/$regionId'
+        : '$baseUrl/users';
     final response = await http
-        .get(Uri.parse('$baseUrl/users'))
+        .get(Uri.parse(url))
         .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200 || response.statusCode == 201) {
       List data = json.decode(response.body);
