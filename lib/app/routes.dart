@@ -8,6 +8,7 @@ import 'package:persis_app/features/auth/login_controller.dart';
 import 'package:persis_app/features/anggota/presentation/view/anggota_view.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/data/repositories/anggota_repository.dart';
+import 'package:persis_app/features/BendaharaPC/presentation/view/pc_verifikasi_view.dart';
 
 import '../core/widgets/offline_warning_banner.dart';
 import '../features/auth/login_screen.dart';
@@ -20,10 +21,10 @@ class AppRoutes {
   static const String testBases = '/test-bases';
   static const String bendaharaPC = '/bendahara-pc';
   static const String bendaharaPJ = '/bendahara-pj';
-  static const String verifikasiNonTunai = '/verifikasi-non-tunai';
+  static const String verifikasiPC = '/verifikasi-pc';
   static const String anggota = '/anggota';
-
-  static final String _baseUrl = AppConfig.baseUrl;
+  static const String _baseUrl = 'https://avert-casually-plating.ngrok-free.dev/api';
+  static const String verifikasiNonTunai = '/verifikasi-non-tunai';
 
   static Map<String, WidgetBuilder> get routes {
     return {
@@ -41,13 +42,16 @@ class AppRoutes {
       testBases: (_) => const TestBasesPage(),
       bendaharaPC: (_) => const PcViewPage(),
       bendaharaPJ: (_) => const PjViewPage(),
-      verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
+      verifikasiPC: (_) => const PcVerifikasiPage(),
+      
+      // INI YANG FIX (UserRemoteDataSource dimasukin ke AnggotaRepository)
       anggota: (_) => ChangeNotifierProvider(
-        create: (_) => AnggotaController(
-          repository: AnggotaRepository(UserRemoteDataSource(_baseUrl)),
-        ),
-        child: const AnggotaView(),
-      ),
+            create: (_) => AnggotaController(
+              repository: AnggotaRepository(UserRemoteDataSource(_baseUrl)),
+            ),
+            child: const AnggotaView(),
+          ),
+      verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
     };
   }
 }
