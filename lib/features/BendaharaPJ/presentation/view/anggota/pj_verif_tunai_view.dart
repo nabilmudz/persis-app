@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import '../../controller/pj_controller.dart';
+import '../../controller/pj_invoice_controller.dart';
 import '../../controller/pj_transaction_item_controller.dart';
 import '../../controller/pj_verif_tunai_transaction_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
+import '../pj_invoice.view.dart';
 
 class PjVerifTunaiViewPage extends StatefulWidget {
   final PjController controller;
@@ -24,6 +26,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
   final Set<int> _selectedMonths = <int>{};
   late PjVerifTunaiTransactionController _transactionController;
   late PjTransactionItemController _itemController;
+  late final VoidCallback _itemControllerListener;
 
   static const List<String> _monthNames = [
     'Januari',
@@ -45,25 +48,36 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
     super.initState();
     _transactionController = PjVerifTunaiTransactionController();
     _itemController = PjTransactionItemController();
+    _itemControllerListener = () {
+      if (mounted) {
+        setState(() {});
+      }
+    };
+    _itemController.addListener(_itemControllerListener);
 
-    final userId = widget.member.id;
-    if (userId != null && userId.isNotEmpty) {
-      _transactionController.loadTransactions(userId);
-      _itemController.loadByUser(
-        userId,
-        globalDuesPeriods: widget.controller.duesPeriods,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = widget.member.id;
+      if (userId != null && userId.isNotEmpty) {
+        _transactionController.loadTransactions(userId);
+        _itemController.loadByUser(userId);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _itemController.removeListener(_itemControllerListener);
     _transactionController.dispose();
     _itemController.dispose();
     super.dispose();
   }
 
   void _handleMonthTap(int month) {
+    final status = _itemController.getMonthStatus(month, _selectedYear);
+    if (status == PjMonthStatus.lunas) {
+      return; // Tidak bisa di-klik jika sudah lunas
+    }
+
     final anggotaId = widget.member.id;
     if (anggotaId == null || anggotaId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,7 +120,6 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
       return;
     }
 
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -121,7 +134,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
                 const Text(
-                  'Membuat transaksi...',
+                  'Memproses pembayaran...',
                   style: TextStyle(fontSize: 16, fontFamily: 'Poppins'),
                 ),
               ],
@@ -132,7 +145,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
     );
 
     try {
-      final success = await _transactionController
+      final invoiceResult = await _transactionController
           .createTransactionForSelectedMonths(
             anggotaId: anggotaId,
             memberId: widget.member.id ?? '',
@@ -145,33 +158,39 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                 year: year,
               );
             },
+            getPeriodId: (month, year) {
+              return _itemController.getMonthPeriodId(month, year);
+            },
           );
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      Navigator.pop(context);
 
-      if (success) {
+      if (invoiceResult != null) {
         await widget.controller.loadInitialData();
         final refreshedUserId = widget.member.id;
         if (refreshedUserId != null && refreshedUserId.isNotEmpty) {
           await _transactionController.loadTransactions(refreshedUserId);
           await _itemController.loadByUser(
             refreshedUserId,
-            globalDuesPeriods: widget.controller.duesPeriods,
+            forceRefresh: true,
           );
         }
 
-        // Reset selected months
+        final invoiceData = PjInvoiceData.fromCreationResult(
+          member: widget.member,
+          result: invoiceResult,
+        );
+
         setState(() {
           _selectedMonths.clear();
         });
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Transaksi berhasil dibuat'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Color(0xFF28A745),
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
           ),
         );
       } else {
@@ -179,22 +198,22 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _transactionController.errorMessage ?? 'Gagal membuat transaksi',
+              _transactionController.errorMessage ?? 'Gagal membuat invoice',
             ),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Color(0xFFB31012),
+            backgroundColor: const Color(0xFFB31012),
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: ${e.toString()}'),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: Color(0xFFB31012),
+          backgroundColor: const Color(0xFFB31012),
         ),
       );
     }
@@ -231,9 +250,8 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PendingTransactionViewPage(
-                    controller: widget.controller,
-                  ),
+                  builder: (_) =>
+                      PendingTransactionViewPage(controller: widget.controller),
                 ),
               );
             },
@@ -249,12 +267,14 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
               return ListenableBuilder(
                 listenable: _transactionController,
                 builder: (context, child) {
-                  if (_transactionController.isLoading || _itemController.isLoading) {
+                  if (_transactionController.isLoading ||
+                      _itemController.isLoading) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
                   // Total tunggakan dari /transaction-item/user/{userId}
-                  final totalTunggakan = _itemController.totalTunggakan.toDouble();
+                  final totalTunggakan = _itemController.totalTunggakan
+                      .toDouble();
 
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
@@ -316,7 +336,9 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                             child: DropdownButton<int>(
                               value: _selectedYear,
                               isExpanded: true,
-                              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                              ),
                               style: const TextStyle(
                                 color: Color(0xFF6C6C6C),
                                 fontSize: 18,
@@ -379,7 +401,9 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFF4F4),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFF2C8C8)),
+                                border: Border.all(
+                                  color: const Color(0xFFF2C8C8),
+                                ),
                               ),
                               child: Text(
                                 _transactionController.errorMessage!,
@@ -390,6 +414,23 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                               ),
                             ),
                           ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _handleConfirmTransaction,
+                            icon: const Icon(Icons.receipt_long_rounded),
+                            label: const Text('Konfirmasi Pembayaran'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF073D4D),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -491,7 +532,7 @@ class _MonthCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
+        onTap: isLunas ? null : onTap,
         child: Ink(
           decoration: decoration,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -521,5 +562,3 @@ class _MonthCard extends StatelessWidget {
     );
   }
 }
-
-

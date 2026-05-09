@@ -1,12 +1,22 @@
 import 'dart:convert';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiClient {
   ApiClient._();
 
-  static final String baseUrl = dotenv.env['BASE_URL'] ?? '';
+   static String get baseUrl {
+    final rawBaseUrl = dotenv.env['BASE_URL']?.trim();
+    if (rawBaseUrl == null || rawBaseUrl.isEmpty) {
+      return 'https://avert-casually-plating.ngrok-free.dev/api';
+    }
+
+    return rawBaseUrl.endsWith('/api')
+        ? rawBaseUrl
+        : '${rawBaseUrl.replaceAll(RegExp(r'/?$'), '')}/api';
+  }
 
   static Future<Map<String, String>> _defaultHeaders({String? token}) async {
     return {
