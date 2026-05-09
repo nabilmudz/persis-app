@@ -1,5 +1,3 @@
-// login_controller.dart
-
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
@@ -175,8 +173,6 @@ class LoginController extends ChangeNotifier {
 
     try {
       _isLoading = false;
-
-      // checkNpa throws kalau gagal, jadi kalau sampai sini = NPA valid
       _npaNotFound = false;
       notifyListeners();
 
@@ -203,7 +199,6 @@ class LoginController extends ChangeNotifier {
     }
   }
 
-  // ─── Reset ────────────────────────────────────────────────────────────────
   void resetNpaNotFound() {
     _npaNotFound = false;
     notifyListeners();
@@ -214,24 +209,23 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── Role Routing ─────────────────────────────────────────────────────────
+  // ─── Role Routing (Disempurnakan) ──────────────────────────────────────────
   String _routeForRole(String? roleValue) {
-    final role = roleValue?.trim().toLowerCase() ?? '';
-    if (role.contains('bendahara_pj') ||
-        role.contains('bendaharapj') ||
-        role == 'pj') {
-      return AppRoutes.bendaharaPJ;
-    }
-    if (role.contains('bendahara_pc') ||
-        role.contains('bendaharapc') ||
-        role == 'pc') {
-      return AppRoutes.bendaharaPC;
-    }
-    if (role.contains('bendahara_pd') ||
-        role.contains('bendaharapd') ||
-        role == 'pd') {
-      return AppRoutes.dashboard;
-    }
+    final role = roleValue?.trim().toUpperCase() ?? '';
+    
+    // Sesuai dengan nama role di Database Backend
+    if (role == 'BENDAHARA_PJ') return AppRoutes.bendaharaPJ;
+    if (role == 'BENDAHARA_PC') return AppRoutes.bendaharaPC;
+    if (role == 'BENDAHARA_PD') return AppRoutes.dashboard; 
+    if (role == 'ANGGOTA') return AppRoutes.anggota;
+
+    // Fallback keamanan
+    final roleLower = role.toLowerCase();
+    if (roleLower.contains('pj')) return AppRoutes.bendaharaPJ;
+    if (roleLower.contains('pc')) return AppRoutes.bendaharaPC;
+    if (roleLower.contains('pd')) return AppRoutes.dashboard;
+    if (roleLower.contains('anggota')) return AppRoutes.anggota;
+
     return AppRoutes.dashboard;
   }
 }

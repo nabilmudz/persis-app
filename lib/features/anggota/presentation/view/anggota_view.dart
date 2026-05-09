@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../widgets/anggota_card.dart';
-import '../controller/anggota_controller.dart';
-import 'riwayat_view.dart';
-import 'pilih_pembayaran_view.dart';
+
+// Import Absolute
+import 'package:persis_app/features/anggota/presentation/widgets/anggota_card.dart';
+import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
+import 'package:persis_app/features/anggota/presentation/view/riwayat_view.dart';
+import 'package:persis_app/features/anggota/presentation/view/pilih_pembayaran_view.dart';
 
 class AnggotaView extends StatefulWidget {
   const AnggotaView({super.key});
@@ -19,26 +21,18 @@ class _AnggotaViewState extends State<AnggotaView> {
   @override
   void initState() {
     super.initState();
-    // FIX: Wait for the widget to build before fetching data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUserData();
     });
   }
 
   Future<void> _loadUserData() async {
-    // Hardcode for UI testing
-    final userId = '123';
+    // Simulasi data user
     final userName = 'Nashwa';
 
     setState(() {
       _userName = userName;
     });
-
-    if (userId.isNotEmpty) {
-      if (mounted) {
-        //context.read<AnggotaController>().fetchRiwayatTransaksi(userId: userId);
-      }
-    }
   }
 
   @override
@@ -107,13 +101,25 @@ class _AnggotaViewState extends State<AnggotaView> {
                               ),
                             ],
                           ),
-                          const CircleAvatar(
-                            radius: 25,
-                            backgroundColor: Colors.white,
-                            child: Icon(
-                              Icons.person,
-                              color: Color(0xFF074D2C),
-                              size: 30,
+                          // TOMBOL KE PROFILE
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(context, '/profile');
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const CircleAvatar(
+                                radius: 25,
+                                backgroundColor: Colors.white,
+                                child: Icon(
+                                  Icons.person,
+                                  color: Color(0xFF074D2C),
+                                  size: 30,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -132,7 +138,7 @@ class _AnggotaViewState extends State<AnggotaView> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 15,
                               offset: const Offset(0, 8),
                             ),
@@ -198,12 +204,9 @@ class _AnggotaViewState extends State<AnggotaView> {
                                             MaterialPageRoute(
                                               builder: (c) =>
                                                   ChangeNotifierProvider.value(
-                                                    value: context
-                                                        .read<
-                                                          AnggotaController
-                                                        >(),
-                                                    child:
-                                                        PilihPembayaranView(),
+                                                    value: context.read<AnggotaController>(),
+                                                    // Hapus const di sini
+                                                    child: PilihPembayaranView(),
                                                   ),
                                             ),
                                           );
@@ -248,6 +251,7 @@ class _AnggotaViewState extends State<AnggotaView> {
                           MaterialPageRoute(
                             builder: (c) => ChangeNotifierProvider.value(
                               value: context.read<AnggotaController>(),
+                              // Hapus const di sini
                               child: PilihPembayaranView(),
                             ),
                           ),

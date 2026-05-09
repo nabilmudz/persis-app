@@ -52,6 +52,15 @@ class _PjViewPageState extends State<PjViewPage> {
               );
             },
           ),
+          // === TAMBAHAN TOMBOL PROFIL DI SINI ===
+          IconButton(
+            icon: const Icon(Icons.account_circle, size: 30, color: Color(0xFF073D4D)),
+            tooltip: 'Profil',
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
+            },
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: ListenableBuilder(

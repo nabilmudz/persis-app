@@ -4,8 +4,7 @@ import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.da
 
 class PcController extends ChangeNotifier {
   PcController({TransactionRemoteDataSource? dataSource})
-    : _dataSource =
-          dataSource ?? TransactionRemoteDataSource();
+      : _dataSource = dataSource ?? TransactionRemoteDataSource();
 
   static const List<String> verificationCategories = <String>[
     'Belum Diverifikasi',
@@ -31,6 +30,7 @@ class PcController extends ChangeNotifier {
 
     try {
       final transactions = await _dataSource.getHistory();
+      
       _allTransactions
         ..clear()
         ..addAll(transactions);
@@ -166,18 +166,8 @@ class PcController extends ChangeNotifier {
     }
 
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
 
     final day = parsed.day.toString().padLeft(2, '0');
