@@ -1,16 +1,20 @@
 import 'dart:convert';
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiClient {
   ApiClient._();
 
-   static String get baseUrl {
+  static String get baseUrl {
     final rawBaseUrl = dotenv.env['BASE_URL']?.trim();
+
+    assert(
+      rawBaseUrl != null && rawBaseUrl.isNotEmpty,
+      'BASE_URL is not defined in .env file',
+    );
+
     if (rawBaseUrl == null || rawBaseUrl.isEmpty) {
-      return 'https://avert-casually-plating.ngrok-free.dev/api';
+      throw Exception('BASE_URL is not defined in .env file');
     }
 
     return rawBaseUrl.endsWith('/api')

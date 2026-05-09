@@ -34,7 +34,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (loggedIn) {
       final role = roleValue?.trim().toUpperCase() ?? '';
-      
+
       // Logika Routing yang disamakan dengan LoginController (Role Mapping)
       if (role == 'BENDAHARA_PJ' || role.contains('PJ')) {
         Navigator.pushReplacementNamed(context, AppRoutes.bendaharaPJ);
@@ -57,21 +57,17 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Warna hijau identitas PersisPay
-      backgroundColor: const Color(0xFF1A7A4A), 
+      // Warna hijau identitas InfaQu
+      backgroundColor: const Color(0xFF1A7A4A),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
             // Gunakan logo shield sementara atau ganti ke Image.asset milikmu
-            Icon(
-              Icons.shield_rounded, 
-              size: 100,
-              color: Colors.white,
-            ),
+            Icon(Icons.shield_rounded, size: 100, color: Colors.white),
             SizedBox(height: 24),
             Text(
-              'PersisPay',
+              'InfaQu',
               style: TextStyle(
                 fontSize: 32,
                 fontFamily: 'Poppins',

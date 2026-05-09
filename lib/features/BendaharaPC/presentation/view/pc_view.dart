@@ -21,7 +21,9 @@ class _PcViewPageState extends State<PcViewPage> {
 
     final error = _controller.errorMessage;
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
     }
   }
 
@@ -41,18 +43,6 @@ class _PcViewPageState extends State<PcViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('PC View (Native)'),
-        // === TAMBAHAN TOMBOL PROFIL DI SINI ===
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle, size: 30),
-            onPressed: () {
-              Navigator.pushNamed(context, '/profile');
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         title: const Text(
@@ -67,12 +57,23 @@ class _PcViewPageState extends State<PcViewPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.account_circle, size: 30),
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: ListenableBuilder(
         listenable: _controller,
         builder: (context, child) {
           if (_controller.isLoading) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF0C844C)));
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF0C844C)),
+            );
           }
 
           return SingleChildScrollView(
@@ -127,7 +128,7 @@ class _PcViewPageState extends State<PcViewPage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 24),
 
                 Row(
@@ -167,7 +168,10 @@ class _PcViewPageState extends State<PcViewPage> {
                       padding: EdgeInsets.all(20.0),
                       child: Text(
                         'Semua data sudah diverifikasi.',
-                        style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          color: Colors.grey,
+                        ),
                       ),
                     ),
                   )
@@ -183,7 +187,7 @@ class _PcViewPageState extends State<PcViewPage> {
                         idNumber: item.transaction.creatorId ?? item.idNumber,
                         paymentMethod: item.paymentMethod,
                         price: item.price,
-                        status: item.category, 
+                        status: item.category,
                       ),
                     );
                   }).toList(),

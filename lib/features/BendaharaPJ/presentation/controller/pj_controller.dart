@@ -50,7 +50,6 @@ class PjController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-
   Future<void> loadInitialData() async {
     if (_isLoading) {
       return;
@@ -105,15 +104,14 @@ class PjController extends ChangeNotifier {
           ..addAll(
             cachedTransactions
                 .map(
-                  (e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)),
+                  (e) =>
+                      TransactionModel.fromJson(Map<String, dynamic>.from(e)),
                 )
                 .toList(),
           );
       }
 
-      _verifController.updateData(
-        transactions: _transactions,
-      );
+      _verifController.updateData(transactions: _transactions);
     } catch (e) {
       debugPrint('[PjController] Gagal load dari cache: $e');
     }
@@ -124,10 +122,9 @@ class PjController extends ChangeNotifier {
       final users = await _userDataSource.getAllUsers();
       final transactions = await _transactionDataSource.getHistory();
 
-      final filteredUsers =
-          users
-              .where((u) => u.id != null && u.id!.trim().isNotEmpty)
-              .toList();
+      final filteredUsers = users
+          .where((u) => u.id != null && u.id!.trim().isNotEmpty)
+          .toList();
 
       // Update State
       _members
@@ -136,9 +133,7 @@ class PjController extends ChangeNotifier {
       _transactions
         ..clear()
         ..addAll(transactions);
-      _verifController.updateData(
-        transactions: _transactions,
-      );
+      _verifController.updateData(transactions: _transactions);
 
       // Save ke Cache
       await _cacheBox.put(
@@ -169,12 +164,12 @@ class PjController extends ChangeNotifier {
   }
 
   String memberDisplayName(UserModel member) {
-    final name = member.name?.trim();
+    final name = member.fullname?.trim();
     if (name != null && name.isNotEmpty) {
       return name;
     }
 
-    final code = member.code?.trim();
+    final code = member.npa?.trim();
     if (code != null && code.isNotEmpty) {
       return code;
     }

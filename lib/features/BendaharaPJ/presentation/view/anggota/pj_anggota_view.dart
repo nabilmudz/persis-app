@@ -61,9 +61,8 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PendingTransactionViewPage(
-                    controller: widget.controller,
-                  ),
+                  builder: (_) =>
+                      PendingTransactionViewPage(controller: widget.controller),
                 ),
               );
             },
@@ -227,70 +226,81 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                       ),
                     )
                   else
-                    ...filteredMembers.map((member) {
-                      final memberId = member.id ?? '';
-                      final totalTunggakan = memberId.isEmpty
-                          ? 0.0
-                          : widget.controller.tunggakanNominalByMember(
-                              memberId,
-                            );
-                      final iuranStatuses = memberId.isEmpty
-                          ? const <MemberIuranStatusModel>[]
-                          : widget.controller.memberIuranStatusItems(
-                              memberId,
-                              limit: 4,
-                            );
-                      final cardStatus = memberId.isEmpty
-                          ? null
-                          : widget.controller.memberCardStatus(memberId);
+                    Builder(
+                      builder: (context) {
+                        return Column(
+                          children: filteredMembers.map((member) {
+                            final memberId = member.id ?? '';
+                            final totalTunggakan = memberId.isEmpty
+                                ? 0.0
+                                : widget.controller.tunggakanNominalByMember(
+                                    memberId,
+                                  );
+                            final iuranStatuses = memberId.isEmpty
+                                ? const <MemberIuranStatusModel>[]
+                                : widget.controller.memberIuranStatusItems(
+                                    memberId,
+                                    limit: 4,
+                                  );
+                            final cardStatus = memberId.isEmpty
+                                ? null
+                                : widget.controller.memberCardStatus(memberId);
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: PjVerificationMemberCard(
-                          name: widget.controller.memberDisplayName(member),
-                          subtitle: widget.controller.memberDisplayCode(member),
-                          isTunggakan: totalTunggakan > 0,
-                          showTotal: true,
-                          total: _formatCurrency(totalTunggakan),
-                          iuranStatuses: iuranStatuses,
-                          cardStatus: cardStatus,
-                          onTapCekKartu: () {
-                            if (memberId.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('ID anggota tidak tersedia.'),
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: PjVerificationMemberCard(
+                                name: widget.controller.memberDisplayName(
+                                  member,
                                 ),
-                              );
-                              return;
-                            }
-
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PjVerifTunaiViewPage(
-                                  controller: widget.controller,
-                                  member: member,
+                                subtitle: widget.controller.memberDisplayCode(
+                                  member,
                                 ),
+                                isTunggakan: totalTunggakan > 0,
+                                showTotal: true,
+                                total: _formatCurrency(totalTunggakan),
+                                iuranStatuses: iuranStatuses,
+                                cardStatus: cardStatus,
+                                onTapCekKartu: () {
+                                  if (memberId.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'ID anggota tidak tersedia.',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PjVerifTunaiViewPage(
+                                        controller: widget.controller,
+                                        member: member,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                onTapDetail: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) =>
+                                        PjDetailAnggotaView(member: member),
+                                  );
+                                },
                               ),
                             );
-                          },
-                          onTapDetail: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) =>
-                                  PjDetailAnggotaView(member: member),
-                            );
-                          },
-                        ),
-                      );
-                    }).toList(),
-                ],
-              );
-            },
-          );
-        },
-      ),
-    );
+                          }).toList(),
+                        );
+                      },
+                    ), // Builder
+                ], // children: ListView
+              ); // ListView
+            }, // LayoutBuilder builder
+          ); // LayoutBuilder
+        }, // ListenableBuilder builder
+      ), // ListenableBuilder (body)
+    ); // Scaffold
   }
 
   String _formatCurrency(double amount) {

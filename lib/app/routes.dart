@@ -61,7 +61,7 @@ class AppRoutes {
       // 6. Verifikasi Non-Tunai (Fitur Bendahara)
       verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
 
-      // 7. Role Anggota (PersisPay)
+      // 7. Role Anggota (InfaQu)
       anggota: (_) => ChangeNotifierProvider(
         create: (_) => AnggotaController(
           repository: AnggotaRepository(UserRemoteDataSource(_baseUrl)),
@@ -75,14 +75,14 @@ class AppRoutes {
       // 9. Halaman Testing
       testBases: (_) => const TestBasesPage(),
       verifikasiPC: (_) => const PcVerifikasiPage(),
-      
+
       // INI YANG FIX (UserRemoteDataSource dimasukin ke AnggotaRepository)
       anggota: (_) => ChangeNotifierProvider(
-            create: (_) => AnggotaController(
-              repository: AnggotaRepository(UserRemoteDataSource(_baseUrl)),
-            ),
-            child: const AnggotaView(),
-          ),
+        create: (_) => AnggotaController(
+          repository: AnggotaRepository(UserRemoteDataSource(_baseUrl)),
+        ),
+        child: const AnggotaView(),
+      ),
       verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
     };
   }
@@ -100,7 +100,7 @@ class DashboardPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.account_circle),
             onPressed: () => Navigator.pushNamed(context, AppRoutes.profile),
-          )
+          ),
         ],
       ),
       body: Center(
@@ -109,17 +109,20 @@ class DashboardPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.anggota),
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.anggota),
                 child: const Text('Buka Halaman Anggota'),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.bendaharaPC),
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.bendaharaPC),
                 child: const Text('Buka Bendahara PC'),
               ),
               const SizedBox(height: 12),
               ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.bendaharaPJ),
+                onPressed: () =>
+                    Navigator.pushNamed(context, AppRoutes.bendaharaPJ),
                 child: const Text('Buka Bendahara PJ'),
               ),
             ],
@@ -159,7 +162,9 @@ class _TestBasesPageState extends State<TestBasesPage> {
                       });
                     },
                     child: Text(
-                      showOfflineBanner ? 'Hide Offline Warning' : 'Show Offline Warning',
+                      showOfflineBanner
+                          ? 'Hide Offline Warning'
+                          : 'Show Offline Warning',
                     ),
                   ),
                   const SizedBox(height: 12),

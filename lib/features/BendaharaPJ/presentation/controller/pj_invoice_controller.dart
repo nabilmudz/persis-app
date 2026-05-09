@@ -12,384 +12,390 @@ import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 String formatRupiah(int amount) {
-	final digits = amount.abs().toString();
-	final buffer = StringBuffer();
+  final digits = amount.abs().toString();
+  final buffer = StringBuffer();
 
-	for (var i = 0; i < digits.length; i++) {
-		final reverseIndex = digits.length - i;
-		buffer.write(digits[i]);
+  for (var i = 0; i < digits.length; i++) {
+    final reverseIndex = digits.length - i;
+    buffer.write(digits[i]);
 
-		if (reverseIndex > 1 && reverseIndex % 3 == 1) {
-			buffer.write('.');
-		}
-	}
+    if (reverseIndex > 1 && reverseIndex % 3 == 1) {
+      buffer.write('.');
+    }
+  }
 
-	final formatted = buffer.toString();
-	return amount < 0 ? 'Rp -$formatted' : 'Rp $formatted';
+  final formatted = buffer.toString();
+  return amount < 0 ? 'Rp -$formatted' : 'Rp $formatted';
 }
 
 class PjTransactionCreationResult {
-	final TransactionModel transaction;
-	final List<int> selectedMonths;
-	final int year;
-	final int totalAmount;
-	final bool syncedToBackend;
-	final DateTime generatedAt;
+  final TransactionModel transaction;
+  final List<int> selectedMonths;
+  final int year;
+  final int totalAmount;
+  final bool syncedToBackend;
+  final DateTime generatedAt;
 
-	const PjTransactionCreationResult({
-		required this.transaction,
-		required this.selectedMonths,
-		required this.year,
-		required this.totalAmount,
-		required this.syncedToBackend,
-		required this.generatedAt,
-	});
+  const PjTransactionCreationResult({
+    required this.transaction,
+    required this.selectedMonths,
+    required this.year,
+    required this.totalAmount,
+    required this.syncedToBackend,
+    required this.generatedAt,
+  });
 }
 
 class PjInvoiceLineItem {
-	final int month;
-	final int year;
-	final String label;
-	final int amount;
+  final int month;
+  final int year;
+  final String label;
+  final int amount;
 
-	const PjInvoiceLineItem({
-		required this.month,
-		required this.year,
-		required this.label,
-		required this.amount,
-	});
+  const PjInvoiceLineItem({
+    required this.month,
+    required this.year,
+    required this.label,
+    required this.amount,
+  });
 }
 
 class PjInvoiceData {
-	final UserModel member;
-	final TransactionModel transaction;
-	final List<PjInvoiceLineItem> items;
-	final List<int> months;
-	final int year;
-	final int totalAmount;
-	final bool syncedToBackend;
-	final DateTime generatedAt;
+  final UserModel member;
+  final TransactionModel transaction;
+  final List<PjInvoiceLineItem> items;
+  final List<int> months;
+  final int year;
+  final int totalAmount;
+  final bool syncedToBackend;
+  final DateTime generatedAt;
 
-	const PjInvoiceData({
-		required this.member,
-		required this.transaction,
-		required this.items,
-		required this.months,
-		required this.year,
-		required this.totalAmount,
-		required this.syncedToBackend,
-		required this.generatedAt,
-	});
+  const PjInvoiceData({
+    required this.member,
+    required this.transaction,
+    required this.items,
+    required this.months,
+    required this.year,
+    required this.totalAmount,
+    required this.syncedToBackend,
+    required this.generatedAt,
+  });
 
-	factory PjInvoiceData.fromCreationResult({
-		required UserModel member,
-		required PjTransactionCreationResult result,
-	}) {
-		final sourceItems = result.transaction.items ?? const <TransactionItemModel>[];
-		final invoiceItems = <PjInvoiceLineItem>[];
+  factory PjInvoiceData.fromCreationResult({
+    required UserModel member,
+    required PjTransactionCreationResult result,
+  }) {
+    final sourceItems =
+        result.transaction.items ?? const <TransactionItemModel>[];
+    final invoiceItems = <PjInvoiceLineItem>[];
 
-		for (var index = 0; index < result.selectedMonths.length; index++) {
-			final month = result.selectedMonths[index];
-			final item = index < sourceItems.length ? sourceItems[index] : null;
-			final amount = item?.amount ?? 0;
-			final label = item?.description?.trim().isNotEmpty == true
-					? item!.description!.trim()
-					: '${_monthNames[month - 1]} ${result.year}';
+    for (var index = 0; index < result.selectedMonths.length; index++) {
+      final month = result.selectedMonths[index];
+      final item = index < sourceItems.length ? sourceItems[index] : null;
+      final amount = item?.amount ?? 0;
+      final label = item?.description?.trim().isNotEmpty == true
+          ? item!.description!.trim()
+          : '${_monthNames[month - 1]} ${result.year}';
 
-			invoiceItems.add(
-				PjInvoiceLineItem(
-					month: month,
-					year: result.year,
-					label: label,
-					amount: amount,
-				),
-			);
-		}
+      invoiceItems.add(
+        PjInvoiceLineItem(
+          month: month,
+          year: result.year,
+          label: label,
+          amount: amount,
+        ),
+      );
+    }
 
-		return PjInvoiceData(
-			member: member,
-			transaction: result.transaction,
-			items: invoiceItems,
-			months: List<int>.from(result.selectedMonths),
-			year: result.year,
-			totalAmount: result.totalAmount,
-			syncedToBackend: result.syncedToBackend,
-			generatedAt: result.generatedAt,
-		);
-	}
+    return PjInvoiceData(
+      member: member,
+      transaction: result.transaction,
+      items: invoiceItems,
+      months: List<int>.from(result.selectedMonths),
+      year: result.year,
+      totalAmount: result.totalAmount,
+      syncedToBackend: result.syncedToBackend,
+      generatedAt: result.generatedAt,
+    );
+  }
 
-	String get memberName {
-		final fullname = member.fullname?.trim();
-		if (fullname != null && fullname.isNotEmpty) {
-			return fullname;
-		}
+  String get memberName {
+    final fullname = member.fullname?.trim();
+    if (fullname != null && fullname.isNotEmpty) {
+      return fullname;
+    }
 
-		final name = member.name?.trim();
-		if (name != null && name.isNotEmpty) {
-			return name;
-		}
+    final name = member.name?.trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
 
-		final code = member.code?.trim();
-		if (code != null && code.isNotEmpty) {
-			return code;
-		}
+    final code = member.code?.trim();
+    if (code != null && code.isNotEmpty) {
+      return code;
+    }
 
-		return 'Pengguna';
-	}
+    return 'Pengguna';
+  }
 
-	String get memberCode {
-		final code = member.code?.trim();
-		return code != null && code.isNotEmpty ? code : '-';
-	}
+  String get memberCode {
+    final code = member.code?.trim();
+    return code != null && code.isNotEmpty ? code : '-';
+  }
 
-	String get memberPhone => member.noHp?.trim() ?? '';
+  String get memberPhone => member.noHp?.trim() ?? '';
 
-	String get invoiceNumber {
-		final transactionId = transaction.id ?? transaction.code ?? '';
-		if (transactionId.isNotEmpty) {
-			final shortId = transactionId.length > 8
-					? transactionId.substring(transactionId.length - 8)
-					: transactionId;
-			return 'INV-$shortId';
-		}
+  String get invoiceNumber {
+    final transactionId = transaction.id ?? transaction.code ?? '';
+    if (transactionId.isNotEmpty) {
+      final shortId = transactionId.length > 8
+          ? transactionId.substring(transactionId.length - 8)
+          : transactionId;
+      return 'INV-$shortId';
+    }
 
-		return 'INV-${DateFormat('yyyyMMddHHmmss').format(generatedAt)}';
-	}
+    return 'INV-${DateFormat('yyyyMMddHHmmss').format(generatedAt)}';
+  }
 
-	String get monthLabelSummary {
-		if (months.isEmpty) {
-			return '-';
-		}
+  String get monthLabelSummary {
+    if (months.isEmpty) {
+      return '-';
+    }
 
-		return months.map((month) => _monthNames[month - 1]).join(', ');
-	}
+    return months.map((month) => _monthNames[month - 1]).join(', ');
+  }
 
-	String get statusLabel => syncedToBackend ? 'Terkirim ke Server' : 'Tersimpan Lokal';
+  String get statusLabel =>
+      syncedToBackend ? 'Terkirim ke Server' : 'Tersimpan Lokal';
 
-	String get generatedAtLabel {
-		final day = generatedAt.day.toString().padLeft(2, '0');
-		final monthName = _monthNames[generatedAt.month - 1];
-		final year = generatedAt.year;
-		final hour = generatedAt.hour.toString().padLeft(2, '0');
-		final minute = generatedAt.minute.toString().padLeft(2, '0');
-		return '$day $monthName $year, $hour:$minute';
-	}
+  String get generatedAtLabel {
+    final day = generatedAt.day.toString().padLeft(2, '0');
+    final monthName = _monthNames[generatedAt.month - 1];
+    final year = generatedAt.year;
+    final hour = generatedAt.hour.toString().padLeft(2, '0');
+    final minute = generatedAt.minute.toString().padLeft(2, '0');
+    return '$day $monthName $year, $hour:$minute';
+  }
 
-	String get totalFormatted => formatRupiah(totalAmount);
+  String get totalFormatted => formatRupiah(totalAmount);
 
-	String buildWhatsappMessage() {
-		final buffer = StringBuffer()
-			..writeln('Invoice Iuran PersisPay')
-			..writeln('No. Invoice: $invoiceNumber')
-			..writeln('Nama: $memberName')
-			..writeln('Kode/NPA: $memberCode')
-			..writeln('Periode: $monthLabelSummary $year')
-			..writeln('Tanggal: $generatedAtLabel')
-			..writeln('Status: $statusLabel')
-			..writeln('')
-			..writeln('Rincian:');
+  String buildWhatsappMessage() {
+    final buffer = StringBuffer()
+      ..writeln('Invoice Iuran InfaQu')
+      ..writeln('No. Invoice: $invoiceNumber')
+      ..writeln('Nama: $memberName')
+      ..writeln('Kode/NPA: $memberCode')
+      ..writeln('Periode: $monthLabelSummary $year')
+      ..writeln('Tanggal: $generatedAtLabel')
+      ..writeln('Status: $statusLabel')
+      ..writeln('')
+      ..writeln('Rincian:');
 
-		for (final item in items) {
-			final amountText = formatRupiah(item.amount);
-			buffer.writeln('- ${item.label}: $amountText');
-		}
+    for (final item in items) {
+      final amountText = formatRupiah(item.amount);
+      buffer.writeln('- ${item.label}: $amountText');
+    }
 
-		buffer
-			..writeln('')
-			..writeln('Total: $totalFormatted')
-			..writeln('')
-			..writeln('Silakan simpan invoice ini sebagai bukti pembayaran.');
+    buffer
+      ..writeln('')
+      ..writeln('Total: $totalFormatted')
+      ..writeln('')
+      ..writeln('Silakan simpan invoice ini sebagai bukti pembayaran.');
 
-		return buffer.toString();
-	}
+    return buffer.toString();
+  }
 }
 
 class PjInvoiceController extends ChangeNotifier {
-	PjInvoiceController(this.invoiceData);
+  PjInvoiceController(this.invoiceData);
 
-	final PjInvoiceData invoiceData;
+  final PjInvoiceData invoiceData;
 
-	bool _isSharing = false;
-	String? _errorMessage;
+  bool _isSharing = false;
+  String? _errorMessage;
 
-	bool get isSharing => _isSharing;
-	String? get errorMessage => _errorMessage;
+  bool get isSharing => _isSharing;
+  String? get errorMessage => _errorMessage;
 
-	Future<bool> shareInvoiceAsImage(GlobalKey boundaryKey) async {
-		if (_isSharing) {
-			return false;
-		}
+  Future<bool> shareInvoiceAsImage(GlobalKey boundaryKey) async {
+    if (_isSharing) {
+      return false;
+    }
 
-		_isSharing = true;
-		_errorMessage = null;
-		notifyListeners();
+    _isSharing = true;
+    _errorMessage = null;
+    notifyListeners();
 
-		try {
-			// 1. Capture Screenshot
-			final boundary = boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-			if (boundary == null) {
-				_errorMessage = 'Gagal mengambil gambar invoice.';
-				return false;
-			}
+    try {
+      // 1. Capture Screenshot
+      final boundary =
+          boundaryKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) {
+        _errorMessage = 'Gagal mengambil gambar invoice.';
+        return false;
+      }
 
-			final image = await boundary.toImage(pixelRatio: 3.0);
-			final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-			if (byteData == null) {
-				_errorMessage = 'Gagal memproses gambar.';
-				return false;
-			}
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        _errorMessage = 'Gagal memproses gambar.';
+        return false;
+      }
 
-			final bytes = byteData.buffer.asUint8List();
+      final bytes = byteData.buffer.asUint8List();
 
-			// 2. Save to Temp File
-			final tempDir = await getTemporaryDirectory();
-			final fileName = 'Invoice_${invoiceData.invoiceNumber}.png';
-			final file = await File('${tempDir.path}/$fileName').create();
-			await file.writeAsBytes(bytes);
+      // 2. Save to Temp File
+      final tempDir = await getTemporaryDirectory();
+      final fileName = 'Invoice_${invoiceData.invoiceNumber}.png';
+      final file = await File('${tempDir.path}/$fileName').create();
+      await file.writeAsBytes(bytes);
 
-			// 3. Share via Share Sheet (Most reliable for images)
-			final xFile = XFile(file.path);
-			final message = invoiceData.buildWhatsappMessage();
-			
-			await Share.shareXFiles(
-				[xFile],
-				text: message,
-				subject: 'Invoice Iuran PersisPay',
-			);
+      // 3. Share via Share Sheet (Most reliable for images)
+      final xFile = XFile(file.path);
+      final message = invoiceData.buildWhatsappMessage();
 
-			return true;
-		} catch (e) {
-			_errorMessage = 'Gagal membagikan invoice: $e';
-			return false;
-		} finally {
-			_isSharing = false;
-			notifyListeners();
-		}
-	}
+      await Share.shareXFiles(
+        [xFile],
+        text: message,
+        subject: 'Invoice Iuran InfaQu',
+      );
 
-	Future<bool> saveInvoiceToGallery(GlobalKey boundaryKey) async {
-		if (_isSharing) {
-			return false;
-		}
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal membagikan invoice: $e';
+      return false;
+    } finally {
+      _isSharing = false;
+      notifyListeners();
+    }
+  }
 
-		_isSharing = true;
-		_errorMessage = null;
-		notifyListeners();
+  Future<bool> saveInvoiceToGallery(GlobalKey boundaryKey) async {
+    if (_isSharing) {
+      return false;
+    }
 
-		try {
-			// 1. Capture Screenshot
-			final boundary = boundaryKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-			if (boundary == null) {
-				_errorMessage = 'Gagal mengambil gambar invoice.';
-				return false;
-			}
+    _isSharing = true;
+    _errorMessage = null;
+    notifyListeners();
 
-			final image = await boundary.toImage(pixelRatio: 3.0);
-			final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-			if (byteData == null) {
-				_errorMessage = 'Gagal memproses gambar.';
-				return false;
-			}
+    try {
+      // 1. Capture Screenshot
+      final boundary =
+          boundaryKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) {
+        _errorMessage = 'Gagal mengambil gambar invoice.';
+        return false;
+      }
 
-			final bytes = byteData.buffer.asUint8List();
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        _errorMessage = 'Gagal memproses gambar.';
+        return false;
+      }
 
-			// 2. Permission Check
-			final hasAccess = await Gal.hasAccess();
-			if (!hasAccess) {
-				final granted = await Gal.requestAccess();
-				if (!granted) {
-					_errorMessage = 'Izin galeri diperlukan untuk menyimpan gambar.';
-					return false;
-				}
-			}
+      final bytes = byteData.buffer.asUint8List();
 
-			// 3. Save to Gallery
-			final tempDir = await getTemporaryDirectory();
-			final filePath = '${tempDir.path}/Invoice_${invoiceData.invoiceNumber}.png';
-			final file = File(filePath);
-			await file.writeAsBytes(bytes);
+      // 2. Permission Check
+      final hasAccess = await Gal.hasAccess();
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess();
+        if (!granted) {
+          _errorMessage = 'Izin galeri diperlukan untuk menyimpan gambar.';
+          return false;
+        }
+      }
 
-			await Gal.putImage(filePath);
+      // 3. Save to Gallery
+      final tempDir = await getTemporaryDirectory();
+      final filePath =
+          '${tempDir.path}/Invoice_${invoiceData.invoiceNumber}.png';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
 
-			return true;
-		} catch (e) {
-			_errorMessage = 'Gagal menyimpan: $e';
-			return false;
-		} finally {
-			_isSharing = false;
-			notifyListeners();
-		}
-	}
+      await Gal.putImage(filePath);
 
-	Future<bool> shareInvoiceAsText() async {
-		if (_isSharing) {
-			return false;
-		}
+      return true;
+    } catch (e) {
+      _errorMessage = 'Gagal menyimpan: $e';
+      return false;
+    } finally {
+      _isSharing = false;
+      notifyListeners();
+    }
+  }
 
-		_isSharing = true;
-		_errorMessage = null;
-		notifyListeners();
+  Future<bool> shareInvoiceAsText() async {
+    if (_isSharing) {
+      return false;
+    }
 
-		try {
-			final message = Uri.encodeComponent(invoiceData.buildWhatsappMessage());
-			final phone = _normalizeIndonesianPhone(invoiceData.memberPhone);
-			final url = phone != null
-					? Uri.parse('https://wa.me/$phone?text=$message')
-					: Uri.parse('https://wa.me/?text=$message');
+    _isSharing = true;
+    _errorMessage = null;
+    notifyListeners();
 
-			final launched = await launchUrl(
-				url,
-				mode: LaunchMode.externalApplication,
-			);
+    try {
+      final message = Uri.encodeComponent(invoiceData.buildWhatsappMessage());
+      final phone = _normalizeIndonesianPhone(invoiceData.memberPhone);
+      final url = phone != null
+          ? Uri.parse('https://wa.me/$phone?text=$message')
+          : Uri.parse('https://wa.me/?text=$message');
 
-			if (!launched) {
-				_errorMessage = 'Tidak dapat membuka WhatsApp.';
-			}
+      final launched = await launchUrl(
+        url,
+        mode: LaunchMode.externalApplication,
+      );
 
-			return launched;
-		} catch (e) {
-			_errorMessage = 'Gagal membuka WhatsApp: $e';
-			return false;
-		} finally {
-			_isSharing = false;
-			notifyListeners();
-		}
-	}
+      if (!launched) {
+        _errorMessage = 'Tidak dapat membuka WhatsApp.';
+      }
 
-	String? _normalizeIndonesianPhone(String rawPhone) {
-		final digits = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
-		if (digits.isEmpty) {
-			return null;
-		}
+      return launched;
+    } catch (e) {
+      _errorMessage = 'Gagal membuka WhatsApp: $e';
+      return false;
+    } finally {
+      _isSharing = false;
+      notifyListeners();
+    }
+  }
 
-		if (digits.startsWith('62')) {
-			return digits;
-		}
+  String? _normalizeIndonesianPhone(String rawPhone) {
+    final digits = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      return null;
+    }
 
-		if (digits.startsWith('0')) {
-			return '62${digits.substring(1)}';
-		}
+    if (digits.startsWith('62')) {
+      return digits;
+    }
 
-		if (digits.startsWith('8')) {
-			return '62$digits';
-		}
+    if (digits.startsWith('0')) {
+      return '62${digits.substring(1)}';
+    }
 
-		return digits;
-	}
+    if (digits.startsWith('8')) {
+      return '62$digits';
+    }
 
+    return digits;
+  }
 }
 
 const List<String> _monthNames = [
-	'Januari',
-	'Februari',
-	'Maret',
-	'April',
-	'Mei',
-	'Juni',
-	'Juli',
-	'Agustus',
-	'September',
-	'Oktober',
-	'November',
-	'Desember',
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
 ];

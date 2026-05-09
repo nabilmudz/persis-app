@@ -1,17 +1,15 @@
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 
-/// Model untuk satu item dari endpoint /api/transaction-item/user/{userId}.
 class TransactionItemDetailModel {
   final String? id;
   final String? anggotaId;
   final String? transactionId;
   final String? duesPeriodId;
   final String? periodId;
-  final String? status; // 'paid', 'tunggakan', 'unpaid', dll
+  final String? status;
   final int? amount;
   final String? description;
 
-  // Jika backend menyertakan nested dues_period
   final DuesPeriodInfo? duesPeriod;
 
   const TransactionItemDetailModel({
@@ -29,23 +27,25 @@ class TransactionItemDetailModel {
   factory TransactionItemDetailModel.fromJson(Map<String, dynamic> json) {
     final itemJson = json['item'] is Map
         ? Map<String, dynamic>.from(json['item'] as Map)
-        : json;
+        : <String, dynamic>{};
     final periodJson = json['period'] is Map
         ? Map<String, dynamic>.from(json['period'] as Map)
         : json['dues_period'] is Map
         ? Map<String, dynamic>.from(json['dues_period'] as Map)
         : null;
 
-    final source = <String, dynamic>{...json, ...itemJson};
+    final source = <String, dynamic>{...itemJson, ...json};
 
     return TransactionItemDetailModel(
       id: source['_id'] ?? source['id'],
       anggotaId: source['anggota_id'],
       transactionId: source['transaction_id'],
       duesPeriodId: source['dues_period_id'],
-      periodId: source['period_id'],
-      status: source['status'],
-      amount: source['amount'] is num
+      periodId: source['period_id'] ?? itemJson['period_id'],
+      status: json['status'] as String?, // ← eksplisit dari root
+      amount: periodJson?['amount'] is num
+          ? (periodJson!['amount'] as num).toInt()
+          : source['amount'] is num
           ? (source['amount'] as num).toInt()
           : int.tryParse(source['amount']?.toString() ?? ''),
       description: source['description'],

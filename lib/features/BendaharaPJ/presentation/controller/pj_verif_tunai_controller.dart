@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 
-enum PjMonthStatus { lunas, tunggakan, belumJatuhTempo }
+enum PjMonthStatus { paid, tunggakan, pending }
 
 class MemberIuranStatusModel {
   final String label;
@@ -18,15 +18,12 @@ class MemberIuranStatusModel {
 class PjVerifTunaiController extends ChangeNotifier {
   static const int _fallbackNominal = 20000;
 
-  PjVerifTunaiController({
-    required List<TransactionModel> transactions,
-  }) : _transactions = List<TransactionModel>.from(transactions);
+  PjVerifTunaiController({required List<TransactionModel> transactions})
+    : _transactions = List<TransactionModel>.from(transactions);
 
   List<TransactionModel> _transactions;
 
-  void updateData({
-    required List<TransactionModel> transactions,
-  }) {
+  void updateData({required List<TransactionModel> transactions}) {
     _transactions = List<TransactionModel>.from(transactions);
     notifyListeners();
   }
@@ -118,7 +115,9 @@ class PjVerifTunaiController extends ChangeNotifier {
     required TransactionItemModel item,
   }) {
     final itemStatus = (item.status ?? '').trim().toLowerCase();
-    if (itemStatus == 'paid' || itemStatus == 'lunas' || itemStatus == 'completed') {
+    if (itemStatus == 'paid' ||
+        itemStatus == 'paid' ||
+        itemStatus == 'completed') {
       return true;
     }
 
@@ -149,12 +148,12 @@ class PjVerifTunaiController extends ChangeNotifier {
         final nominal = item.amount ?? 0;
         final paid = _hasPaidTransaction(tx: tx, item: item);
         final parsed = _parsePeriodKey(periodKey);
-        
-        final status = paid 
-            ? PjMonthStatus.lunas 
-            : (parsed != null && _isPastPeriod(parsed.month, parsed.year) 
-                ? PjMonthStatus.tunggakan 
-                : PjMonthStatus.belumJatuhTempo);
+
+        final status = paid
+            ? PjMonthStatus.paid
+            : (parsed != null && _isPastPeriod(parsed.month, parsed.year)
+                  ? PjMonthStatus.tunggakan
+                  : PjMonthStatus.pending);
 
         if (current == null) {
           map[periodKey] = _MemberPeriodState(
@@ -167,14 +166,17 @@ class PjVerifTunaiController extends ChangeNotifier {
 
         map[periodKey] = _MemberPeriodState(
           periodKey: periodKey,
-          nominal: nominal > 0 ? nominal : (current.nominal > 0 ? current.nominal : _fallbackNominal),
+          nominal: nominal > 0
+              ? nominal
+              : (current.nominal > 0 ? current.nominal : _fallbackNominal),
           status:
-              current.status == PjMonthStatus.lunas ||
-                  status == PjMonthStatus.lunas
-              ? PjMonthStatus.lunas
-              : (current.status == PjMonthStatus.tunggakan || status == PjMonthStatus.tunggakan
-                  ? PjMonthStatus.tunggakan
-                  : PjMonthStatus.belumJatuhTempo),
+              current.status == PjMonthStatus.paid ||
+                  status == PjMonthStatus.paid
+              ? PjMonthStatus.paid
+              : (current.status == PjMonthStatus.tunggakan ||
+                        status == PjMonthStatus.tunggakan
+                    ? PjMonthStatus.tunggakan
+                    : PjMonthStatus.pending),
         );
       }
     }
@@ -221,11 +223,11 @@ class PjVerifTunaiController extends ChangeNotifier {
       return PjMonthStatus.tunggakan;
     }
 
-    if (states.any((state) => state.status == PjMonthStatus.lunas)) {
-      return PjMonthStatus.lunas;
+    if (states.any((state) => state.status == PjMonthStatus.paid)) {
+      return PjMonthStatus.paid;
     }
 
-    return PjMonthStatus.belumJatuhTempo;
+    return PjMonthStatus.pending;
   }
 
   int tunggakanCountByMember(String anggotaId) {
@@ -279,7 +281,7 @@ class PjVerifTunaiController extends ChangeNotifier {
     final periodKey = _periodKey(month, targetYear);
     final states = periodStatesByMember(anggotaId);
     final state = states[periodKey];
-    
+
     if (state != null) {
       return state.status;
     }
@@ -288,16 +290,16 @@ class PjVerifTunaiController extends ChangeNotifier {
       return PjMonthStatus.tunggakan;
     }
 
-    return PjMonthStatus.belumJatuhTempo;
+    return PjMonthStatus.pending;
   }
 
   String _statusLabel(PjMonthStatus status) {
     switch (status) {
-      case PjMonthStatus.lunas:
-        return 'Lunas';
+      case PjMonthStatus.paid:
+        return 'paid';
       case PjMonthStatus.tunggakan:
         return 'Tunggakan';
-      case PjMonthStatus.belumJatuhTempo:
+      case PjMonthStatus.pending:
         return 'Belum Bayar';
     }
   }

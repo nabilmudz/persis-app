@@ -67,7 +67,7 @@ class AnggotaCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Sistem PersisPay',
+                  'Sistem InfaQu',
                   style: TextStyle(
                     color: Color(0xFF6A6A6A),
                     fontSize: 12,

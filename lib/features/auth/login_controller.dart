@@ -156,8 +156,7 @@ class LoginController extends ChangeNotifier {
     }
   }
 
-  // ─── Cek NPA ──────────────────────────────────────────────────────────────
-  Future<CekNpaResult> cekNpa(String npa) async {
+  Future<CekNpaResult> checkNpa(String npa) async {
     final trimmed = npa.trim();
 
     if (trimmed.isEmpty) {
@@ -172,11 +171,16 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final response = await remoteDataSource.checkNpa(trimmed);
+
       _isLoading = false;
       _npaNotFound = false;
       notifyListeners();
 
-      return const CekNpaResult(status: NpaStatus.valid);
+      return CekNpaResult(
+        status: NpaStatus.valid,
+        message: response['message'] as String? ?? 'NPA ditemukan',
+      );
     } on Exception catch (e) {
       _isLoading = false;
       final msg = e.toString().replaceFirst('Exception: ', '');
@@ -191,6 +195,7 @@ class LoginController extends ChangeNotifier {
       return CekNpaResult(status: NpaStatus.notFound, message: msg);
     } catch (e) {
       _isLoading = false;
+      _npaNotFound = true;
       notifyListeners();
       return const CekNpaResult(
         status: NpaStatus.error,
@@ -212,11 +217,11 @@ class LoginController extends ChangeNotifier {
   // ─── Role Routing (Disempurnakan) ──────────────────────────────────────────
   String _routeForRole(String? roleValue) {
     final role = roleValue?.trim().toUpperCase() ?? '';
-    
+
     // Sesuai dengan nama role di Database Backend
     if (role == 'BENDAHARA_PJ') return AppRoutes.bendaharaPJ;
     if (role == 'BENDAHARA_PC') return AppRoutes.bendaharaPC;
-    if (role == 'BENDAHARA_PD') return AppRoutes.dashboard; 
+    if (role == 'BENDAHARA_PD') return AppRoutes.dashboard;
     if (role == 'ANGGOTA') return AppRoutes.anggota;
 
     // Fallback keamanan

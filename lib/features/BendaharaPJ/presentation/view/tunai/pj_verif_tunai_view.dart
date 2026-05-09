@@ -64,7 +64,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
 
   void _handleMonthTap(int month) {
     final status = _itemController.getMonthStatus(month, _selectedYear);
-    if (status == PjMonthStatus.lunas) {
+    if (status == PjMonthStatus.paid) {
       return; // Tidak bisa di-klik jika sudah lunas
     }
 
@@ -162,10 +162,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         final refreshedUserId = widget.member.id;
         if (refreshedUserId != null && refreshedUserId.isNotEmpty) {
           await _transactionController.loadTransactions(refreshedUserId);
-          await _itemController.loadByUser(
-            refreshedUserId,
-            forceRefresh: true,
-          );
+          await _itemController.loadByUser(refreshedUserId, forceRefresh: true);
         }
 
         final invoiceData = PjInvoiceData.fromCreationResult(
@@ -473,7 +470,7 @@ class _MonthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLunas = status == PjMonthStatus.lunas;
+    final isLunas = status == PjMonthStatus.paid;
     final isTunggakan = status == PjMonthStatus.tunggakan;
 
     final Decoration decoration;

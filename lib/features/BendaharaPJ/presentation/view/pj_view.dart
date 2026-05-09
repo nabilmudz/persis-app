@@ -45,16 +45,19 @@ class _PjViewPageState extends State<PjViewPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PendingTransactionViewPage(
-                    controller: _controller,
-                  ),
+                  builder: (_) =>
+                      PendingTransactionViewPage(controller: _controller),
                 ),
               );
             },
           ),
           // === TAMBAHAN TOMBOL PROFIL DI SINI ===
           IconButton(
-            icon: const Icon(Icons.account_circle, size: 30, color: Color(0xFF073D4D)),
+            icon: const Icon(
+              Icons.account_circle,
+              size: 30,
+              color: Color(0xFF073D4D),
+            ),
             tooltip: 'Profil',
             onPressed: () {
               Navigator.pushNamed(context, '/profile');
@@ -92,43 +95,6 @@ class _PjViewPageState extends State<PjViewPage> {
                   children: [
                     Expanded(
                       child: BendaharaMenuCard(
-                        title: 'Pembayaran Tunai',
-                        icon: Icons.assignment_late_outlined,
-                        iconBackgroundColor: const Color(0xFFE9EDFF),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  tunai_anggota.PjAnggotaViewPage(controller: _controller),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: BendaharaMenuCard(
-                        title: 'Pembayaran Non-Tunai',
-                        icon: Icons.assignment_late_outlined,
-                        iconBackgroundColor: const Color(0xFFE9EDFF),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PjVerifNonTunaiViewPage(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: BendaharaMenuCard(
                         title: 'Data Anggota',
                         icon: Icons.people_outline,
                         iconBackgroundColor: const Color(0xFFFFFBEA),
@@ -136,7 +102,8 @@ class _PjViewPageState extends State<PjViewPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PjAnggotaViewPage(controller: _controller),
+                              builder: (_) =>
+                                  PjAnggotaViewPage(controller: _controller),
                             ),
                           );
                         },
@@ -159,8 +126,8 @@ class _PjViewPageState extends State<PjViewPage> {
                       ),
                     ),
                   ],
-
                 ),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
@@ -172,7 +139,9 @@ class _PjViewPageState extends State<PjViewPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PjPaymentDataViewPage(controller: _controller),
+                              builder: (_) => PjPaymentDataViewPage(
+                                controller: _controller,
+                              ),
                             ),
                           );
                         },
@@ -188,7 +157,9 @@ class _PjViewPageState extends State<PjViewPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PjPaymentDataViewPage(controller: _controller),
+                              builder: (_) => PjPaymentDataViewPage(
+                                controller: _controller,
+                              ),
                             ),
                           );
                         },
