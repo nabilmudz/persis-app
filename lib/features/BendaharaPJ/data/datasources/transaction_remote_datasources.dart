@@ -94,26 +94,53 @@ class TransactionRemoteDataSource {
 
   /// Export transaksi berdasarkan bulan dan tahun.
   /// Endpoint: GET /transaction/export?month={month}&year={year}&type={type}
-  Future<Map<String, dynamic>?> exportTransactions(int month, int year, {String? type}) async {
+  Future<Map<String, dynamic>?> exportTransactions(
+    int month,
+    int year, {
+    String? type,
+  }) async {
     try {
       String url = '/transaction/export?month=$month&year=$year';
       if (type != null) url += '&type=$type';
-      
+
       final response = await ApiClient.get(url);
       final decoded = json.decode(response.body);
-      
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
       }
-      
+
       if (decoded is Map && decoded.containsKey('message')) {
         return {'message': decoded['message']};
       }
-      
+
       debugPrint("Error API Export: ${response.statusCode} - ${response.body}");
       return null;
     } catch (e) {
       debugPrint("Error API Export: $e");
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchSummary({
+    required int year,
+    int month = 0,
+  }) async {
+    try {
+      final response = await ApiClient.get(
+        '/transaction/export?month=$month&year=$year',
+      );
+      final decoded = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return decoded is Map<String, dynamic> ? decoded : null;
+      }
+      debugPrint(
+        '[fetchSummary] Error: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('[fetchSummary] Exception: $e');
       return null;
     }
   }

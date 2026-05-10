@@ -91,11 +91,10 @@ class _PcViewPageState extends State<PcViewPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const BendaharaSaldoCard(
-                  badgeText: 'Porsi pc (20%)',
-                  title: 'Saldo Terkumpul',
-                  saldo: 'Rp 1.450.000',
-                  subtitle: '320 Anggota Lunas Bulan Agustus',
+                BendaharaSaldoCard(
+                  role: 'pc',
+                  badgeText: 'Porsi PC (20%)',
+                  title: 'Saldo Terkumpul ${DateTime.now().year}',
                 ),
                 const SizedBox(height: 20),
 
