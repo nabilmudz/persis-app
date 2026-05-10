@@ -94,42 +94,49 @@ class TransactionRemoteDataSource {
 
   /// Export transaksi berdasarkan bulan dan tahun.
   /// Endpoint: GET /transaction/export?month={month}&year={year}&type={type}
-  /// Return format:
-  /// - Jika server return URL: {'url': '...', 'message': '...'}
-  /// - Jika server return data: {'data': [...]} atau langsung array yang akan di-wrap
   Future<Map<String, dynamic>?> exportTransactions(int month, int year, {String? type}) async {
     try {
       String url = '/transaction/export?month=$month&year=$year';
       if (type != null) url += '&type=$type';
-      
+
       final response = await ApiClient.get(url);
+      final decoded = json.decode(response.body);
       
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final decoded = json.decode(response.body);
-        
-        // Handle berbagai format response
-        if (decoded is Map<String, dynamic>) {
-          return decoded;
-        } else if (decoded is List) {
-          // Jika response langsung array, wrap dalam {'data': ...}
-          return {'data': decoded};
-        } else {
-          debugPrint("Unexpected response format: $decoded");
-          return null;
-        }
-      } else if (response.statusCode == 204) {
-        // No content
-        return {'data': []};
-      } else {
-        final decoded = json.decode(response.body);
-        if (decoded is Map && decoded.containsKey('message')) {
-          return {'message': decoded['message']};
-        }
-        debugPrint("Error API Export: ${response.statusCode} - ${response.body}");
-        return null;
+        return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
       }
+      
+      if (decoded is Map && decoded.containsKey('message')) {
+        return {'message': decoded['message']};
+      }
+      
+      debugPrint("Error API Export: ${response.statusCode} - ${response.body}");
+      return null;
     } catch (e) {
       debugPrint("Error API Export: $e");
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchSummary({
+    required int year,
+    int month = 0,
+  }) async {
+    try {
+      final response = await ApiClient.get(
+        '/transaction/export?month=$month&year=$year',
+      );
+      final decoded = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return decoded is Map<String, dynamic> ? decoded : null;
+      }
+      debugPrint(
+        '[fetchSummary] Error: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('[fetchSummary] Exception: $e');
       return null;
     }
   }

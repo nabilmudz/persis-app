@@ -84,11 +84,10 @@ class _PjViewPageState extends State<PjViewPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const BendaharaSaldoCard(
+                BendaharaSaldoCard(
+                  role: 'pj',
                   badgeText: 'Porsi PJ (30%)',
-                  title: 'Saldo Terkumpul',
-                  saldo: 'Rp 1.450.000',
-                  subtitle: '320 Anggota Lunas Bulan Agustus',
+                  title: 'Saldo Terkumpul ${DateTime.now().year}',
                 ),
                 const SizedBox(height: 20),
                 Row(
