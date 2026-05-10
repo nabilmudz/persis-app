@@ -63,9 +63,12 @@ class UserRemoteDataSource {
   }
 
   // Get All Users
-  Future<List<UserModel>> getAllUsers() async {
+  Future<List<UserModel>> getAllUsers({String? regionId}) async {
+    final url = regionId != null
+        ? '$baseUrl/users/region/$regionId'
+        : '$baseUrl/users';
     final response = await http
-        .get(Uri.parse('$baseUrl/users'))
+        .get(Uri.parse(url))
         .timeout(const Duration(seconds: 10));
     if (response.statusCode == 200 || response.statusCode == 201) {
       List data = json.decode(response.body);
@@ -86,7 +89,7 @@ class UserRemoteDataSource {
     throw Exception('Gagal mengambil data riwayat iuran');
   }
 
-  Future<void> checkNpa(String npa) async {
+  Future<Map<String, dynamic>> checkNpa(String npa) async {
     final response = await http
         .get(
           Uri.parse('$baseUrl/users/check-npa/$npa'),
@@ -97,11 +100,9 @@ class UserRemoteDataSource {
     final body = jsonDecode(response.body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      // NPA valid & belum aktif → return void, controller nggak perlu data
-      return;
+      return body;
     }
 
-    // Lempar pesan dari server — controller yang interpret statusnya
     throw Exception(body['message'] ?? 'NPA tidak ditemukan');
   }
 }

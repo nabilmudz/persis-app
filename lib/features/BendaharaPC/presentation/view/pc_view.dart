@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
-
 import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_bank_account_view.dart';
-import '../widgets/sweet_alert_dialog.dart';
+import '../widgets/verifikasi_card.dart';
 
 class PcViewPage extends StatefulWidget {
   const PcViewPage({super.key});
@@ -14,15 +12,12 @@ class PcViewPage extends StatefulWidget {
 }
 
 class _PcViewPageState extends State<PcViewPage> {
-  // 1. Inisialisasi controller
   late final PcController _controller;
 
   Future<void> _loadTransactions() async {
     await _controller.loadTransactions();
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     final error = _controller.errorMessage;
     if (error != null) {
@@ -30,52 +25,6 @@ class _PcViewPageState extends State<PcViewPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(error)));
     }
-  }
-
-  Future<void> _handleAccPressed(TransactionModel item) async {
-    final nominalText = _controller.formatCurrency(item.totalAmount ?? 0);
-    final shouldContinue = await SweetAlertDialog.showConfirmation(
-      context: context,
-      title: 'Konfirmasi ACC',
-      message: 'Yakin ingin meng-ACC transaksi dengan nominal $nominalText?',
-      confirmText: 'Ya, ACC',
-      cancelText: 'Batal',
-    );
-
-    if (!shouldContinue || !mounted) {
-      return;
-    }
-
-    final result = await _controller.accTransaction(item);
-
-    if (!mounted) {
-      return;
-    }
-
-    if (result == PcAccResult.alreadyVerified) {
-      await SweetAlertDialog.showSuccess(
-        context: context,
-        title: 'Sudah Diverifikasi',
-        message: 'Transaksi ini sudah pernah di-ACC sebelumnya.',
-      );
-      return;
-    }
-
-    if (result == PcAccResult.notFound) {
-      await SweetAlertDialog.showSuccess(
-        context: context,
-        title: 'Data Tidak Ditemukan',
-        message: 'Data transaksi gagal diperbarui. Coba lagi.',
-      );
-      return;
-    }
-
-    await SweetAlertDialog.showSuccess(
-      context: context,
-      title: 'Berhasil',
-      message: 'Transaksi berhasil di-ACC.',
-      buttonText: 'OK',
-    );
   }
 
   @override
@@ -94,12 +43,37 @@ class _PcViewPageState extends State<PcViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('PC View (Native)')),
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: const Text(
+          'Dashboard PC',
+          style: TextStyle(
+            color: Color(0xFF363636),
+            fontSize: 18,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.account_circle, size: 30),
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: ListenableBuilder(
         listenable: _controller,
         builder: (context, child) {
           if (_controller.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF0C844C)),
+            );
           }
 
           return SingleChildScrollView(
@@ -117,13 +91,13 @@ class _PcViewPageState extends State<PcViewPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const BendaharaSaldoCard(
-                  badgeText: 'Porsi pc (20%)',
-                  title: 'Saldo Terkumpul',
-                  saldo: 'Rp 1.450.000',
-                  subtitle: '320 Anggota Lunas Bulan Agustus',
+                BendaharaSaldoCard(
+                  role: 'pc',
+                  badgeText: 'Porsi PC (20%)',
+                  title: 'Saldo Terkumpul ${DateTime.now().year}',
                 ),
                 const SizedBox(height: 20),
+
                 Row(
                   children: [
                     Expanded(
@@ -153,6 +127,70 @@ class _PcViewPageState extends State<PcViewPage> {
                     ),
                   ],
                 ),
+
+                const SizedBox(height: 24),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // TEKS HEADER UDAH DIGANTI JADI PERLU DIVERIFIKASI
+                    const Text(
+                      'Perlu Diverifikasi',
+                      style: TextStyle(
+                        color: Color(0xFF074D2C),
+                        fontSize: 16,
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pushNamed(context, '/verifikasi-pc');
+                      },
+                      child: const Text(
+                        'Lihat Semua',
+                        style: TextStyle(
+                          color: Color(0xFF0C844C),
+                          fontSize: 12,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                if (_controller.previewTransactions.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Text(
+                        'Semua data sudah diverifikasi.',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ..._controller.previewTransactions.map((tx) {
+                    final item = _controller.toVerifikasiItem(tx);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: VerifikasiCard(
+                        name: item.name,
+                        date: item.date,
+                        location: item.location,
+                        idNumber: item.transaction.creatorId ?? item.idNumber,
+                        paymentMethod: item.paymentMethod,
+                        price: item.price,
+                        status: item.category,
+                      ),
+                    );
+                  }).toList(),
+
                 const SizedBox(height: 20),
               ],
             ),

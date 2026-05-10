@@ -1,12 +1,26 @@
 import 'dart:convert';
-
-import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 
 class ApiClient {
   ApiClient._();
 
-  static final String baseUrl = dotenv.env['BASE_URL'] ?? '';
+  static String get baseUrl {
+    final rawBaseUrl = dotenv.env['BASE_URL']?.trim();
+
+    assert(
+      rawBaseUrl != null && rawBaseUrl.isNotEmpty,
+      'BASE_URL is not defined in .env file',
+    );
+
+    if (rawBaseUrl == null || rawBaseUrl.isEmpty) {
+      throw Exception('BASE_URL is not defined in .env file');
+    }
+
+    return rawBaseUrl.endsWith('/api')
+        ? rawBaseUrl
+        : '${rawBaseUrl.replaceAll(RegExp(r'/?$'), '')}/api';
+  }
 
   static Future<Map<String, String>> _defaultHeaders({String? token}) async {
     return {

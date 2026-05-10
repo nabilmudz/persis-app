@@ -23,7 +23,9 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
   @override
   void initState() {
     super.initState();
-    widget.controller.loadInitialData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.controller.loadInitialData();
+    });
   }
 
   @override

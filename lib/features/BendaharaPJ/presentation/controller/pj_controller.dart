@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:hive/hive.dart';
 import 'package:persis_app/core/network/api_client.dart';
+import 'package:persis_app/core/network/network_status.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
@@ -21,6 +23,16 @@ class PjController extends ChangeNotifier {
     _verifController.addListener(_onVerifChanged);
   }
 
+  static const String _cacheBoxName = 'pj_data_cache';
+
+  static Future<void> initCache() async {
+    if (!Hive.isBoxOpen(_cacheBoxName)) {
+      await Hive.openBox(_cacheBoxName);
+    }
+  }
+
+  Box get _cacheBox => Hive.box(_cacheBoxName);
+
   final UserRemoteDataSource _userDataSource;
   final TransactionRemoteDataSource _transactionDataSource;
 
@@ -38,8 +50,6 @@ class PjController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  List<DuesPeriodModel> get duesPeriods => _verifController.duesPeriods;
-
   Future<void> loadInitialData() async {
     if (_isLoading) {
       return;
@@ -50,46 +60,95 @@ class PjController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      List<UserModel> users = <UserModel>[];
-      List<TransactionModel> transactions = <TransactionModel>[];
-      List<DuesPeriodModel> duesPeriods = <DuesPeriodModel>[];
+      // 1. Load dari Cache dulu agar UI responsif (Offline-first)
+      await _loadFromCache();
 
-      try {
-        users = await _userDataSource.getAllUsers();
-      } catch (_) {}
-
-      try {
-        transactions = await _transactionDataSource.getHistory();
-      } catch (_) {}
-
-      try {
-        duesPeriods = await _transactionDataSource.getDuesPeriods();
-      } catch (_) {}
-
-      users = users
-          .where((user) => user.id != null && user.id!.trim().isNotEmpty)
-          .toList();
-
-      _members
-        ..clear()
-        ..addAll(users);
-
-      _transactions
-        ..clear()
-        ..addAll(transactions);
-
-      _verifController.updateData(
-        transactions: _transactions,
-        duesPeriods: duesPeriods,
-      );
-      if (_members.isEmpty && _transactions.isEmpty) {
-        _errorMessage = 'Tidak ada data yang bisa dimuat saat offline.';
+      // 2. Coba fetch data terbaru dari Network
+      final isOnline = await NetworkStatus.hasInternetConnection();
+      if (isOnline) {
+        await _fetchAndCacheData();
+      } else {
+        if (_members.isEmpty && _transactions.isEmpty) {
+          _errorMessage = 'Mode offline: Tidak ada data cache tersedia.';
+        }
       }
     } catch (e) {
-      _errorMessage = 'Gagal memuat data anggota/transaksi: $e';
+      debugPrint('[PjController] Error loadInitialData: $e');
+      if (_members.isEmpty) {
+        _errorMessage = 'Gagal memuat data: $e';
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _loadFromCache() async {
+    try {
+      final cachedUsers = _cacheBox.get('members') as List?;
+      final cachedTransactions = _cacheBox.get('transactions') as List?;
+
+      if (cachedUsers != null) {
+        _members
+          ..clear()
+          ..addAll(
+            cachedUsers
+                .map((e) => UserModel.fromJson(Map<String, dynamic>.from(e)))
+                .toList(),
+          );
+      }
+
+      if (cachedTransactions != null) {
+        _transactions
+          ..clear()
+          ..addAll(
+            cachedTransactions
+                .map(
+                  (e) =>
+                      TransactionModel.fromJson(Map<String, dynamic>.from(e)),
+                )
+                .toList(),
+          );
+      }
+
+      _verifController.updateData(transactions: _transactions);
+    } catch (e) {
+      debugPrint('[PjController] Gagal load dari cache: $e');
+    }
+  }
+
+  Future<void> _fetchAndCacheData() async {
+    try {
+      final users = await _userDataSource.getAllUsers();
+      final transactions = await _transactionDataSource.getHistory();
+
+      final filteredUsers = users
+          .where((u) => u.id != null && u.id!.trim().isNotEmpty)
+          .toList();
+
+      // Update State
+      _members
+        ..clear()
+        ..addAll(filteredUsers);
+      _transactions
+        ..clear()
+        ..addAll(transactions);
+      _verifController.updateData(transactions: _transactions);
+
+      // Save ke Cache
+      await _cacheBox.put(
+        'members',
+        filteredUsers.map((e) => e.toJson()).toList(),
+      );
+      await _cacheBox.put(
+        'transactions',
+        transactions.map((e) => e.toJson()).toList(),
+      );
+
+      debugPrint('[PjController] Data berhasil di-cache untuk offline.');
+    } catch (e) {
+      debugPrint('[PjController] Gagal fetch data network: $e');
+      // Tetap gunakan data cache jika network gagal
     }
   }
 
@@ -105,12 +164,12 @@ class PjController extends ChangeNotifier {
   }
 
   String memberDisplayName(UserModel member) {
-    final name = member.name?.trim();
+    final name = member.fullname?.trim();
     if (name != null && name.isNotEmpty) {
       return name;
     }
 
-    final code = member.code?.trim();
+    final code = member.npa?.trim();
     if (code != null && code.isNotEmpty) {
       return code;
     }

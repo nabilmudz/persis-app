@@ -166,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 16),
           const Text(
-            'PersisPay',
+            'InfaQu',
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.bold,
@@ -643,7 +643,6 @@ class _LoginScreenState extends State<LoginScreen>
       final body = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // NPA valid & belum aktif → lanjut isi data
         if (!mounted) return;
         Navigator.push(
           context,
@@ -1420,7 +1419,7 @@ class _BuatPasswordScreenState extends State<BuatPasswordScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Buat password baru untuk akun PersisPay Anda.',
+              'Buat password baru untuk akun InfaQu Anda.',
               style: TextStyle(fontSize: 13, color: greyText, height: 1.5),
             ),
             const SizedBox(height: 32),

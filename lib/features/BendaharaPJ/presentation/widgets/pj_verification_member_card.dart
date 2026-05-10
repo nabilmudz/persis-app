@@ -32,8 +32,8 @@ class PjVerificationMemberCard extends StatelessWidget {
       return cardStatus!;
     }
 
-    if (iuranStatuses.any((status) => status.status == PjMonthStatus.lunas)) {
-      return PjMonthStatus.lunas;
+    if (iuranStatuses.any((status) => status.status == PjMonthStatus.paid)) {
+      return PjMonthStatus.paid;
     }
 
     if (iuranStatuses.any(
@@ -43,38 +43,38 @@ class PjVerificationMemberCard extends StatelessWidget {
       return PjMonthStatus.tunggakan;
     }
 
-    return PjMonthStatus.belumJatuhTempo;
+    return PjMonthStatus.pending;
   }
 
   String _statusLabel(PjMonthStatus status) {
     switch (status) {
-      case PjMonthStatus.lunas:
+      case PjMonthStatus.paid:
         return 'Lunas';
       case PjMonthStatus.tunggakan:
         return 'Tunggakan';
-      case PjMonthStatus.belumJatuhTempo:
+      case PjMonthStatus.pending:
         return 'Belum Bayar';
     }
   }
 
   Color _statusColor(PjMonthStatus status) {
     switch (status) {
-      case PjMonthStatus.lunas:
+      case PjMonthStatus.paid:
         return const Color(0xFF28A745);
       case PjMonthStatus.tunggakan:
         return const Color(0xFFB31012);
-      case PjMonthStatus.belumJatuhTempo:
+      case PjMonthStatus.pending:
         return const Color(0xFF6B7280);
     }
   }
 
   IconData _statusIcon(PjMonthStatus status) {
     switch (status) {
-      case PjMonthStatus.lunas:
+      case PjMonthStatus.paid:
         return Icons.check_circle_rounded;
       case PjMonthStatus.tunggakan:
         return Icons.warning_amber_rounded;
-      case PjMonthStatus.belumJatuhTempo:
+      case PjMonthStatus.pending:
         return Icons.schedule_rounded;
     }
   }
@@ -85,12 +85,12 @@ class PjVerificationMemberCard extends StatelessWidget {
     final aggregateColor = _statusColor(aggregateStatus);
     final aggregateIcon = _statusIcon(aggregateStatus);
     final aggregateLabel = _statusLabel(aggregateStatus);
-    final cardBackground = aggregateStatus == PjMonthStatus.lunas
+    final cardBackground = aggregateStatus == PjMonthStatus.paid
         ? const Color(0xFFF2FBF4)
         : aggregateStatus == PjMonthStatus.tunggakan
         ? const Color(0xFFFFF6F6)
         : Colors.white;
-    final cardBorder = aggregateStatus == PjMonthStatus.lunas
+    final cardBorder = aggregateStatus == PjMonthStatus.paid
         ? const Color(0xFFBFE7C7)
         : aggregateStatus == PjMonthStatus.tunggakan
         ? const Color(0xFFF2C8C8)
@@ -187,7 +187,7 @@ class PjVerificationMemberCard extends StatelessWidget {
                         ],
                       ],
                     ),
-                    if (aggregateStatus != PjMonthStatus.belumJatuhTempo) ...[
+                    if (aggregateStatus != PjMonthStatus.pending) ...[
                       const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerRight,
@@ -297,7 +297,7 @@ class PjVerificationMemberCard extends StatelessWidget {
                           final chipColor = _statusColor(status.status);
                           final chipLabel = _statusLabel(status.status);
                           final chipBackground =
-                              status.status == PjMonthStatus.lunas
+                              status.status == PjMonthStatus.paid
                               ? const Color(0xFFE8F7EB)
                               : status.status == PjMonthStatus.tunggakan
                               ? const Color(0xFFFFEBEB)
