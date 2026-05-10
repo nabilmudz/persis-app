@@ -5,12 +5,11 @@ class PjVerificationMemberCard extends StatelessWidget {
   final String name;
   final String subtitle;
   final bool isTunggakan;
-  final bool showTotal;
-  final String total;
   final List<MemberIuranStatusModel> iuranStatuses;
   final PjMonthStatus? cardStatus;
   final VoidCallback? onTapCekKartu;
   final VoidCallback? onTapDetail;
+  final VoidCallback? onTapInvoice;
   final bool showIuranList;
 
   const PjVerificationMemberCard({
@@ -18,12 +17,11 @@ class PjVerificationMemberCard extends StatelessWidget {
     required this.name,
     this.subtitle = '',
     this.isTunggakan = false,
-    this.showTotal = false,
-    this.total = 'Rp. 40.000',
     this.iuranStatuses = const <MemberIuranStatusModel>[],
     this.cardStatus,
     this.onTapCekKartu,
     this.onTapDetail,
+    this.onTapInvoice,
     this.showIuranList = false,
   });
 
@@ -288,6 +286,36 @@ class PjVerificationMemberCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (onTapInvoice != null) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: onTapInvoice,
+                          icon: const Icon(
+                            Icons.receipt_long_rounded,
+                            size: 15,
+                          ),
+                          label: const Text(
+                            'Lihat Invoice Terakhir',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEFFAF4),
+                            foregroundColor: const Color(0xFF0C844C),
+                            side: const BorderSide(color: Color(0xFF0C844C)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ],
                     if (showIuranList && iuranStatuses.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Wrap(
@@ -344,32 +372,6 @@ class PjVerificationMemberCard extends StatelessWidget {
               ),
             ],
           ),
-          if (showTotal) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Text(
-                  'Total :',
-                  style: TextStyle(
-                    color: Color(0xFF073D4D),
-                    fontSize: 20,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  total,
-                  style: const TextStyle(
-                    color: Color(0xFF073D4D),
-                    fontSize: 20,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );

@@ -11,10 +11,13 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  late PjHiveController _pjHiveController;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _pjHiveController = PjHiveController();
   }
 
   @override
@@ -26,7 +29,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      PjHiveController.syncPendingTransactions();
+      _pjHiveController.syncPendingTransactions();
     }
   }
 

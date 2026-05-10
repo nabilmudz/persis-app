@@ -18,14 +18,16 @@ Future<void> main() async {
   await PjHiveController.init(); // Inisialisasi Box untuk PjHiveController
   await PjController.initCache(); // Inisialisasi Box Cache untuk PjAnggota
   await PjTransactionItemController.initCache(); // Inisialisasi Box Cache untuk Detail Iuran
-  await PjHiveController.syncPendingTransactions(); // Sync saat startup
+  final hiveController = PjHiveController();
+  await hiveController.syncPendingTransactions(); // Sync saat startup
   await Hive.openBox('riwayat_anggota'); // Box untuk data riwayat anggota (local-first)
 
   // Mulai listener konektivitas — sync dipicu event-driven saat internet kembali
   await ConnectivityService.init();
 
   // Backup polling setiap 30 detik (fallback jika event connectivity terlewat)
-  PjHiveController.startAutoSync();
+  hiveController.startAutoSync();
+
 
   runApp(const MyApp());
 }

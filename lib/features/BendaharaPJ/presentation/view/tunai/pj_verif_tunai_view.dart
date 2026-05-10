@@ -158,6 +158,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
       Navigator.pop(context); // Close loading dialog
 
       if (invoiceResult != null) {
+        widget.controller.addTransaction(invoiceResult.transaction);
         await widget.controller.loadInitialData();
         final refreshedUserId = widget.member.id;
         if (refreshedUserId != null && refreshedUserId.isNotEmpty) {
@@ -175,12 +176,27 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         });
 
         if (!mounted) return;
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
-          ),
-        );
+
+        // Jika offline → ke halaman pending, bukan langsung invoice
+        if (!invoiceResult.syncedToBackend) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PendingTransactionViewPage(
+                controller: widget.controller,
+                lastInvoiceData: invoiceData,
+              ),
+            ),
+          );
+        } else {
+          // Online → langsung ke halaman invoice
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
+            ),
+          );
+        }
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

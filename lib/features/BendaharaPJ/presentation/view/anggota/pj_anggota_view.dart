@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
-import '../../controller/pj_controller.dart';
-import '../../widgets/pj_verification_member_card.dart';
-import 'pj_verif_tunai_view.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/widgets/pj_verification_member_card.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/anggota/pj_verif_tunai_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
-import '../anggota/pj_detail_anggota_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_invoice.view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/anggota/pj_detail_anggota_view.dart';
 
 class PjAnggotaViewPage extends StatefulWidget {
   final PjController controller;
@@ -256,8 +260,6 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                                   member,
                                 ),
                                 isTunggakan: totalTunggakan > 0,
-                                showTotal: true,
-                                total: _formatCurrency(totalTunggakan),
                                 iuranStatuses: iuranStatuses,
                                 cardStatus: cardStatus,
                                 onTapCekKartu: () {
@@ -288,6 +290,21 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                                         PjDetailAnggotaView(member: member),
                                   );
                                 },
+                                onTapInvoice: _getLastInvoiceForMember(member) != null
+                                    ? () {
+                                        final invoiceData =
+                                            _getLastInvoiceForMember(member);
+                                        if (invoiceData == null) return;
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => PjInvoiceViewPage(
+                                              invoiceData: invoiceData,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    : null,
                               ),
                             );
                           }).toList(),
@@ -303,19 +320,138 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
     ); // Scaffold
   }
 
-  String _formatCurrency(double amount) {
-    final number = amount.round().toString();
-    final buffer = StringBuffer();
+  /// Ambil invoice terakhir milik anggota dari Hive (pending) atau Controller (history).
+  PjInvoiceData? _getLastInvoiceForMember(UserModel member) {
+    final memberId = member.id?.toString() ?? '';
+    if (memberId.isEmpty) return null;
 
-    for (var i = 0; i < number.length; i++) {
-      final reverseIndex = number.length - i;
-      buffer.write(number[i]);
+    PjInvoiceData? hiveInvoice;
+    PjInvoiceData? historyInvoice;
 
-      if (reverseIndex > 1 && reverseIndex % 3 == 1) {
-        buffer.write('.');
+    // 1. Cek dari Hive (Pending/Local)
+    try {
+      final hiveController = PjHiveController();
+      final allPending = hiveController.getPendingTransactions();
+      
+      final memberPending = allPending.where((entry) {
+        final data = entry['data'] as Map<String, dynamic>;
+        
+        // Cocokkan creatorId
+        final creatorId = (data['creatorId'] ?? data['creator_id'])?.toString() ?? '';
+        if (creatorId == memberId) return true;
+
+        // Cocokkan items anggotaId
+        final items = data['items'];
+        if (items is List) {
+          return items.any((item) {
+            if (item is Map) {
+              final id = (item['anggotaId'] ?? item['anggota_id'])?.toString() ?? '';
+              return id == memberId;
+            }
+            return false;
+          });
+        }
+        return false;
+      }).toList();
+
+      if (memberPending.isNotEmpty) {
+        // Sort by local_timestamp or createdAt
+        memberPending.sort((a, b) {
+          final aTs = (a['data'] as Map)['local_timestamp'] ?? (a['data'] as Map)['createdAt'] ?? '';
+          final bTs = (b['data'] as Map)['local_timestamp'] ?? (b['data'] as Map)['createdAt'] ?? '';
+          return bTs.toString().compareTo(aTs.toString());
+        });
+
+        final lastHiveData = memberPending.first['data'] as Map<String, dynamic>;
+        hiveInvoice = _buildInvoiceFromHiveMap(member, lastHiveData);
       }
+    } catch (e) {
+      debugPrint('Error check Hive invoice: $e');
     }
 
-    return 'Rp. ${buffer.toString()}';
+    // 2. Cek dari Controller (History/Synced)
+    try {
+      final lastHistoryTx = widget.controller.lastTransactionForMember(memberId);
+      if (lastHistoryTx != null) {
+        historyInvoice = PjInvoiceData.fromTransaction(
+          member: member,
+          transaction: lastHistoryTx,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error check History invoice: $e');
+    }
+
+    // 3. Bandingkan mana yang lebih baru
+    if (hiveInvoice != null && historyInvoice != null) {
+      return hiveInvoice.generatedAt.isAfter(historyInvoice.generatedAt)
+          ? hiveInvoice
+          : historyInvoice;
+    }
+
+    return hiveInvoice ?? historyInvoice;
+  }
+
+  PjInvoiceData _buildInvoiceFromHiveMap(UserModel member, Map<String, dynamic> data) {
+    // Helper logic same as above
+    final transaction = _buildTransactionFromHive(data);
+    final rawItems = data['items'] as List? ?? [];
+    final invoiceItems = <PjInvoiceLineItem>[];
+    final months = <int>[];
+    int year = DateTime.now().year;
+
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+
+    for (final rawItem in rawItems) {
+      if (rawItem is! Map) continue;
+      final desc = rawItem['description']?.toString() ?? '';
+      int month = 0;
+      for (var i = 0; i < monthNames.length; i++) {
+        if (desc.contains(monthNames[i])) {
+          month = i + 1;
+          final yearMatch = RegExp(r'(20\d{2})').firstMatch(desc);
+          if (yearMatch != null) year = int.tryParse(yearMatch.group(0)!) ?? year;
+          break;
+        }
+      }
+      if (month > 0) months.add(month);
+      invoiceItems.add(PjInvoiceLineItem(
+        month: month,
+        year: year,
+        label: desc,
+        amount: (rawItem['amount'] as num?)?.toInt() ?? 0,
+      ));
+    }
+
+    return PjInvoiceData(
+      member: member,
+      transaction: transaction,
+      items: invoiceItems,
+      months: months,
+      year: year,
+      totalAmount: (data['totalAmount'] ?? data['total_amount'] as num?)?.toInt() ?? 0,
+      syncedToBackend: data['isSynced'] == true,
+      generatedAt: DateTime.tryParse(data['local_timestamp']?.toString() ?? data['createdAt']?.toString() ?? '') ?? DateTime.now(),
+    );
+  }
+
+  static TransactionModel _buildTransactionFromHive(
+    Map<String, dynamic> data,
+  ) {
+    try {
+      return TransactionModel.fromJson(data);
+    } catch (_) {
+      return TransactionModel(
+        id: data['id']?.toString() ?? data['_id']?.toString() ?? '',
+        type: data['type']?.toString() ?? 'tunai',
+        status: data['status']?.toString() ?? 'pending',
+        totalAmount: (data['totalAmount'] ?? data['total_amount'] as num?)?.toInt() ?? 0,
+        createdAt: data['createdAt']?.toString() ?? data['local_timestamp']?.toString(),
+      );
+    }
   }
 }
+

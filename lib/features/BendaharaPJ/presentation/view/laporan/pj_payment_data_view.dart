@@ -158,95 +158,134 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   }
 
   void _exportExcel() async {
-    final filteredTransactions = _filterTransactionsByMonth(
-      widget.controller.transactions,
-    );
-
-    if (filteredTransactions.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak ada data untuk diekspor ke Excel'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
     try {
-      // 1. Ambil data dari API Export (lebih lengkap, ada member_name)
+      // 1. Ambil data dari API Export berdasarkan bulan dan tahun yang dipilih
       final result = await _laporanController.exportLaporan(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
       );
 
+      // 2. Handle error dari controller
+      if (_laporanController.errorMessage != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_laporanController.errorMessage!),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      // 3. Parsing data dari API response
       List<TransactionModel> exportData = [];
       if (result != null && result['data'] != null) {
         final List rawData = result['data'];
-        exportData = rawData.map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e))).toList();
+        exportData = rawData
+            .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        debugPrint('✓ API Export: ${exportData.length} transaksi diterima dari server');
       } else {
-        // Fallback ke data lokal jika API export gagal/tidak ada data
-        exportData = filteredTransactions;
+        // Fallback ke data lokal jika API tidak return data array
+        // Ambil SEMUA transaksi bulan itu (tidak filter status) jika API gagal
+        final allTransactionsMonth = widget.controller.transactions.where((transaction) {
+          if (transaction.createdAt == null) return false;
+          try {
+            final transactionDate = DateTime.parse(transaction.createdAt!);
+            final isSameMonth =
+                transactionDate.year == _selectedMonth.year &&
+                transactionDate.month == _selectedMonth.month;
+            return isSameMonth;
+          } catch (e) {
+            return false;
+          }
+        }).toList();
+        exportData = allTransactionsMonth;
+        debugPrint('⚠ Fallback: ${exportData.length} transaksi dari data lokal');
       }
 
       if (exportData.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak ada data untuk periode ini')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tidak ada transaksi untuk periode yang dipilih'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
         return;
       }
 
       // 2. Inisialisasi Excel
       final excel = Excel.createExcel();
-      final sheet = excel['Laporan_Transaksi'];
+      final sheet = excel['Transaksi pada Bulan'];
       excel.delete('Sheet1');
 
-      final headers = ['No', 'Kode', 'Tanggal', 'Nama Member', 'NPA', 'Jenis', 'Jumlah', 'Status', 'PJ (30%)', 'PC (20%)', 'PD (20%)', 'PW (15%)', 'PP (15%)'];
+      // Header sesuai template
+      final headers = ['Hari, Tanggal', 'Nama Anggota', 'Dari Bulan', 'Hingga Bulan', 'Total Bayar', 'Di ACC oleh', 'PJ', 'PC', 'PW', 'PD', 'PP'];
       sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
 
       // 3. Tambah Data
+      final monthLabel = DateFormat('MMMM', 'id_ID').format(_selectedMonth);
+      
       for (int i = 0; i < exportData.length; i++) {
         final t = exportData[i];
         final amount = t.totalAmount ?? 0;
-        final date = t.createdAt != null ? DateFormat('yyyy-MM-dd HH:mm').format(DateTime.parse(t.createdAt!)) : '-';
         
-        // Ambil member name langsung dari model (hasil API mapping)
+        // Format: "Hari, dd MMM yyyy"
+        final dateFormatted = t.createdAt != null 
+            ? DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(DateTime.parse(t.createdAt!))
+            : '-';
+        
+        // Ambil member name
         final memberName = t.memberName ?? _getMemberName(t);
         
-        // Cari NPA jika ada (dari JSON user ada field "npa")
-        // Kita bisa ambil dari map asli jika perlu, tapi kita gunakan TransactionModel dulu
-        // Untuk amannya, kita bisa parse manual map aslinya jika ingin field tambahan seperti NPA
+        // Dari Bulan dan Hingga Bulan (sama dengan bulan yang dipilih untuk sekarang)
+        final dariHingga = monthLabel;
+        
+        // Di ACC oleh
+        final diAccOleh = t.verifiedBy ?? '-';
+        
+        // Hitung pembagian
+        final pj = (amount * 30) ~/ 100;
+        final pc = (amount * 20) ~/ 100;
+        final pw = (amount * 15) ~/ 100;
+        final pd = (amount * 20) ~/ 100;
+        final pp = (amount * 15) ~/ 100;
         
         sheet.appendRow([
-          IntCellValue(i + 1),
-          TextCellValue(t.code ?? t.id ?? "-"),
-          TextCellValue(date),
+          TextCellValue(dateFormatted),
           TextCellValue(memberName),
-          TextCellValue(t.npa ?? "-"),
-          TextCellValue(t.type ?? "Pembayaran Tunai"),
+          TextCellValue(dariHingga),
+          TextCellValue(dariHingga),
           IntCellValue(amount),
-          TextCellValue(t.accStatus ?? t.status ?? "pending"),
-          IntCellValue((amount * 30) ~/ 100),
-          IntCellValue((amount * 20) ~/ 100),
-          IntCellValue((amount * 20) ~/ 100),
-          IntCellValue((amount * 15) ~/ 100),
-          IntCellValue((amount * 15) ~/ 100),
+          TextCellValue(diAccOleh),
+          IntCellValue(pj),
+          IntCellValue(pc),
+          IntCellValue(pw),
+          IntCellValue(pd),
+          IntCellValue(pp),
         ]);
       }
+      
+      debugPrint('✓ Excel: ${exportData.length} baris data berhasil ditambahkan');
 
       // 4. Simpan ke file .xlsx
       final bytes = excel.encode();
       if (bytes == null) return;
 
       final directory = await getTemporaryDirectory();
-      final monthLabel = DateFormat('MMMM_yyyy', 'id_ID').format(_selectedMonth);
-      final file = File('${directory.path}/Laporan_PJ_$monthLabel.xlsx');
+      final monthLabelFile = DateFormat('MMMM_yyyy', 'id_ID').format(_selectedMonth);
+      final file = File('${directory.path}/Laporan_PJ_$monthLabelFile.xlsx');
       await file.writeAsBytes(bytes);
 
       // 5. Share file
       if (mounted) {
         await Share.shareXFiles(
           [XFile(file.path)],
-          subject: 'Laporan PJ $monthLabel',
+          subject: 'Laporan PJ $monthLabelFile',
         );
       }
     } catch (e) {

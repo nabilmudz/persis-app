@@ -13,6 +13,11 @@ class PjHiveController extends ChangeNotifier {
   static Timer? _autoSyncTimer;
   static bool _isSyncing = false;
 
+  // Singleton instance
+  static final PjHiveController _instance = PjHiveController._internal();
+  factory PjHiveController() => _instance;
+  PjHiveController._internal();
+
   /// Inisialisasi Hive dan buka box untuk menyimpan transaksi.
   /// Panggil ini di fungsi main() atau saat inisialisasi aplikasi.
   static Future<void> init() async {
@@ -56,7 +61,7 @@ class PjHiveController extends ChangeNotifier {
   }
 
   /// Coba kirim semua transaksi yang masih tersimpan lokal.
-  static Future<int> syncPendingTransactions({
+  Future<int> syncPendingTransactions({
     TransactionRemoteDataSource? dataSource,
   }) async {
     if (!Hive.isBoxOpen(_boxName)) {
@@ -108,7 +113,6 @@ class PjHiveController extends ChangeNotifier {
             syncedCount++;
           }
         } catch (e) {
-          // Tetap di Hive jika jaringan belum kembali atau payload gagal dikirim.
           debugPrint(
             '[PjHiveController] Gagal sync entry key=${entry.key}: $e',
           );
@@ -116,10 +120,14 @@ class PjHiveController extends ChangeNotifier {
       }
     } finally {
       _isSyncing = false;
+      if (syncedCount > 0) {
+        notifyListeners();
+      }
     }
 
     return syncedCount;
   }
+
 
   static const Map<String, int> _monthLookup = {
     'januari': 1,
@@ -287,9 +295,7 @@ class PjHiveController extends ChangeNotifier {
   }
 
   /// Jalankan retry sinkronisasi berkala selama aplikasi aktif.
-  /// Interval default 30 detik sebagai fallback backup — sinkronisasi utama
-  /// sudah dipicu event-driven oleh [ConnectivityService] saat internet kembali.
-  static void startAutoSync({
+  void startAutoSync({
     Duration interval = const Duration(seconds: 30),
     TransactionRemoteDataSource? dataSource,
   }) {
@@ -299,10 +305,11 @@ class PjHiveController extends ChangeNotifier {
     });
   }
 
-  static void stopAutoSync() {
+  void stopAutoSync() {
     _autoSyncTimer?.cancel();
     _autoSyncTimer = null;
   }
+
 
   /// 2. Ambil semua transaksi yang masih pending (belum dikirim ke BE).
   /// Mengembalikan list of map yang berisi kombinasi 'key' dan 'data'.
