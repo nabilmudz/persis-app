@@ -255,7 +255,7 @@ class _QrisViewState extends State<QrisView> {
                             child: Image.network(
                               controller.qrisImageUrl!,
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const Icon(
+                              errorBuilder: (_, _, _) => const Icon(
                                 Icons.qr_code_2,
                                 size: 180,
                                 color: Colors.black87,

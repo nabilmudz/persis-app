@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:gal/gal.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
@@ -116,6 +115,61 @@ class PjInvoiceData {
       totalAmount: result.totalAmount,
       syncedToBackend: result.syncedToBackend,
       generatedAt: result.generatedAt,
+    );
+  }
+
+  factory PjInvoiceData.fromTransaction({
+    required UserModel member,
+    required TransactionModel transaction,
+  }) {
+    final invoiceItems = <PjInvoiceLineItem>[];
+    final months = <int>[];
+    int year = DateTime.now().year;
+
+    final sourceItems = transaction.items ?? const <TransactionItemModel>[];
+    for (final item in sourceItems) {
+      final desc = item.description ?? '';
+      int month = 0;
+
+      // Extract month from description if possible
+      for (var i = 0; i < _monthNames.length; i++) {
+        if (desc.contains(_monthNames[i])) {
+          month = i + 1;
+          final yearMatch = RegExp(r'(20\d{2})').firstMatch(desc);
+          if (yearMatch != null) {
+            year = int.tryParse(yearMatch.group(0)!) ?? year;
+          }
+          break;
+        }
+      }
+
+      if (month > 0) {
+        months.add(month);
+      }
+
+      invoiceItems.add(
+        PjInvoiceLineItem(
+          month: month,
+          year: year,
+          label: desc.isNotEmpty ? desc : 'Iuran',
+          amount: item.amount ?? 0,
+        ),
+      );
+    }
+
+    final createdAt =
+        DateTime.tryParse(transaction.createdAt ?? '') ?? DateTime(1900);
+
+    return PjInvoiceData(
+      member: member,
+      transaction: transaction,
+      items: invoiceItems,
+      months: months,
+      year: year,
+      totalAmount: transaction.totalAmount ?? 0,
+      syncedToBackend:
+          true, // If it's a TransactionModel from history, it's synced
+      generatedAt: createdAt,
     );
   }
 

@@ -33,7 +33,10 @@ class PjRecapDetailViewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalAmount = transactions.fold<int>(0, (sum, t) => sum + (t.totalAmount ?? 0));
+    final totalAmount = transactions.fold<int>(
+      0,
+      (sum, t) => sum + (t.totalAmount ?? 0),
+    );
     final pj = (totalAmount * 30) ~/ 100;
     final pc = (totalAmount * 20) ~/ 100;
     final pd = (totalAmount * 20) ~/ 100;
@@ -135,7 +138,7 @@ class PjRecapDetailViewPage extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Align(
@@ -162,13 +165,13 @@ class PjRecapDetailViewPage extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               itemCount: transactions.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final transaction = transactions[index];
                 final memberName = getMemberName(transaction);
@@ -322,10 +325,12 @@ class _DetailedTransactionCard extends StatelessWidget {
                   (transaction.code != null && transaction.code!.isNotEmpty)
                       ? transaction.code!
                       : (transaction.id != null && transaction.id!.isNotEmpty
-                          ? (transaction.id!.length > 8
-                              ? transaction.id!.substring(transaction.id!.length - 8).toUpperCase()
-                              : transaction.id!.toUpperCase())
-                          : '-'),
+                            ? (transaction.id!.length > 8
+                                  ? transaction.id!
+                                        .substring(transaction.id!.length - 8)
+                                        .toUpperCase()
+                                  : transaction.id!.toUpperCase())
+                            : '-'),
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -333,7 +338,10 @@ class _DetailedTransactionCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF10B367).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -374,17 +382,35 @@ class _DetailedTransactionCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Tanggal', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                    const Text(
+                      'Tanggal',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                    ),
                     const SizedBox(height: 2),
-                    Text(_formatDate(transaction.createdAt), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                    Text(
+                      _formatDate(transaction.createdAt),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text('Diverifikasi Oleh', style: TextStyle(fontSize: 11, color: Color(0xFF6B7280))),
+                    const Text(
+                      'Diverifikasi Oleh',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                    ),
                     const SizedBox(height: 2),
-                    Text(transaction.verifiedBy ?? '-', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                    Text(
+                      transaction.verifiedBy ?? '-',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ],

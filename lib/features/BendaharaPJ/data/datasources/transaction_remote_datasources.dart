@@ -7,6 +7,20 @@ import '../models/transaction_model.dart';
 class TransactionRemoteDataSource {
   Map<String, dynamic> _buildCreatePayload(TransactionModel transaction) {
     final payload = Map<String, dynamic>.from(transaction.toJson());
+    
+    // Pastikan status dan acc_status sesuai enum NestJS
+    payload['status'] = transaction.status ?? 'completed';
+    payload['acc_status'] = transaction.accStatus ?? 'acc_pj';
+    
+    // Tetap kirim _id agar relasi items tetap terjaga (local-first)
+    // Server menggunakan String untuk _id jadi UUID atau ObjectId string tetap valid
+    payload['_id'] = transaction.id;
+    payload['id'] = transaction.id;
+    
+    // Set sync flags agar server tahu data ini sudah tersinkron dari client
+    payload['is_synced'] = true;
+    payload['synced_at'] = DateTime.now().toIso8601String();
+
     final items = (payload['items'] as List?)?.map((item) {
       final itemMap = Map<String, dynamic>.from(item as Map);
       itemMap.remove('status');
@@ -16,6 +30,8 @@ class TransactionRemoteDataSource {
     payload['items'] = items;
     return payload;
   }
+
+
 
   // Update transaksi yang sudah ada (untuk ACC)
   Future<bool> updateTransaction(
@@ -98,7 +114,7 @@ class TransactionRemoteDataSource {
     try {
       String url = '/transaction/export?month=$month&year=$year';
       if (type != null) url += '&type=$type';
-      
+
       final response = await ApiClient.get(url);
       final decoded = json.decode(response.body);
       
@@ -114,6 +130,58 @@ class TransactionRemoteDataSource {
       return null;
     } catch (e) {
       debugPrint("Error API Export: $e");
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getMembersPaymentStatus({
+    required int year,
+    String? regionId,
+  }) async {
+    try {
+      var url = '/transaction/members-payment-status?year=$year';
+      final normalizedRegionId = regionId?.trim();
+      if (normalizedRegionId != null && normalizedRegionId.isNotEmpty) {
+        url += '&region_id=$normalizedRegionId';
+      }
+
+      final response = await ApiClient.get(url);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final decoded = json.decode(response.body);
+        return decoded is Map<String, dynamic>
+            ? decoded
+            : Map<String, dynamic>.from(decoded as Map);
+      }
+
+      debugPrint(
+        'Error API Members Payment Status: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('Error API Members Payment Status: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> fetchSummary({
+    required int year,
+    int month = 0,
+  }) async {
+    try {
+      final response = await ApiClient.get(
+        '/transaction/export?month=$month&year=$year',
+      );
+      final decoded = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return decoded is Map<String, dynamic> ? decoded : null;
+      }
+      debugPrint(
+        '[fetchSummary] Error: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('[fetchSummary] Exception: $e');
       return null;
     }
   }

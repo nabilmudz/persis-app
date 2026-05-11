@@ -188,8 +188,9 @@ class PjVerifNonTunaiController extends ChangeNotifier {
         paymentMethodId: transaction.paymentMethodId,
         totalAmount: transaction.totalAmount,
         status: 'completed',
-        accStatus: 'verified',
+        accStatus: 'acc_pj',
         isSynced: transaction.isSynced,
+
         createdAt: transaction.createdAt,
         items: updatedItems,
       );

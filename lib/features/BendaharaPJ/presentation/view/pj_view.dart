@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/laporan/pj_payment_data_view.dart';
 import '../controller/pj_controller.dart';
 import 'anggota/pj_anggota_view.dart';
-import 'tunai/pj_anggota_view.dart' as tunai_anggota;
 import 'tunai/pending_transaction_view.dart';
 import 'non-tunai/pj_verif_non_tunai_view.dart';
 import '../widgets/bendahara_shared_cards.dart';
@@ -84,11 +83,10 @@ class _PjViewPageState extends State<PjViewPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const BendaharaSaldoCard(
+                BendaharaSaldoCard(
+                  role: 'pj',
                   badgeText: 'Porsi PJ (30%)',
-                  title: 'Saldo Terkumpul',
-                  saldo: 'Rp 1.450.000',
-                  subtitle: '320 Anggota Lunas Bulan Agustus',
+                  title: 'Saldo Terkumpul ${DateTime.now().year}',
                 ),
                 const SizedBox(height: 20),
                 Row(

@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:persis_app/core/network/api_client.dart';
 import 'package:persis_app/core/network/network_status.dart';
+import 'package:persis_app/core/storage/secure_storage_service.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'pj_verif_tunai_controller.dart';
@@ -21,7 +26,26 @@ class PjController extends ChangeNotifier {
            transactionDataSource ?? TransactionRemoteDataSource() {
     _verifController = PjVerifTunaiController(transactions: _transactions);
     _verifController.addListener(_onVerifChanged);
+    _hiveController = PjHiveController();
+    _hiveController.addListener(_onHiveChanged);
   }
+
+  void _onHiveChanged() {
+    notifyListeners();
+  }
+
+  /// Tambah transaksi ke state lokal (biasanya setelah berhasil di BE)
+  /// agar UI langsung update tanpa menunggu fetch ulang.
+  void addTransaction(TransactionModel tx) {
+    // Hindari duplikat
+    if (_transactions.any((t) => t.id == tx.id && tx.id != null)) {
+      return;
+    }
+    _transactions.insert(0, tx);
+    _verifController.updateData(transactions: _transactions);
+    notifyListeners();
+  }
+
 
   static const String _cacheBoxName = 'pj_data_cache';
 
@@ -29,6 +53,7 @@ class PjController extends ChangeNotifier {
     if (!Hive.isBoxOpen(_cacheBoxName)) {
       await Hive.openBox(_cacheBoxName);
     }
+    await PjTransactionItemController.initCache();
   }
 
   Box get _cacheBox => Hive.box(_cacheBoxName);
@@ -38,6 +63,7 @@ class PjController extends ChangeNotifier {
 
   final List<UserModel> _members = [];
   final List<TransactionModel> _transactions = [];
+  late final PjHiveController _hiveController;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -60,13 +86,16 @@ class PjController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final currentYear = DateTime.now().year;
+      final regionId = await resolveRegionId();
+
       // 1. Load dari Cache dulu agar UI responsif (Offline-first)
-      await _loadFromCache();
+      await _loadFromCache(year: currentYear, regionId: regionId);
 
       // 2. Coba fetch data terbaru dari Network
       final isOnline = await NetworkStatus.hasInternetConnection();
       if (isOnline) {
-        await _fetchAndCacheData();
+        await loadPaymentStatusSnapshot(year: currentYear, regionId: regionId);
       } else {
         if (_members.isEmpty && _transactions.isEmpty) {
           _errorMessage = 'Mode offline: Tidak ada data cache tersedia.';
@@ -83,12 +112,24 @@ class PjController extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadFromCache() async {
+  Future<void> _loadFromCache({int? year, String? regionId}) async {
     try {
       final cachedUsers = _cacheBox.get('members') as List?;
       final cachedTransactions = _cacheBox.get('transactions') as List?;
+      final cachedSnapshotMembers = year == null
+          ? const <Map<String, dynamic>>[]
+          : PjTransactionItemController.cachedMembersFromSnapshot(
+              year: year,
+              regionId: regionId,
+            );
 
-      if (cachedUsers != null) {
+      if (cachedSnapshotMembers.isNotEmpty) {
+        _members
+          ..clear()
+          ..addAll(
+            cachedSnapshotMembers.map((e) => UserModel.fromJson(e)).toList(),
+          );
+      } else if (cachedUsers != null) {
         _members
           ..clear()
           ..addAll(
@@ -109,6 +150,9 @@ class PjController extends ChangeNotifier {
                 )
                 .toList(),
           );
+        await PjTransactionItemController.cachePeriodsFromTransactions(
+          _transactions,
+        );
       }
 
       _verifController.updateData(transactions: _transactions);
@@ -144,12 +188,212 @@ class PjController extends ChangeNotifier {
         'transactions',
         transactions.map((e) => e.toJson()).toList(),
       );
+      await PjTransactionItemController.cachePeriodsFromTransactions(
+        transactions,
+      );
 
       debugPrint('[PjController] Data berhasil di-cache untuk offline.');
     } catch (e) {
       debugPrint('[PjController] Gagal fetch data network: $e');
       // Tetap gunakan data cache jika network gagal
     }
+  }
+
+  Future<void> loadPaymentStatusSnapshot({
+    required int year,
+    String? regionId,
+  }) async {
+    try {
+      final resolvedRegionId = regionId ?? await resolveRegionId();
+      final snapshot = await _transactionDataSource.getMembersPaymentStatus(
+        year: year,
+        regionId: resolvedRegionId,
+      );
+
+      if (snapshot == null) {
+        await _fetchAndCacheData();
+        return;
+      }
+
+      await PjTransactionItemController.cacheMembersPaymentStatusSnapshot(
+        snapshot,
+      );
+
+      final snapshotMembers =
+          PjTransactionItemController.cachedMembersFromSnapshot(
+        year: year,
+        regionId: resolvedRegionId,
+      );
+      if (snapshotMembers.isNotEmpty) {
+        _members
+          ..clear()
+          ..addAll(snapshotMembers.map((e) => UserModel.fromJson(e)).toList());
+        await _cacheBox.put(
+          'members',
+          _members.map((member) => member.toJson()).toList(),
+        );
+      }
+
+      _transactions
+        ..clear()
+        ..addAll(_transactionsFromPaymentSnapshot(snapshot));
+      await _cacheBox.put(
+        'transactions',
+        _transactions.map((e) => e.toJson()).toList(),
+      );
+
+      _verifController.updateData(transactions: _transactions);
+      debugPrint('[PjController] Snapshot status pembayaran berhasil di-cache.');
+    } catch (e) {
+      debugPrint('[PjController] Gagal load snapshot status pembayaran: $e');
+      await _fetchAndCacheData();
+    }
+  }
+
+  Future<String?> resolveRegionId() async {
+    final token = await SecureStorageService.read(
+      SecureStorageService.accessTokenKey,
+    );
+
+    if (token == null || token.trim().isEmpty) {
+      return null;
+    }
+
+    final parts = token.split('.');
+    if (parts.length < 2) {
+      return null;
+    }
+
+    try {
+      final payload = _decodeJwtPayload(parts[1]);
+      return _extractRegionId(payload);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic> _decodeJwtPayload(String payloadPart) {
+    final normalized = base64Url.normalize(payloadPart);
+    final decoded = utf8.decode(base64Url.decode(normalized));
+    final payload = jsonDecode(decoded);
+
+    if (payload is Map<String, dynamic>) {
+      return payload;
+    }
+
+    return <String, dynamic>{};
+  }
+
+  String? _extractRegionId(Map<String, dynamic> json) {
+    final directCandidates = <dynamic>[
+      json['region_id'],
+      json['regionId'],
+      json['region'],
+    ];
+
+    for (final candidate in directCandidates) {
+      final resolved = _extractIdValue(candidate);
+      if (resolved != null && resolved.isNotEmpty) {
+        return resolved;
+      }
+    }
+
+    for (final value in json.values) {
+      if (value is Map<String, dynamic>) {
+        final nested = _extractRegionId(value);
+        if (nested != null && nested.isNotEmpty) {
+          return nested;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  String? _extractIdValue(dynamic value) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+
+    if (value is Map<String, dynamic>) {
+      final nestedCandidates = <dynamic>[
+        value['_id'],
+        value['id'],
+        value['region_id'],
+        value['regionId'],
+      ];
+
+      for (final nested in nestedCandidates) {
+        final resolved = _extractIdValue(nested);
+        if (resolved != null && resolved.isNotEmpty) {
+          return resolved;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  List<TransactionModel> _transactionsFromPaymentSnapshot(
+    Map<String, dynamic> snapshot,
+  ) {
+    final transactions = <TransactionModel>[];
+    final members = snapshot['members'];
+    if (members is! List) {
+      return transactions;
+    }
+
+    for (final rawMember in members) {
+      if (rawMember is! Map) continue;
+      final member = Map<String, dynamic>.from(rawMember);
+      final memberId = (member['_id'] ?? member['id'])?.toString();
+      if (memberId == null || memberId.isEmpty) continue;
+
+      final payments = member['payments'];
+      if (payments is! List) continue;
+
+      for (final rawPayment in payments) {
+        if (rawPayment is! Map) continue;
+        final payment = Map<String, dynamic>.from(rawPayment);
+        final month = (payment['month'] as num?)?.toInt();
+        final year = (payment['year'] as num?)?.toInt();
+        if (month == null || year == null) continue;
+
+        final status = payment['status']?.toString() ?? 'pending';
+        final amount = (payment['amount'] as num?)?.toInt() ?? 20000;
+        final periodKey = PjTransactionItemController.localPeriodKey(
+          month,
+          year,
+        );
+
+        transactions.add(
+          TransactionModel(
+            id:
+                payment['transaction_id']?.toString() ??
+                'snapshot-$memberId-$periodKey',
+            type: 'tunai',
+            creatorId: memberId,
+            totalAmount: amount,
+            status: status == 'paid' ? 'completed' : status,
+            memberName: member['fullname']?.toString(),
+            npa: member['npa']?.toString(),
+            items: [
+              TransactionItemModel(
+                anggotaId: memberId,
+                transactionId: payment['transaction_id']?.toString(),
+                periodId: periodKey,
+                duesPeriodId: payment['period_id']?.toString(),
+                status: status,
+                amount: amount,
+                description: 'Iuran $periodKey',
+              ),
+            ],
+          ),
+        );
+      }
+    }
+
+    return transactions;
   }
 
   void _onVerifChanged() {
@@ -160,6 +404,7 @@ class PjController extends ChangeNotifier {
   void dispose() {
     _verifController.removeListener(_onVerifChanged);
     _verifController.dispose();
+    _hiveController.removeListener(_onHiveChanged);
     super.dispose();
   }
 
@@ -247,5 +492,35 @@ class PjController extends ChangeNotifier {
       month: month,
       year: year,
     );
+  }
+
+  /// Ambil transaksi terakhir milik anggota (dari history yang sudah di-load)
+  TransactionModel? lastTransactionForMember(String anggotaId) {
+    if (anggotaId.isEmpty) return null;
+    
+    // Cari transaksi yang melibatkan anggota ini
+    final memberTxs = _transactions.where((tx) {
+      // 1. Cek apakah ada item yang ditujukan untuk anggota ini
+      final hasItemForMember = tx.items?.any((item) => 
+        (item.anggotaId?.toString() ?? '') == anggotaId
+      ) ?? false;
+      if (hasItemForMember) return true;
+
+      // 2. Cek apakah anggota ini adalah pembuat transaksi (fallback)
+      if ((tx.creatorId?.toString() ?? '') == anggotaId) return true;
+      
+      return false;
+    }).toList();
+
+    if (memberTxs.isEmpty) return null;
+
+    // Sort by date descending (latest first)
+    memberTxs.sort((a, b) {
+      final aDate = DateTime.tryParse(a.createdAt ?? '') ?? DateTime(1900);
+      final bDate = DateTime.tryParse(b.createdAt ?? '') ?? DateTime(1900);
+      return bDate.compareTo(aDate);
+    });
+
+    return memberTxs.first;
   }
 }

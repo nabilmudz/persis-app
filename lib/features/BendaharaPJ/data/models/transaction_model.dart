@@ -14,6 +14,9 @@ class TransactionModel {
   final bool? isSynced;
   final String? createdAt;
   final String? updatedAt; // Ditambahkan agar sesuai copyWith
+  final String? accBy;
+  final String? accAt;
+  final String? syncedAt;
   final String? memberName; // Dari API: member_name
   final String? npa; // Dari API: npa
   final List<TransactionItemModel>? items;
@@ -34,10 +37,14 @@ class TransactionModel {
     this.isSynced,
     this.createdAt,
     this.updatedAt,
+    this.accBy,
+    this.accAt,
+    this.syncedAt,
     this.memberName,
     this.npa,
     this.items,
   });
+
 
   factory TransactionModel.fromJson(Map<dynamic, dynamic> json) {
     final map = Map<String, dynamic>.from(json);
@@ -45,19 +52,22 @@ class TransactionModel {
       id: map['_id'] ?? map['id'],
       code: map['code'],
       type: map['type'],
-      creatorId: map['creator_id'],
-      paymentMethodId: map['payment_method_id'],
-      proofUrl: map['proof_url'],
-      bankName: map['bank_name'],
-      bankAccountName: map['bank_account_name'],
-      verifiedBy: map['verified_by'],
-      totalAmount: map['total_amount'],
+      creatorId: map['creator_id'] ?? map['creatorId'],
+      paymentMethodId: map['payment_method_id'] ?? map['paymentMethodId'],
+      proofUrl: map['proof_url'] ?? map['proofUrl'],
+      bankName: map['bank_name'] ?? map['bankName'],
+      bankAccountName: map['bank_account_name'] ?? map['bankAccountName'],
+      verifiedBy: map['verified_by'] ?? map['verifiedBy'],
+      totalAmount: map['total_amount'] ?? map['totalAmount'],
       status: map['status'],
-      accStatus: map['acc_status'],
-      isSynced: map['is_synced'],
-      createdAt: map['created_at'],
-      updatedAt: map['updated_at'],
-      memberName: map['member_name'],
+      accStatus: map['acc_status']?.toString(),
+      isSynced: map['is_synced'] ?? map['isSynced'],
+      createdAt: map['created_at'] ?? map['createdAt'],
+      updatedAt: map['updated_at'] ?? map['updatedAt'],
+      accBy: map['acc_by'] ?? map['accBy'],
+      accAt: map['acc_at'] ?? map['accAt'],
+      syncedAt: map['synced_at'] ?? map['syncedAt'],
+      memberName: map['member_name'] ?? map['memberName'],
       npa: map['npa'],
       items: (map['items'] as List?)
           ?.map((x) => TransactionItemModel.fromJson(Map<String, dynamic>.from(x as Map)))
@@ -81,6 +91,9 @@ class TransactionModel {
         "is_synced": isSynced,
         "created_at": createdAt,
         "updated_at": updatedAt,
+        "acc_by": accBy,
+        "acc_at": accAt,
+        "synced_at": syncedAt,
         "member_name": memberName,
         "npa": npa,
         "items": items?.map((x) => x.toJson()).toList(),
@@ -102,6 +115,9 @@ class TransactionModel {
     bool? isSynced,
     String? createdAt,
     String? updatedAt,
+    String? accBy,
+    String? accAt,
+    String? syncedAt,
     List<TransactionItemModel>? items,
   }) {
     return TransactionModel(
@@ -120,6 +136,9 @@ class TransactionModel {
       isSynced: isSynced ?? this.isSynced,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      accBy: accBy ?? this.accBy,
+      accAt: accAt ?? this.accAt,
+      syncedAt: syncedAt ?? this.syncedAt,
       items: items ?? this.items,
     );
   }
@@ -146,11 +165,11 @@ class TransactionItemModel {
 
   factory TransactionItemModel.fromJson(Map<String, dynamic> json) =>
       TransactionItemModel(
-        anggotaId: json['anggota_id'],
-        transactionId: json['transaction_id'],
-        periodId: json['period_id'],
+        anggotaId: json['anggota_id'] ?? json['anggotaId'],
+        transactionId: json['transaction_id'] ?? json['transactionId'],
+        periodId: json['period_id'] ?? json['periodId'],
         status: json['status'],
-        duesPeriodId: json['dues_period_id'],
+        duesPeriodId: json['dues_period_id'] ?? json['duesPeriodId'],
         amount: json['amount'],
         description: json['description'],
       );

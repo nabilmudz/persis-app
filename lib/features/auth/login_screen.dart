@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:persis_app/core/config/config.dart';
+import 'package:persis_app/helpers/auth_helper.dart';
 import '../../app/routes.dart';
 import 'dart:developer';
 import 'forgot_password_screen.dart'; // <-- INI IMPORT BARU UNTUK LUPA PASSWORD
@@ -167,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 16),
           const Text(
-            'PersisPay',
+            'InfaQu',
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.bold,
@@ -580,7 +581,27 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final role = body['user']?['role'];
+        final token = _extractString(body, const [
+          'access_token',
+          'accessToken',
+          'token',
+          'jwt',
+        ]);
+        final refreshToken = _extractString(body, const [
+          'refresh_token',
+          'refreshToken',
+        ]);
         log('$role');
+
+        if (_rememberMe && token != null) {
+          await AuthHelper.saveSession(
+            accessToken: token,
+            refreshToken: refreshToken,
+            role: role?.toString(),
+          );
+        } else {
+          await AuthHelper.clearSession();
+        }
 
         _snackbar('Login berhasil! Selamat datang 👋');
 
@@ -598,6 +619,23 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() => _isCheckingNpa = false);
       _snackbar('Tidak dapat terhubung ke server', isError: true);
     }
+  }
+
+  String? _extractString(Map<String, dynamic> body, List<String> keys) {
+    final data = body['data'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(body['data'])
+        : body['data'] is Map
+            ? Map<String, dynamic>.from(body['data'] as Map)
+            : null;
+
+    for (final key in keys) {
+      final value = body[key] ?? data?[key];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+
+    return null;
   }
 
   String _routeForRole(String? roleValue) {
@@ -1426,7 +1464,7 @@ class _BuatPasswordScreenState extends State<BuatPasswordScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Buat password baru untuk akun PersisPay Anda.',
+              'Buat password baru untuk akun InfaQu Anda.',
               style: TextStyle(fontSize: 13, color: greyText, height: 1.5),
             ),
             const SizedBox(height: 32),
