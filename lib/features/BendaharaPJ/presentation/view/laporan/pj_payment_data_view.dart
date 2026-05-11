@@ -22,6 +22,8 @@ class PjPaymentDataViewPage extends StatefulWidget {
 class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   DateTime _selectedMonth = DateTime.now();
   late final PjLaporanController _laporanController;
+  List<TransactionModel> _monthlyTransactions = [];
+  bool _isInitialLoading = true;
 
   @override
   void initState() {
@@ -30,6 +32,11 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     widget.controller.addListener(_onControllerChanged);
     _laporanController = PjLaporanController();
     _laporanController.addListener(_onLaporanChanged);
+    
+    // Fetch data awal untuk bulan berjalan
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchMonthlyData();
+    });
   }
 
   @override
@@ -41,6 +48,8 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   }
 
   void _onControllerChanged() {
+    // Jika data global berubah, kita mungkin perlu fetch ulang jika bulan yang sama
+    // Tapi untuk sekarang kita biarkan manual atau lewat _fetchMonthlyData
     if (mounted) setState(() {});
   }
 
@@ -58,25 +67,75 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     }
   }
 
+  Future<void> _fetchMonthlyData() async {
+    setState(() {
+      _isInitialLoading = _monthlyTransactions.isEmpty;
+    });
+
+    try {
+      final result = await _laporanController.exportLaporan(
+        month: _selectedMonth.month,
+        year: _selectedMonth.year,
+      );
+
+      if (result != null && result['data'] != null) {
+        final List rawData = result['data'];
+        if (mounted) {
+          setState(() {
+            _monthlyTransactions = rawData
+                .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+            _isInitialLoading = false;
+          });
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint('⚠ API Error: $e. Using local fallback.');
+    }
+
+    // FALLBACK: Jika API gagal atau return null (seperti ClientException di ngrok)
+    // Gunakan data transaksi lokal dari controller sebagai cadangan.
+    if (mounted) {
+      final localTransactions = widget.controller.transactions.where((t) {
+        if (t.createdAt == null) return false;
+        try {
+          final date = DateTime.parse(t.createdAt!);
+          return date.year == _selectedMonth.year && date.month == _selectedMonth.month;
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+
+      setState(() {
+        _monthlyTransactions = localTransactions;
+        _isInitialLoading = false;
+      });
+
+      // Tampilkan peringatan jika ini adalah fallback karena error API
+      if (_laporanController.errorMessage != null || _monthlyTransactions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Koneksi server terputus. Menampilkan data lokal (mungkin tidak lengkap).'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+
   List<TransactionModel> _filterTransactionsByMonth(
     List<TransactionModel> transactions,
   ) {
+    // Karena data dari _fetchMonthlyData SUDAH difilter berdasarkan bulan oleh server,
+    // kita hanya perlu memfilter berdasarkan status acc/completed saja jika perlu.
     return transactions.where((transaction) {
-      if (transaction.createdAt == null) return false;
-
-      try {
-        final transactionDate = DateTime.parse(transaction.createdAt!);
-        final isSameMonth =
-            transactionDate.year == _selectedMonth.year &&
-            transactionDate.month == _selectedMonth.month;
-        final isApproved =
-            transaction.accStatus == 'approved' ||
-            transaction.status == 'completed';
-
-        return isSameMonth && isApproved;
-      } catch (e) {
-        return false;
-      }
+      final isApproved =
+          (transaction.accStatus == 'acc_pj' || transaction.accStatus == 'approved') ||
+          transaction.status == 'completed';
+      return isApproved;
     }).toList();
   }
 
@@ -86,45 +145,18 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       initialDate: _selectedMonth,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      // Gunakan helpText agar lebih jelas
+      helpText: 'PILIH BULAN LAPORAN',
     );
 
     if (pickedDate != null) {
       setState(() {
         _selectedMonth = pickedDate;
       });
+      _fetchMonthlyData();
     }
   }
 
-  void _exportData() async {
-    final filteredTransactions = _filterTransactionsByMonth(
-      widget.controller.transactions,
-    );
-
-    if (filteredTransactions.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak ada data untuk diekspor'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    await _laporanController.exportLaporan(
-      month: _selectedMonth.month,
-      year: _selectedMonth.year,
-    );
-
-    if (mounted && _laporanController.errorMessage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Laporan berhasil diekspor'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
 
   String _formatCurrency(int? amount) {
     if (amount == null) return 'Rp. 0';
@@ -285,9 +317,11 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       if (mounted) {
         await Share.shareXFiles(
           [XFile(file.path)],
+          text: 'Laporan PJ $monthLabelFile telah dibuat',
           subject: 'Laporan PJ $monthLabelFile',
         );
       }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -303,7 +337,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   @override
   Widget build(BuildContext context) {
     final filteredTransactions = _filterTransactionsByMonth(
-      widget.controller.transactions,
+      _monthlyTransactions,
     );
 
     return Scaffold(
@@ -313,14 +347,25 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         backgroundColor: const Color(0xFF073D4D),
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Overview Card Section
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: _buildOverviewCard(filteredTransactions),
-            ),
+      body: _isInitialLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF10B367),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _fetchMonthlyData,
+              color: const Color(0xFF10B367),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    // Overview Card Section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: _buildOverviewCard(filteredTransactions),
+                    ),
+
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: _buildDistributionCard(filteredTransactions),
@@ -425,7 +470,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                     physics: const NeverScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                     itemCount: _groupTransactionsByType(filteredTransactions).keys.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final groupedData = _groupTransactionsByType(filteredTransactions);
                       final type = groupedData.keys.elementAt(index);
@@ -440,7 +485,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                         totalAmount: totalAmount,
                         code: 'REKAP-${type.toUpperCase()}',
                         createdAt: latestTransaction.createdAt,
-                        accStatus: 'approved',
+                        accStatus: 'acc_pj',
                         verifiedBy: 'Sistem',
                       );
 
@@ -471,10 +516,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                   ),
                 ],
               ),
-          ],
-        ),
+            ]
+            ),     
       ),
-    );
+    ));
   }
 
   Widget _buildEmptyState() {
@@ -487,7 +532,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
             Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: const Color(0xFF073D4D).withOpacity(0.3),
+              color: const Color(0xFF073D4D).withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -495,7 +540,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF073D4D).withOpacity(0.7),
+                color: const Color(0xFF073D4D).withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 8),
@@ -504,7 +549,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: const Color(0xFF4B5563).withOpacity(0.6),
+                color: const Color(0xFF4B5563).withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -714,7 +759,7 @@ class _OverviewStatItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -828,17 +873,14 @@ class _PaymentDataCard extends StatelessWidget {
     }
   }
 
-  Color _getStatusColor(String? status) {
+  Color _getStatusColor(dynamic status) {
     if (isRecap) return const Color(0xFF10B367);
-    switch (status?.toLowerCase()) {
-      case 'approved':
-        return const Color(0xFF10B367);
-      case 'pending':
-        return const Color(0xFFFFA500);
-      case 'rejected':
-        return const Color(0xFFEF4444);
-      default:
-        return const Color(0xFF6B7280);
+    if (status == 'acc_pj' || status == true || status == 'approved') {
+      return const Color(0xFF10B367); // approved (green)
+    } else if (status == false || status == 'rejected') {
+      return const Color(0xFFEF4444); // rejected (red)
+    } else {
+      return const Color(0xFFFFA500); // pending (orange)
     }
   }
 
@@ -857,7 +899,7 @@ class _PaymentDataCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE5E5E5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -917,7 +959,7 @@ class _PaymentDataCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  isRecap ? 'Group' : (transaction.accStatus ?? 'pending'),
+                  isRecap ? 'Group' : ((transaction.accStatus == 'acc_pj' || transaction.accStatus == 'approved') ? 'approved' : 'pending'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -950,7 +992,7 @@ class _PaymentDataCard extends StatelessWidget {
                         'Tanggal',
                         style: TextStyle(
                           fontSize: 12,
-                          color: const Color(0xFF6B7280).withOpacity(0.7),
+                          color: const Color(0xFF6B7280).withValues(alpha: 0.7),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -973,7 +1015,7 @@ class _PaymentDataCard extends StatelessWidget {
                         'Diverifikasi Oleh',
                         style: TextStyle(
                           fontSize: 12,
-                          color: const Color(0xFF6B7280).withOpacity(0.7),
+                          color: const Color(0xFF6B7280).withValues(alpha: 0.7),
                         ),
                       ),
                       const SizedBox(height: 4),

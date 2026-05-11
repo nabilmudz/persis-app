@@ -77,7 +77,7 @@ class TransferDetailPage extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        transaction.accStatus ?? 'approved',
+                        (transaction.accStatus as String?) ?? 'approved',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
@@ -98,13 +98,17 @@ class TransferDetailPage extends StatelessWidget {
                 children: [
                   _InfoRow(
                     label: 'Kode',
-                    value: (transaction.code != null && transaction.code!.isNotEmpty)
+                    value:
+                        (transaction.code != null &&
+                            transaction.code!.isNotEmpty)
                         ? transaction.code!
                         : (transaction.id != null && transaction.id!.isNotEmpty
-                            ? (transaction.id!.length > 8
-                                ? transaction.id!.substring(transaction.id!.length - 8).toUpperCase()
-                                : transaction.id!.toUpperCase())
-                            : '-'),
+                              ? (transaction.id!.length > 8
+                                    ? transaction.id!
+                                          .substring(transaction.id!.length - 8)
+                                          .toUpperCase()
+                                    : transaction.id!.toUpperCase())
+                              : '-'),
                   ),
                   _InfoRow(label: 'Nama Member', value: memberName),
                   _InfoRow(label: 'Jenis', value: 'Pembayaran Tunai'),
@@ -133,21 +137,21 @@ class TransferDetailPage extends StatelessWidget {
 
             // ── Info Bank ──
             if (transaction.bankName != null ||
-    transaction.bankAccountName != null)
-  _SectionCard(
-    title: 'Info Rekening',
-    child: Column(
-      children: [
-        if (transaction.bankName != null)
-          _InfoRow(label: 'Bank', value: transaction.bankName!),
-        if (transaction.bankAccountName != null)
-          _InfoRow(
-            label: 'Atas Nama',
-            value: transaction.bankAccountName!,
-          ),
-      ],
-    ),
-  ),
+                transaction.bankAccountName != null)
+              _SectionCard(
+                title: 'Info Rekening',
+                child: Column(
+                  children: [
+                    if (transaction.bankName != null)
+                      _InfoRow(label: 'Bank', value: transaction.bankName!),
+                    if (transaction.bankAccountName != null)
+                      _InfoRow(
+                        label: 'Atas Nama',
+                        value: transaction.bankAccountName!,
+                      ),
+                  ],
+                ),
+              ),
 
             const SizedBox(height: 12),
             // ── Rincian Item ──
@@ -302,7 +306,8 @@ class _InfoRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: valueStyle ??
+              style:
+                  valueStyle ??
                   const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,

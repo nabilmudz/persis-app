@@ -339,7 +339,7 @@ class _DetailedTransactionCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    transaction.accStatus ?? 'approved',
+                    (transaction.accStatus as String?) ?? 'approved',
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,

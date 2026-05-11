@@ -34,31 +34,36 @@ class PjHiveController extends ChangeNotifier {
   Future<int> saveTransactionLocally(
     Map<String, dynamic> transactionData, {
     TransactionRemoteDataSource? dataSource,
+    bool autoSync = true,
   }) async {
     transactionData['local_timestamp'] = DateTime.now().toIso8601String();
-    transactionData['status'] = 'pending';
-    transactionData['isSynced'] = false;
+    // Gunakan status dari data jika ada (agar 'completed' tidak tertimpa 'pending' jika sudah diset)
+    transactionData['status'] = transactionData['status'] ?? 'pending';
+    transactionData['isSynced'] = transactionData['isSynced'] ?? false;
 
     final int key = await _box.add(transactionData);
     notifyListeners();
 
-    unawaited(
-      NetworkStatus.hasInternetConnection().then((isOnline) {
-        if (isOnline) {
-          syncPendingTransactions(dataSource: dataSource).then((syncedCount) {
-            if (syncedCount > 0) {
-              debugPrint(
-                '[PjHiveController] Auto-sync setelah save: $syncedCount transaksi terkirim.',
-              );
-              notifyListeners();
-            }
-          });
-        }
-      }),
-    );
+    if (autoSync) {
+      unawaited(
+        NetworkStatus.hasInternetConnection().then((isOnline) {
+          if (isOnline) {
+            syncPendingTransactions(dataSource: dataSource).then((syncedCount) {
+              if (syncedCount > 0) {
+                debugPrint(
+                  '[PjHiveController] Auto-sync setelah save: $syncedCount transaksi terkirim.',
+                );
+                notifyListeners();
+              }
+            });
+          }
+        }),
+      );
+    }
 
     return key;
   }
+
 
   /// Coba kirim semua transaksi yang masih tersimpan lokal.
   Future<int> syncPendingTransactions({
@@ -105,8 +110,11 @@ class PjHiveController extends ChangeNotifier {
 
           final payload = transaction.copyWith(
             status: 'completed',
+            accStatus: 'acc_pj',
             isSynced: true,
+            syncedAt: DateTime.now().toIso8601String(),
           );
+
           final success = await remoteDataSource.createTransaction(payload);
           if (success) {
             await box.delete(entry.key);

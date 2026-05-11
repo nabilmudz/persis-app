@@ -14,6 +14,9 @@ class TransactionModel {
   final bool? isSynced;
   final String? createdAt;
   final String? updatedAt; // Ditambahkan agar sesuai copyWith
+  final String? accBy;
+  final String? accAt;
+  final String? syncedAt;
   final String? memberName; // Dari API: member_name
   final String? npa; // Dari API: npa
   final List<TransactionItemModel>? items;
@@ -34,10 +37,14 @@ class TransactionModel {
     this.isSynced,
     this.createdAt,
     this.updatedAt,
+    this.accBy,
+    this.accAt,
+    this.syncedAt,
     this.memberName,
     this.npa,
     this.items,
   });
+
 
   factory TransactionModel.fromJson(Map<dynamic, dynamic> json) {
     final map = Map<String, dynamic>.from(json);
@@ -53,10 +60,13 @@ class TransactionModel {
       verifiedBy: map['verified_by'] ?? map['verifiedBy'],
       totalAmount: map['total_amount'] ?? map['totalAmount'],
       status: map['status'],
-      accStatus: map['acc_status'] ?? map['accStatus'],
+      accStatus: map['acc_status']?.toString(),
       isSynced: map['is_synced'] ?? map['isSynced'],
       createdAt: map['created_at'] ?? map['createdAt'],
       updatedAt: map['updated_at'] ?? map['updatedAt'],
+      accBy: map['acc_by'] ?? map['accBy'],
+      accAt: map['acc_at'] ?? map['accAt'],
+      syncedAt: map['synced_at'] ?? map['syncedAt'],
       memberName: map['member_name'] ?? map['memberName'],
       npa: map['npa'],
       items: (map['items'] as List?)
@@ -81,6 +91,9 @@ class TransactionModel {
         "is_synced": isSynced,
         "created_at": createdAt,
         "updated_at": updatedAt,
+        "acc_by": accBy,
+        "acc_at": accAt,
+        "synced_at": syncedAt,
         "member_name": memberName,
         "npa": npa,
         "items": items?.map((x) => x.toJson()).toList(),
@@ -102,6 +115,9 @@ class TransactionModel {
     bool? isSynced,
     String? createdAt,
     String? updatedAt,
+    String? accBy,
+    String? accAt,
+    String? syncedAt,
     List<TransactionItemModel>? items,
   }) {
     return TransactionModel(
@@ -120,6 +136,9 @@ class TransactionModel {
       isSynced: isSynced ?? this.isSynced,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      accBy: accBy ?? this.accBy,
+      accAt: accAt ?? this.accAt,
+      syncedAt: syncedAt ?? this.syncedAt,
       items: items ?? this.items,
     );
   }
