@@ -30,19 +30,16 @@ class PjVerificationMemberCard extends StatelessWidget {
       return cardStatus!;
     }
 
+    // Jika ada yang lunas, tampilkan lunas
     if (iuranStatuses.any((status) => status.status == PjMonthStatus.paid)) {
       return PjMonthStatus.paid;
     }
 
-    if (iuranStatuses.any(
-          (status) => status.status == PjMonthStatus.tunggakan,
-        ) ||
-        isTunggakan) {
-      return PjMonthStatus.tunggakan;
-    }
-
+    // Tunggakan dihilangkan dari warning visual utama kartu, 
+    // sehingga akan jatuh ke status default (pending/Belum Bayar)
     return PjMonthStatus.pending;
   }
+
 
   String _statusLabel(PjMonthStatus status) {
     switch (status) {

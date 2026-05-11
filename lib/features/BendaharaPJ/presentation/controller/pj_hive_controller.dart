@@ -125,7 +125,6 @@ class PjHiveController extends ChangeNotifier {
     return syncedCount;
   }
 
-
   static const Map<String, int> _monthLookup = {
     'januari': 1,
     'februari': 2,
@@ -305,7 +304,7 @@ class PjHiveController extends ChangeNotifier {
     return null;
   }
 
-  static void startAutoSync({
+  void startAutoSync({
     Duration interval = const Duration(seconds: 30),
     TransactionRemoteDataSource? dataSource,
   }) {
