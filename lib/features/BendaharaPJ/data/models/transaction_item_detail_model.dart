@@ -1,5 +1,3 @@
-import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
-
 class TransactionItemDetailModel {
   final String? id;
   final String? anggotaId;
