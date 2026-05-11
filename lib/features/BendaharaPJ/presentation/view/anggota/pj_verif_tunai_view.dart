@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
-import '../../controller/pj_controller.dart';
-import '../../controller/pj_invoice_controller.dart';
-import '../../controller/pj_transaction_item_controller.dart';
-import '../../controller/pj_verif_tunai_transaction_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_verif_tunai_transaction_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
-import '../pj_invoice.view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_invoice.view.dart';
 
 class PjVerifTunaiViewPage extends StatefulWidget {
   final PjController controller;
@@ -59,7 +59,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
       final userId = widget.member.id;
       if (userId != null && userId.isNotEmpty) {
         _transactionController.loadTransactions(userId);
-        _itemController.loadByUser(userId);
+        _itemController.loadByUser(userId, year: _selectedYear);
       }
     });
   }
@@ -152,6 +152,11 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
             selectedMonths: _selectedMonths,
             year: _selectedYear,
             getNominal: (month, year) {
+              final cachedAmount = _itemController.getMonthAmount(month, year);
+              if (cachedAmount > 0) {
+                return cachedAmount.toDouble();
+              }
+
               return widget.controller.getNominalForMemberMonth(
                 anggotaId: anggotaId,
                 month: month,
@@ -167,11 +172,38 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
       Navigator.pop(context);
 
       if (invoiceResult != null) {
+        await _itemController.markMonthsPaidLocally(
+          anggotaId: anggotaId,
+          months: invoiceResult.selectedMonths,
+          year: invoiceResult.year,
+          getNominal: (month, year) {
+            final cachedAmount = _itemController.getMonthAmount(month, year);
+            if (cachedAmount > 0) {
+              return cachedAmount;
+            }
+
+            return widget.controller
+                .getNominalForMemberMonth(
+                  anggotaId: anggotaId,
+                  month: month,
+                  year: year,
+                )
+                .round();
+          },
+          getPeriodId: (month, year) {
+            return _itemController.getMonthPeriodId(month, year) ??
+                PjTransactionItemController.localPeriodKey(month, year);
+          },
+        );
+
         await widget.controller.loadInitialData();
         final refreshedUserId = widget.member.id;
         if (refreshedUserId != null && refreshedUserId.isNotEmpty) {
           await _transactionController.loadTransactions(refreshedUserId);
-          await _itemController.loadByUser(refreshedUserId, forceRefresh: true);
+          await _itemController.loadByUser(
+            refreshedUserId,
+            year: _selectedYear,
+          );
         }
 
         final invoiceData = PjInvoiceData.fromCreationResult(
@@ -184,12 +216,27 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         });
 
         if (!mounted) return;
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
-          ),
-        );
+
+        // Jika offline → tetap di halaman pending, bukan langsung ke invoice
+        if (!invoiceResult.syncedToBackend) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PendingTransactionViewPage(
+                controller: widget.controller,
+                lastInvoiceData: invoiceData,
+              ),
+            ),
+          );
+        } else {
+          // Online → langsung ke halaman invoice
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
+            ),
+          );
+        }
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -356,6 +403,18 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                                   _selectedYear = value;
                                   _selectedMonths.clear();
                                 });
+                                final userId = widget.member.id;
+                                if (userId != null && userId.isNotEmpty) {
+                                  widget.controller
+                                      .loadPaymentStatusSnapshot(year: value)
+                                      .then((_) {
+                                    if (!mounted) return;
+                                    _itemController.loadByUser(
+                                      userId,
+                                      year: value,
+                                    );
+                                  });
+                                }
                               },
                             ),
                           ),

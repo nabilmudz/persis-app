@@ -40,12 +40,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(
             onPressed: () async {
               await AuthHelper.clearSession();
-              if (mounted)
+              if (mounted) {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/login',
                   (route) => false,
                 );
+              }
             },
             child: const Text("Keluar", style: TextStyle(color: Colors.red)),
           ),

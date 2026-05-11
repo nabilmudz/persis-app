@@ -106,7 +106,7 @@ class PcController extends ChangeNotifier {
       paymentMethodId: current.paymentMethodId,
       totalAmount: current.totalAmount,
       status: current.status,
-      accStatus: 'verified',
+      accStatus: 'acc_pj',
       isSynced: current.isSynced,
       createdAt: current.createdAt,
       items: current.items,
@@ -117,8 +117,7 @@ class PcController extends ChangeNotifier {
   }
 
   bool isVerified(TransactionModel item) {
-    final acc = _normalize(item.accStatus);
-    return acc == 'verified' || acc == 'diverifikasi';
+    return item.accStatus == 'acc_pj' || item.accStatus == 'approved';
   }
 
   String categoryFromTransaction(TransactionModel item) {

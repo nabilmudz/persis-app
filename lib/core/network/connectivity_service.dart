@@ -32,8 +32,9 @@ class ConnectivityService {
       final hasInternet = await NetworkStatus.hasInternetConnection();
       if (hasInternet) {
         // Trigger sync segera tanpa menunggu timer auto-sync
-        PjHiveController.syncPendingTransactions();
+        PjHiveController().syncPendingTransactions();
       }
+
     }
 
     _wasOffline = isCurrentlyOffline;

@@ -5,12 +5,11 @@ class PjVerificationMemberCard extends StatelessWidget {
   final String name;
   final String subtitle;
   final bool isTunggakan;
-  final bool showTotal;
-  final String total;
   final List<MemberIuranStatusModel> iuranStatuses;
   final PjMonthStatus? cardStatus;
   final VoidCallback? onTapCekKartu;
   final VoidCallback? onTapDetail;
+  final VoidCallback? onTapInvoice;
   final bool showIuranList;
 
   const PjVerificationMemberCard({
@@ -18,12 +17,11 @@ class PjVerificationMemberCard extends StatelessWidget {
     required this.name,
     this.subtitle = '',
     this.isTunggakan = false,
-    this.showTotal = false,
-    this.total = 'Rp. 40.000',
     this.iuranStatuses = const <MemberIuranStatusModel>[],
     this.cardStatus,
     this.onTapCekKartu,
     this.onTapDetail,
+    this.onTapInvoice,
     this.showIuranList = false,
   });
 
@@ -32,19 +30,16 @@ class PjVerificationMemberCard extends StatelessWidget {
       return cardStatus!;
     }
 
+    // Jika ada yang lunas, tampilkan lunas
     if (iuranStatuses.any((status) => status.status == PjMonthStatus.paid)) {
       return PjMonthStatus.paid;
     }
 
-    if (iuranStatuses.any(
-          (status) => status.status == PjMonthStatus.tunggakan,
-        ) ||
-        isTunggakan) {
-      return PjMonthStatus.tunggakan;
-    }
-
+    // Tunggakan dihilangkan dari warning visual utama kartu, 
+    // sehingga akan jatuh ke status default (pending/Belum Bayar)
     return PjMonthStatus.pending;
   }
+
 
   String _statusLabel(PjMonthStatus status) {
     switch (status) {
@@ -85,16 +80,8 @@ class PjVerificationMemberCard extends StatelessWidget {
     final aggregateColor = _statusColor(aggregateStatus);
     final aggregateIcon = _statusIcon(aggregateStatus);
     final aggregateLabel = _statusLabel(aggregateStatus);
-    final cardBackground = aggregateStatus == PjMonthStatus.paid
-        ? const Color(0xFFF2FBF4)
-        : aggregateStatus == PjMonthStatus.tunggakan
-        ? const Color(0xFFFFF6F6)
-        : Colors.white;
-    final cardBorder = aggregateStatus == PjMonthStatus.paid
-        ? const Color(0xFFBFE7C7)
-        : aggregateStatus == PjMonthStatus.tunggakan
-        ? const Color(0xFFF2C8C8)
-        : Colors.white;
+    const cardBackground = Colors.white;
+    const cardBorder = Color(0xFFE8E8E8);
 
     return Container(
       width: double.infinity,
@@ -146,11 +133,12 @@ class PjVerificationMemberCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
                             name,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Color(0xFF073D4D),
@@ -160,70 +148,42 @@ class PjVerificationMemberCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (aggregateStatus == PjMonthStatus.tunggakan) ...[
+                        if (aggregateStatus == PjMonthStatus.paid) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
+                              horizontal: 10,
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0x2DB31012),
+                              color: aggregateColor.withOpacity(0.14),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color(0xFFB31012),
-                              ),
+                              border: Border.all(color: aggregateColor),
                             ),
-                            child: const Text(
-                              'Tunggakan',
-                              style: TextStyle(
-                                color: Color(0xFFA50A0C),
-                                fontSize: 10,
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w700,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  aggregateIcon,
+                                  size: 14,
+                                  color: aggregateColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  aggregateLabel,
+                                  style: TextStyle(
+                                    color: aggregateColor,
+                                    fontSize: 10,
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ],
                     ),
-                    if (aggregateStatus != PjMonthStatus.pending) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: aggregateColor.withOpacity(0.14),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: aggregateColor),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                aggregateIcon,
-                                size: 14,
-                                color: aggregateColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                aggregateLabel,
-                                style: TextStyle(
-                                  color: aggregateColor,
-                                  fontSize: 10,
-                                  fontFamily: 'Poppins',
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                     if (subtitle.trim().isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -288,6 +248,36 @@ class PjVerificationMemberCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (onTapInvoice != null) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: onTapInvoice,
+                          icon: const Icon(
+                            Icons.receipt_long_rounded,
+                            size: 15,
+                          ),
+                          label: const Text(
+                            'Lihat Invoice Terakhir',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEFFAF4),
+                            foregroundColor: const Color(0xFF0C844C),
+                            side: const BorderSide(color: Color(0xFF0C844C)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ],
                     if (showIuranList && iuranStatuses.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Wrap(
@@ -344,32 +334,6 @@ class PjVerificationMemberCard extends StatelessWidget {
               ),
             ],
           ),
-          if (showTotal) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const Text(
-                  'Total :',
-                  style: TextStyle(
-                    color: Color(0xFF073D4D),
-                    fontSize: 20,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  total,
-                  style: const TextStyle(
-                    color: Color(0xFF073D4D),
-                    fontSize: 20,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );

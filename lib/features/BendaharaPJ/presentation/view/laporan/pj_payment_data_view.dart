@@ -22,6 +22,8 @@ class PjPaymentDataViewPage extends StatefulWidget {
 class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   DateTime _selectedMonth = DateTime.now();
   late final PjLaporanController _laporanController;
+  List<TransactionModel> _monthlyTransactions = [];
+  bool _isInitialLoading = true;
 
   @override
   void initState() {
@@ -30,6 +32,11 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     widget.controller.addListener(_onControllerChanged);
     _laporanController = PjLaporanController();
     _laporanController.addListener(_onLaporanChanged);
+    
+    // Fetch data awal untuk bulan berjalan
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchMonthlyData();
+    });
   }
 
   @override
@@ -41,6 +48,8 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   }
 
   void _onControllerChanged() {
+    // Jika data global berubah, kita mungkin perlu fetch ulang jika bulan yang sama
+    // Tapi untuk sekarang kita biarkan manual atau lewat _fetchMonthlyData
     if (mounted) setState(() {});
   }
 
@@ -58,25 +67,75 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     }
   }
 
+  Future<void> _fetchMonthlyData() async {
+    setState(() {
+      _isInitialLoading = _monthlyTransactions.isEmpty;
+    });
+
+    try {
+      final result = await _laporanController.exportLaporan(
+        month: _selectedMonth.month,
+        year: _selectedMonth.year,
+      );
+
+      if (result != null && result['data'] != null) {
+        final List rawData = result['data'];
+        if (mounted) {
+          setState(() {
+            _monthlyTransactions = rawData
+                .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+            _isInitialLoading = false;
+          });
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint('⚠ API Error: $e. Using local fallback.');
+    }
+
+    // FALLBACK: Jika API gagal atau return null (seperti ClientException di ngrok)
+    // Gunakan data transaksi lokal dari controller sebagai cadangan.
+    if (mounted) {
+      final localTransactions = widget.controller.transactions.where((t) {
+        if (t.createdAt == null) return false;
+        try {
+          final date = DateTime.parse(t.createdAt!);
+          return date.year == _selectedMonth.year && date.month == _selectedMonth.month;
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+
+      setState(() {
+        _monthlyTransactions = localTransactions;
+        _isInitialLoading = false;
+      });
+
+      // Tampilkan peringatan jika ini adalah fallback karena error API
+      if (_laporanController.errorMessage != null || _monthlyTransactions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Koneksi server terputus. Menampilkan data lokal (mungkin tidak lengkap).'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+
   List<TransactionModel> _filterTransactionsByMonth(
     List<TransactionModel> transactions,
   ) {
+    // Karena data dari _fetchMonthlyData SUDAH difilter berdasarkan bulan oleh server,
+    // kita hanya perlu memfilter berdasarkan status acc/completed saja jika perlu.
     return transactions.where((transaction) {
-      if (transaction.createdAt == null) return false;
-
-      try {
-        final transactionDate = DateTime.parse(transaction.createdAt!);
-        final isSameMonth =
-            transactionDate.year == _selectedMonth.year &&
-            transactionDate.month == _selectedMonth.month;
-        final isApproved =
-            transaction.accStatus == 'approved' ||
-            transaction.status == 'completed';
-
-        return isSameMonth && isApproved;
-      } catch (e) {
-        return false;
-      }
+      final isApproved =
+          (transaction.accStatus == 'acc_pj' || transaction.accStatus == 'approved') ||
+          transaction.status == 'completed';
+      return isApproved;
     }).toList();
   }
 
@@ -86,45 +145,18 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       initialDate: _selectedMonth,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      // Gunakan helpText agar lebih jelas
+      helpText: 'PILIH BULAN LAPORAN',
     );
 
     if (pickedDate != null) {
       setState(() {
         _selectedMonth = pickedDate;
       });
+      _fetchMonthlyData();
     }
   }
 
-  void _exportData() async {
-    final filteredTransactions = _filterTransactionsByMonth(
-      widget.controller.transactions,
-    );
-
-    if (filteredTransactions.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak ada data untuk diekspor'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    await _laporanController.exportLaporan(
-      month: _selectedMonth.month,
-      year: _selectedMonth.year,
-    );
-
-    if (mounted && _laporanController.errorMessage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Laporan berhasil diekspor'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
 
   String _formatCurrency(int? amount) {
     if (amount == null) return 'Rp. 0';
@@ -158,97 +190,138 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   }
 
   void _exportExcel() async {
-    final filteredTransactions = _filterTransactionsByMonth(
-      widget.controller.transactions,
-    );
-
-    if (filteredTransactions.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tidak ada data untuk diekspor ke Excel'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
     try {
-      // 1. Ambil data dari API Export (lebih lengkap, ada member_name)
+      // 1. Ambil data dari API Export berdasarkan bulan dan tahun yang dipilih
       final result = await _laporanController.exportLaporan(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
       );
 
+      // 2. Handle error dari controller
+      if (_laporanController.errorMessage != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_laporanController.errorMessage!),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
+      // 3. Parsing data dari API response
       List<TransactionModel> exportData = [];
       if (result != null && result['data'] != null) {
         final List rawData = result['data'];
-        exportData = rawData.map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e))).toList();
+        exportData = rawData
+            .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        debugPrint('✓ API Export: ${exportData.length} transaksi diterima dari server');
       } else {
-        // Fallback ke data lokal jika API export gagal/tidak ada data
-        exportData = filteredTransactions;
+        // Fallback ke data lokal jika API tidak return data array
+        // Ambil SEMUA transaksi bulan itu (tidak filter status) jika API gagal
+        final allTransactionsMonth = widget.controller.transactions.where((transaction) {
+          if (transaction.createdAt == null) return false;
+          try {
+            final transactionDate = DateTime.parse(transaction.createdAt!);
+            final isSameMonth =
+                transactionDate.year == _selectedMonth.year &&
+                transactionDate.month == _selectedMonth.month;
+            return isSameMonth;
+          } catch (e) {
+            return false;
+          }
+        }).toList();
+        exportData = allTransactionsMonth;
+        debugPrint('⚠ Fallback: ${exportData.length} transaksi dari data lokal');
       }
 
       if (exportData.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak ada data untuk periode ini')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tidak ada transaksi untuk periode yang dipilih'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
         return;
       }
 
       // 2. Inisialisasi Excel
       final excel = Excel.createExcel();
-      final sheet = excel['Laporan_Transaksi'];
+      final sheet = excel['Transaksi pada Bulan'];
       excel.delete('Sheet1');
 
-      final headers = ['No', 'Kode', 'Tanggal', 'Nama Member', 'NPA', 'Jenis', 'Jumlah', 'Status', 'PJ (30%)', 'PC (20%)', 'PD (20%)', 'PW (15%)', 'PP (15%)'];
+      // Header sesuai template
+      final headers = ['Hari, Tanggal', 'Nama Anggota', 'Dari Bulan', 'Hingga Bulan', 'Total Bayar', 'Di ACC oleh', 'PJ', 'PC', 'PW', 'PD', 'PP'];
       sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
 
       // 3. Tambah Data
+      final monthLabel = DateFormat('MMMM', 'id_ID').format(_selectedMonth);
+      
       for (int i = 0; i < exportData.length; i++) {
         final t = exportData[i];
         final amount = t.totalAmount ?? 0;
-        final date = t.createdAt != null ? DateFormat('yyyy-MM-dd HH:mm').format(DateTime.parse(t.createdAt!)) : '-';
         
-        // Ambil member name langsung dari model (hasil API mapping)
+        // Format: "Hari, dd MMM yyyy"
+        final dateFormatted = t.createdAt != null 
+            ? DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(DateTime.parse(t.createdAt!))
+            : '-';
+        
+        // Ambil member name
         final memberName = t.memberName ?? _getMemberName(t);
         
-        // Cari NPA jika ada (dari JSON user ada field "npa")
-        // Kita bisa ambil dari map asli jika perlu, tapi kita gunakan TransactionModel dulu
-        // Untuk amannya, kita bisa parse manual map aslinya jika ingin field tambahan seperti NPA
+        // Dari Bulan dan Hingga Bulan (sama dengan bulan yang dipilih untuk sekarang)
+        final dariHingga = monthLabel;
+        
+        // Di ACC oleh
+        final diAccOleh = t.verifiedBy ?? '-';
+        
+        // Hitung pembagian
+        final pj = (amount * 30) ~/ 100;
+        final pc = (amount * 20) ~/ 100;
+        final pw = (amount * 15) ~/ 100;
+        final pd = (amount * 20) ~/ 100;
+        final pp = (amount * 15) ~/ 100;
         
         sheet.appendRow([
-          IntCellValue(i + 1),
-          TextCellValue(t.code ?? t.id ?? "-"),
-          TextCellValue(date),
+          TextCellValue(dateFormatted),
           TextCellValue(memberName),
-          TextCellValue(t.npa ?? "-"),
-          TextCellValue(t.type ?? "Pembayaran Tunai"),
+          TextCellValue(dariHingga),
+          TextCellValue(dariHingga),
           IntCellValue(amount),
-          TextCellValue(t.accStatus ?? t.status ?? "pending"),
-          IntCellValue((amount * 30) ~/ 100),
-          IntCellValue((amount * 20) ~/ 100),
-          IntCellValue((amount * 20) ~/ 100),
-          IntCellValue((amount * 15) ~/ 100),
-          IntCellValue((amount * 15) ~/ 100),
+          TextCellValue(diAccOleh),
+          IntCellValue(pj),
+          IntCellValue(pc),
+          IntCellValue(pw),
+          IntCellValue(pd),
+          IntCellValue(pp),
         ]);
       }
+      
+      debugPrint('✓ Excel: ${exportData.length} baris data berhasil ditambahkan');
 
       // 4. Simpan ke file .xlsx
       final bytes = excel.encode();
       if (bytes == null) return;
 
       final directory = await getTemporaryDirectory();
-      final monthLabel = DateFormat('MMMM_yyyy', 'id_ID').format(_selectedMonth);
-      final file = File('${directory.path}/Laporan_PJ_$monthLabel.xlsx');
+      final monthLabelFile = DateFormat('MMMM_yyyy', 'id_ID').format(_selectedMonth);
+      final file = File('${directory.path}/Laporan_PJ_$monthLabelFile.xlsx');
       await file.writeAsBytes(bytes);
 
       // 5. Share file
       if (mounted) {
         await Share.shareXFiles(
           [XFile(file.path)],
-          subject: 'Laporan PJ $monthLabel',
+          text: 'Laporan PJ $monthLabelFile telah dibuat',
+          subject: 'Laporan PJ $monthLabelFile',
         );
       }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -264,7 +337,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   @override
   Widget build(BuildContext context) {
     final filteredTransactions = _filterTransactionsByMonth(
-      widget.controller.transactions,
+      _monthlyTransactions,
     );
 
     return Scaffold(
@@ -274,14 +347,25 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         backgroundColor: const Color(0xFF073D4D),
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Overview Card Section
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: _buildOverviewCard(filteredTransactions),
-            ),
+      body: _isInitialLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF10B367),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _fetchMonthlyData,
+              color: const Color(0xFF10B367),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    // Overview Card Section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: _buildOverviewCard(filteredTransactions),
+                    ),
+
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: _buildDistributionCard(filteredTransactions),
@@ -386,7 +470,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                     physics: const NeverScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                     itemCount: _groupTransactionsByType(filteredTransactions).keys.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final groupedData = _groupTransactionsByType(filteredTransactions);
                       final type = groupedData.keys.elementAt(index);
@@ -401,7 +485,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                         totalAmount: totalAmount,
                         code: 'REKAP-${type.toUpperCase()}',
                         createdAt: latestTransaction.createdAt,
-                        accStatus: 'approved',
+                        accStatus: 'acc_pj',
                         verifiedBy: 'Sistem',
                       );
 
@@ -432,10 +516,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                   ),
                 ],
               ),
-          ],
-        ),
+            ]
+            ),     
       ),
-    );
+    ));
   }
 
   Widget _buildEmptyState() {
@@ -448,7 +532,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
             Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: const Color(0xFF073D4D).withOpacity(0.3),
+              color: const Color(0xFF073D4D).withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -456,7 +540,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF073D4D).withOpacity(0.7),
+                color: const Color(0xFF073D4D).withValues(alpha: 0.7),
               ),
             ),
             const SizedBox(height: 8),
@@ -465,7 +549,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: const Color(0xFF4B5563).withOpacity(0.6),
+                color: const Color(0xFF4B5563).withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -675,7 +759,7 @@ class _OverviewStatItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -789,17 +873,14 @@ class _PaymentDataCard extends StatelessWidget {
     }
   }
 
-  Color _getStatusColor(String? status) {
+  Color _getStatusColor(dynamic status) {
     if (isRecap) return const Color(0xFF10B367);
-    switch (status?.toLowerCase()) {
-      case 'approved':
-        return const Color(0xFF10B367);
-      case 'pending':
-        return const Color(0xFFFFA500);
-      case 'rejected':
-        return const Color(0xFFEF4444);
-      default:
-        return const Color(0xFF6B7280);
+    if (status == 'acc_pj' || status == true || status == 'approved') {
+      return const Color(0xFF10B367); // approved (green)
+    } else if (status == false || status == 'rejected') {
+      return const Color(0xFFEF4444); // rejected (red)
+    } else {
+      return const Color(0xFFFFA500); // pending (orange)
     }
   }
 
@@ -818,7 +899,7 @@ class _PaymentDataCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE5E5E5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -878,7 +959,7 @@ class _PaymentDataCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  isRecap ? 'Group' : (transaction.accStatus ?? 'pending'),
+                  isRecap ? 'Group' : ((transaction.accStatus == 'acc_pj' || transaction.accStatus == 'approved') ? 'approved' : 'pending'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -911,7 +992,7 @@ class _PaymentDataCard extends StatelessWidget {
                         'Tanggal',
                         style: TextStyle(
                           fontSize: 12,
-                          color: const Color(0xFF6B7280).withOpacity(0.7),
+                          color: const Color(0xFF6B7280).withValues(alpha: 0.7),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -934,7 +1015,7 @@ class _PaymentDataCard extends StatelessWidget {
                         'Diverifikasi Oleh',
                         style: TextStyle(
                           fontSize: 12,
-                          color: const Color(0xFF6B7280).withOpacity(0.7),
+                          color: const Color(0xFF6B7280).withValues(alpha: 0.7),
                         ),
                       ),
                       const SizedBox(height: 4),

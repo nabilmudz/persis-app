@@ -7,6 +7,7 @@ import 'package:persis_app/features/BendaharaPC/data/datasources/payment_method_
 import 'package:persis_app/helpers/object_id_helper.dart';
 import 'pj_invoice_controller.dart';
 import 'pj_hive_controller.dart';
+import 'pj_transaction_item_controller.dart';
 
 class PjVerifTunaiTransactionController extends ChangeNotifier {
   late final TransactionRemoteDataSource _dataSource;
@@ -187,14 +188,16 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         final amount = getNominal(month, year).round();
         totalAmount += amount;
 
-        final duesObjectId = getPeriodId(month, year);
-        if (duesObjectId == null || duesObjectId.isEmpty) {
-          _errorMessage =
-              'Period ID tidak ditemukan untuk ${_getMonthName(month)} $year. Silakan hubungi admin.';
-          _isLoading = false;
-          notifyListeners();
-          return null;
-        }
+        final duesObjectId =
+            getPeriodId(month, year)?.trim().isNotEmpty == true
+            ? getPeriodId(month, year)!.trim()
+            : PjTransactionItemController.localPeriodKey(month, year);
+
+        await PjTransactionItemController.cachePeriodId(
+          month: month,
+          year: year,
+          periodId: duesObjectId,
+        );
 
         items.add(
           TransactionItemModel(
@@ -214,25 +217,34 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         await _loadTunaiPaymentMethod();
       } catch (_) {}
 
+      final nowIso = DateTime.now().toIso8601String();
+      
       // Buat transaksi dengan payment_method_id yang benar
       final transaction = TransactionModel(
         id: transactionId,
         type: 'tunai',
         creatorId: memberId,
-        paymentMethodId: _tunaiPaymentMethodId ?? 'tunai', // Pastikan tidak null agar bisa di-resolve PjHiveController
+        paymentMethodId: _tunaiPaymentMethodId ?? 'tunai', 
         totalAmount: totalAmount,
-        status: 'pending',
-        accStatus: null,
+        status: 'completed', // Langsung completed karena ini pembayaran tunai langsung
+        accStatus: 'acc_pj', // Sesuai enum NestJS: 'pending' | 'acc_pj'
+        accBy: memberId,       
+
+        accAt: nowIso,         
         isSynced: false,
-        createdAt: DateTime.now().toIso8601String(),
+        createdAt: nowIso,
         items: items,
       );
 
-      // Simpan ke Hive secara lokal terlebih dahulu
+
+
+      // Simpan ke Hive secara lokal terlebih dahulu (disable autoSync karena kita handle manual di bawah)
       final hiveController = PjHiveController();
       final key = await hiveController.saveTransactionLocally(
         transaction.toJson(),
+        autoSync: false,
       );
+
 
       final generatedAt = DateTime.tryParse(transaction.createdAt ?? '') ??
           DateTime.now();

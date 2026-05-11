@@ -7,14 +7,12 @@ import 'package:persis_app/core/network/network_status.dart';
 import 'package:persis_app/features/BendaharaPC/data/datasources/payment_method_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'pj_transaction_item_controller.dart';
 
 class PjHiveController extends ChangeNotifier {
   static const String _boxName = 'pj_pending_transactions';
   static Timer? _autoSyncTimer;
   static bool _isSyncing = false;
-
-  /// Inisialisasi Hive dan buka box untuk menyimpan transaksi.
-  /// Panggil ini di fungsi main() atau saat inisialisasi aplikasi.
   static Future<void> init() async {
     await Hive.initFlutter();
     if (!Hive.isBoxOpen(_boxName)) {
@@ -22,41 +20,42 @@ class PjHiveController extends ChangeNotifier {
     }
   }
 
-  /// Mendapatkan instance dari box.
   Box get _box => Hive.box(_boxName);
 
-  /// 1. Simpan transaksi tunai secara lokal sebelum dikirim ke BE/MongoDB.
   Future<int> saveTransactionLocally(
     Map<String, dynamic> transactionData, {
     TransactionRemoteDataSource? dataSource,
+    bool autoSync = true,
   }) async {
     transactionData['local_timestamp'] = DateTime.now().toIso8601String();
-    transactionData['status'] = 'pending';
-    transactionData['isSynced'] = false;
+    // Gunakan status dari data jika ada (agar 'completed' tidak tertimpa 'pending' jika sudah diset)
+    transactionData['status'] = transactionData['status'] ?? 'pending';
+    transactionData['isSynced'] = transactionData['isSynced'] ?? false;
 
     final int key = await _box.add(transactionData);
     notifyListeners();
 
-    unawaited(
-      NetworkStatus.hasInternetConnection().then((isOnline) {
-        if (isOnline) {
-          syncPendingTransactions(dataSource: dataSource).then((syncedCount) {
-            if (syncedCount > 0) {
-              debugPrint(
-                '[PjHiveController] Auto-sync setelah save: $syncedCount transaksi terkirim.',
-              );
-              notifyListeners();
-            }
-          });
-        }
-      }),
-    );
+    if (autoSync) {
+      unawaited(
+        NetworkStatus.hasInternetConnection().then((isOnline) {
+          if (isOnline) {
+            syncPendingTransactions(dataSource: dataSource).then((syncedCount) {
+              if (syncedCount > 0) {
+                debugPrint(
+                  '[PjHiveController] Auto-sync setelah save: $syncedCount transaksi terkirim.',
+                );
+                notifyListeners();
+              }
+            });
+          }
+        }),
+      );
+    }
 
     return key;
   }
 
-  /// Coba kirim semua transaksi yang masih tersimpan lokal.
-  static Future<int> syncPendingTransactions({
+  Future<int> syncPendingTransactions({
     TransactionRemoteDataSource? dataSource,
   }) async {
     if (!Hive.isBoxOpen(_boxName)) {
@@ -100,15 +99,17 @@ class PjHiveController extends ChangeNotifier {
 
           final payload = transaction.copyWith(
             status: 'completed',
+            accStatus: 'acc_pj',
             isSynced: true,
+            syncedAt: DateTime.now().toIso8601String(),
           );
+
           final success = await remoteDataSource.createTransaction(payload);
           if (success) {
             await box.delete(entry.key);
             syncedCount++;
           }
         } catch (e) {
-          // Tetap di Hive jika jaringan belum kembali atau payload gagal dikirim.
           debugPrint(
             '[PjHiveController] Gagal sync entry key=${entry.key}: $e',
           );
@@ -116,6 +117,9 @@ class PjHiveController extends ChangeNotifier {
       }
     } finally {
       _isSyncing = false;
+      if (syncedCount > 0) {
+        notifyListeners();
+      }
     }
 
     return syncedCount;
@@ -232,7 +236,21 @@ class PjHiveController extends ChangeNotifier {
       );
     }
 
-    // Note: getDuesPeriodByMonthYear removed as per user instruction
+    final parsed = _parseMonthYearFromItem(item);
+    if (parsed != null) {
+      final cachedPeriodId = PjTransactionItemController.getCachedPeriodId(
+        month: parsed.$1,
+        year: parsed.$2,
+      );
+      if (cachedPeriodId != null && _looksLikeBackendId(cachedPeriodId)) {
+        return item.copyWith(
+          periodId: cachedPeriodId,
+          duesPeriodId: cachedPeriodId,
+          status: 'completed',
+        );
+      }
+    }
+
     return item.copyWith(status: 'completed');
   }
 
@@ -286,10 +304,7 @@ class PjHiveController extends ChangeNotifier {
     return null;
   }
 
-  /// Jalankan retry sinkronisasi berkala selama aplikasi aktif.
-  /// Interval default 30 detik sebagai fallback backup — sinkronisasi utama
-  /// sudah dipicu event-driven oleh [ConnectivityService] saat internet kembali.
-  static void startAutoSync({
+  void startAutoSync({
     Duration interval = const Duration(seconds: 30),
     TransactionRemoteDataSource? dataSource,
   }) {
@@ -299,29 +314,24 @@ class PjHiveController extends ChangeNotifier {
     });
   }
 
-  static void stopAutoSync() {
+  void stopAutoSync() {
     _autoSyncTimer?.cancel();
     _autoSyncTimer = null;
   }
 
-  /// 2. Ambil semua transaksi yang masih pending (belum dikirim ke BE).
-  /// Mengembalikan list of map yang berisi kombinasi 'key' dan 'data'.
   List<Map<String, dynamic>> getPendingTransactions() {
     return _box.keys.map((key) {
       final value = _box.get(key);
-      // Parsing value agar aman
       final data = Map<String, dynamic>.from(value as Map);
       return {'key': key, 'data': data};
     }).toList();
   }
 
-  /// 3. Hapus transaksi setelah berhasil dikirim ke API/BE.
   Future<void> removeSyncedTransaction(dynamic key) async {
     await _box.delete(key);
     notifyListeners();
   }
 
-  /// Hapus semua transaksi lokal (opsional).
   Future<void> clearAllTransactions() async {
     await _box.clear();
     notifyListeners();
