@@ -7,6 +7,7 @@ import 'package:persis_app/features/BendaharaPC/data/datasources/payment_method_
 import 'package:persis_app/helpers/object_id_helper.dart';
 import 'pj_invoice_controller.dart';
 import 'pj_hive_controller.dart';
+import 'pj_transaction_item_controller.dart';
 
 class PjVerifTunaiTransactionController extends ChangeNotifier {
   late final TransactionRemoteDataSource _dataSource;
@@ -187,14 +188,16 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         final amount = getNominal(month, year).round();
         totalAmount += amount;
 
-        final duesObjectId = getPeriodId(month, year);
-        if (duesObjectId == null || duesObjectId.isEmpty) {
-          _errorMessage =
-              'Period ID tidak ditemukan untuk ${_getMonthName(month)} $year. Silakan hubungi admin.';
-          _isLoading = false;
-          notifyListeners();
-          return null;
-        }
+        final duesObjectId =
+            getPeriodId(month, year)?.trim().isNotEmpty == true
+            ? getPeriodId(month, year)!.trim()
+            : PjTransactionItemController.localPeriodKey(month, year);
+
+        await PjTransactionItemController.cachePeriodId(
+          month: month,
+          year: year,
+          periodId: duesObjectId,
+        );
 
         items.add(
           TransactionItemModel(

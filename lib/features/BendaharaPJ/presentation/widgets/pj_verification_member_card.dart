@@ -146,11 +146,12 @@ class PjVerificationMemberCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
                             name,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Color(0xFF073D4D),
@@ -160,70 +161,42 @@ class PjVerificationMemberCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (aggregateStatus == PjMonthStatus.tunggakan) ...[
+                        if (aggregateStatus != PjMonthStatus.pending) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
+                              horizontal: 10,
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0x2DB31012),
+                              color: aggregateColor.withOpacity(0.14),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color(0xFFB31012),
-                              ),
+                              border: Border.all(color: aggregateColor),
                             ),
-                            child: const Text(
-                              'Tunggakan',
-                              style: TextStyle(
-                                color: Color(0xFFA50A0C),
-                                fontSize: 10,
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w700,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  aggregateIcon,
+                                  size: 14,
+                                  color: aggregateColor,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  aggregateLabel,
+                                  style: TextStyle(
+                                    color: aggregateColor,
+                                    fontSize: 10,
+                                    fontFamily: 'Poppins',
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ],
                     ),
-                    if (aggregateStatus != PjMonthStatus.pending) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: aggregateColor.withOpacity(0.14),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: aggregateColor),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                aggregateIcon,
-                                size: 14,
-                                color: aggregateColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                aggregateLabel,
-                                style: TextStyle(
-                                  color: aggregateColor,
-                                  fontSize: 10,
-                                  fontFamily: 'Poppins',
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                     if (subtitle.trim().isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
