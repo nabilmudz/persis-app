@@ -7,6 +7,20 @@ import '../models/transaction_model.dart';
 class TransactionRemoteDataSource {
   Map<String, dynamic> _buildCreatePayload(TransactionModel transaction) {
     final payload = Map<String, dynamic>.from(transaction.toJson());
+    
+    // Pastikan status dan acc_status sesuai enum NestJS
+    payload['status'] = transaction.status ?? 'completed';
+    payload['acc_status'] = transaction.accStatus ?? 'acc_pj';
+    
+    // Tetap kirim _id agar relasi items tetap terjaga (local-first)
+    // Server menggunakan String untuk _id jadi UUID atau ObjectId string tetap valid
+    payload['_id'] = transaction.id;
+    payload['id'] = transaction.id;
+    
+    // Set sync flags agar server tahu data ini sudah tersinkron dari client
+    payload['is_synced'] = true;
+    payload['synced_at'] = DateTime.now().toIso8601String();
+
     final items = (payload['items'] as List?)?.map((item) {
       final itemMap = Map<String, dynamic>.from(item as Map);
       itemMap.remove('status');
@@ -16,6 +30,8 @@ class TransactionRemoteDataSource {
     payload['items'] = items;
     return payload;
   }
+
+
 
   // Update transaksi yang sudah ada (untuk ACC)
   Future<bool> updateTransaction(
@@ -94,26 +110,22 @@ class TransactionRemoteDataSource {
 
   /// Export transaksi berdasarkan bulan dan tahun.
   /// Endpoint: GET /transaction/export?month={month}&year={year}&type={type}
-  Future<Map<String, dynamic>?> exportTransactions(
-    int month,
-    int year, {
-    String? type,
-  }) async {
+  Future<Map<String, dynamic>?> exportTransactions(int month, int year, {String? type}) async {
     try {
       String url = '/transaction/export?month=$month&year=$year';
       if (type != null) url += '&type=$type';
 
       final response = await ApiClient.get(url);
       final decoded = json.decode(response.body);
-
+      
       if (response.statusCode == 200 || response.statusCode == 201) {
         return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
       }
-
+      
       if (decoded is Map && decoded.containsKey('message')) {
         return {'message': decoded['message']};
       }
-
+      
       debugPrint("Error API Export: ${response.statusCode} - ${response.body}");
       return null;
     } catch (e) {

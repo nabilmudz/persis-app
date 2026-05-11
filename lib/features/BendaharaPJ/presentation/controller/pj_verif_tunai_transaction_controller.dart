@@ -217,25 +217,34 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         await _loadTunaiPaymentMethod();
       } catch (_) {}
 
+      final nowIso = DateTime.now().toIso8601String();
+      
       // Buat transaksi dengan payment_method_id yang benar
       final transaction = TransactionModel(
         id: transactionId,
         type: 'tunai',
         creatorId: memberId,
-        paymentMethodId: _tunaiPaymentMethodId ?? 'tunai', // Pastikan tidak null agar bisa di-resolve PjHiveController
+        paymentMethodId: _tunaiPaymentMethodId ?? 'tunai', 
         totalAmount: totalAmount,
-        status: 'pending',
-        accStatus: null,
+        status: 'completed', // Langsung completed karena ini pembayaran tunai langsung
+        accStatus: 'acc_pj', // Sesuai enum NestJS: 'pending' | 'acc_pj'
+        accBy: memberId,       
+
+        accAt: nowIso,         
         isSynced: false,
-        createdAt: DateTime.now().toIso8601String(),
+        createdAt: nowIso,
         items: items,
       );
 
-      // Simpan ke Hive secara lokal terlebih dahulu
+
+
+      // Simpan ke Hive secara lokal terlebih dahulu (disable autoSync karena kita handle manual di bawah)
       final hiveController = PjHiveController();
       final key = await hiveController.saveTransactionLocally(
         transaction.toJson(),
+        autoSync: false,
       );
+
 
       final generatedAt = DateTime.tryParse(transaction.createdAt ?? '') ??
           DateTime.now();

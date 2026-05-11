@@ -7,10 +7,11 @@ import 'package:persis_app/core/network/network_status.dart';
 import 'package:persis_app/core/storage/secure_storage_service.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'pj_verif_tunai_controller.dart';
-import 'pj_transaction_item_controller.dart';
 
 export 'pj_verif_tunai_controller.dart'
     show MemberIuranStatusModel, PjMonthStatus;
@@ -25,7 +26,26 @@ class PjController extends ChangeNotifier {
            transactionDataSource ?? TransactionRemoteDataSource() {
     _verifController = PjVerifTunaiController(transactions: _transactions);
     _verifController.addListener(_onVerifChanged);
+    _hiveController = PjHiveController();
+    _hiveController.addListener(_onHiveChanged);
   }
+
+  void _onHiveChanged() {
+    notifyListeners();
+  }
+
+  /// Tambah transaksi ke state lokal (biasanya setelah berhasil di BE)
+  /// agar UI langsung update tanpa menunggu fetch ulang.
+  void addTransaction(TransactionModel tx) {
+    // Hindari duplikat
+    if (_transactions.any((t) => t.id == tx.id && tx.id != null)) {
+      return;
+    }
+    _transactions.insert(0, tx);
+    _verifController.updateData(transactions: _transactions);
+    notifyListeners();
+  }
+
 
   static const String _cacheBoxName = 'pj_data_cache';
 
@@ -43,6 +63,7 @@ class PjController extends ChangeNotifier {
 
   final List<UserModel> _members = [];
   final List<TransactionModel> _transactions = [];
+  late final PjHiveController _hiveController;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -383,6 +404,7 @@ class PjController extends ChangeNotifier {
   void dispose() {
     _verifController.removeListener(_onVerifChanged);
     _verifController.dispose();
+    _hiveController.removeListener(_onHiveChanged);
     super.dispose();
   }
 
@@ -470,5 +492,35 @@ class PjController extends ChangeNotifier {
       month: month,
       year: year,
     );
+  }
+
+  /// Ambil transaksi terakhir milik anggota (dari history yang sudah di-load)
+  TransactionModel? lastTransactionForMember(String anggotaId) {
+    if (anggotaId.isEmpty) return null;
+    
+    // Cari transaksi yang melibatkan anggota ini
+    final memberTxs = _transactions.where((tx) {
+      // 1. Cek apakah ada item yang ditujukan untuk anggota ini
+      final hasItemForMember = tx.items?.any((item) => 
+        (item.anggotaId?.toString() ?? '') == anggotaId
+      ) ?? false;
+      if (hasItemForMember) return true;
+
+      // 2. Cek apakah anggota ini adalah pembuat transaksi (fallback)
+      if ((tx.creatorId?.toString() ?? '') == anggotaId) return true;
+      
+      return false;
+    }).toList();
+
+    if (memberTxs.isEmpty) return null;
+
+    // Sort by date descending (latest first)
+    memberTxs.sort((a, b) {
+      final aDate = DateTime.tryParse(a.createdAt ?? '') ?? DateTime(1900);
+      final bDate = DateTime.tryParse(b.createdAt ?? '') ?? DateTime(1900);
+      return bDate.compareTo(aDate);
+    });
+
+    return memberTxs.first;
   }
 }

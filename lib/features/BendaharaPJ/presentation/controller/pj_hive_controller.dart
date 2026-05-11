@@ -25,33 +25,37 @@ class PjHiveController extends ChangeNotifier {
   Future<int> saveTransactionLocally(
     Map<String, dynamic> transactionData, {
     TransactionRemoteDataSource? dataSource,
+    bool autoSync = true,
   }) async {
     transactionData['local_timestamp'] = DateTime.now().toIso8601String();
-    transactionData['status'] = 'pending';
-    transactionData['isSynced'] = false;
+    // Gunakan status dari data jika ada (agar 'completed' tidak tertimpa 'pending' jika sudah diset)
+    transactionData['status'] = transactionData['status'] ?? 'pending';
+    transactionData['isSynced'] = transactionData['isSynced'] ?? false;
 
     final int key = await _box.add(transactionData);
     notifyListeners();
 
-    unawaited(
-      NetworkStatus.hasInternetConnection().then((isOnline) {
-        if (isOnline) {
-          syncPendingTransactions(dataSource: dataSource).then((syncedCount) {
-            if (syncedCount > 0) {
-              debugPrint(
-                '[PjHiveController] Auto-sync setelah save: $syncedCount transaksi terkirim.',
-              );
-              notifyListeners();
-            }
-          });
-        }
-      }),
-    );
+    if (autoSync) {
+      unawaited(
+        NetworkStatus.hasInternetConnection().then((isOnline) {
+          if (isOnline) {
+            syncPendingTransactions(dataSource: dataSource).then((syncedCount) {
+              if (syncedCount > 0) {
+                debugPrint(
+                  '[PjHiveController] Auto-sync setelah save: $syncedCount transaksi terkirim.',
+                );
+                notifyListeners();
+              }
+            });
+          }
+        }),
+      );
+    }
 
     return key;
   }
 
-  static Future<int> syncPendingTransactions({
+  Future<int> syncPendingTransactions({
     TransactionRemoteDataSource? dataSource,
   }) async {
     if (!Hive.isBoxOpen(_boxName)) {
@@ -95,8 +99,11 @@ class PjHiveController extends ChangeNotifier {
 
           final payload = transaction.copyWith(
             status: 'completed',
+            accStatus: 'acc_pj',
             isSynced: true,
+            syncedAt: DateTime.now().toIso8601String(),
           );
+
           final success = await remoteDataSource.createTransaction(payload);
           if (success) {
             await box.delete(entry.key);
@@ -110,6 +117,9 @@ class PjHiveController extends ChangeNotifier {
       }
     } finally {
       _isSyncing = false;
+      if (syncedCount > 0) {
+        notifyListeners();
+      }
     }
 
     return syncedCount;
@@ -294,7 +304,7 @@ class PjHiveController extends ChangeNotifier {
     return null;
   }
 
-  static void startAutoSync({
+  void startAutoSync({
     Duration interval = const Duration(seconds: 30),
     TransactionRemoteDataSource? dataSource,
   }) {
@@ -304,7 +314,7 @@ class PjHiveController extends ChangeNotifier {
     });
   }
 
-  static void stopAutoSync() {
+  void stopAutoSync() {
     _autoSyncTimer?.cancel();
     _autoSyncTimer = null;
   }

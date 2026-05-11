@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
-import '../../controller/pj_controller.dart';
-import '../../controller/pj_invoice_controller.dart';
-import '../../controller/pj_transaction_item_controller.dart';
-import '../../controller/pj_verif_tunai_transaction_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_verif_tunai_transaction_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
-import '../pj_invoice.view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_invoice.view.dart';
 
 class PjVerifTunaiViewPage extends StatefulWidget {
   final PjController controller;
@@ -216,12 +216,27 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         });
 
         if (!mounted) return;
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
-          ),
-        );
+
+        // Jika offline → tetap di halaman pending, bukan langsung ke invoice
+        if (!invoiceResult.syncedToBackend) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PendingTransactionViewPage(
+                controller: widget.controller,
+                lastInvoiceData: invoiceData,
+              ),
+            ),
+          );
+        } else {
+          // Online → langsung ke halaman invoice
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
+            ),
+          );
+        }
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

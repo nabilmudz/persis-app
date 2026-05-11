@@ -24,6 +24,8 @@ class PjLaporanController extends ChangeNotifier {
       final result = await _dataSource.exportTransactions(month, year, type: type);
 
       if (result != null && result['url'] != null) {
+        // Jika API return URL untuk download file (server-side generated)
+        debugPrint('📥 Export result: URL returned');
         String urlString = result['url'];
         if (!urlString.startsWith('http')) {
           final baseUrl = ApiClient.baseUrl.endsWith('/') 
@@ -38,14 +40,23 @@ class PjLaporanController extends ChangeNotifier {
         } else {
           _errorMessage = 'Tidak dapat membuka tautan unduhan: $urlString';
         }
+      } else if (result != null && result['data'] != null) {
+        // Jika API return raw data (untuk client-side formatting)
+        // Data sudah terfilter by month/year dari server
+        final dataCount = (result['data'] as List?)?.length ?? 0;
+        debugPrint('📥 Export result: $dataCount items data returned');
+        return result;
       } else if (result != null && result['message'] != null) {
         _errorMessage = result['message'];
+        debugPrint('⚠ API message: $_errorMessage');
       } else if (result == null) {
         _errorMessage = 'Gagal mengekspor laporan. Data tidak ditemukan di server.';
+        debugPrint('❌ API returned null');
       }
       return result;
     } catch (e) {
       _errorMessage = 'Terjadi kesalahan: $e';
+      debugPrint('❌ Error in exportLaporan: $e');
       return null;
     } finally {
       _isLoading = false;

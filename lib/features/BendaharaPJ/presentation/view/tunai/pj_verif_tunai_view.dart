@@ -207,12 +207,27 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         });
 
         if (!mounted) return;
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
-          ),
-        );
+
+        // Jika offline → ke halaman pending, bukan langsung invoice
+        if (!invoiceResult.syncedToBackend) {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PendingTransactionViewPage(
+                controller: widget.controller,
+                lastInvoiceData: invoiceData,
+              ),
+            ),
+          );
+        } else {
+          // Online → langsung ke halaman invoice
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PjInvoiceViewPage(invoiceData: invoiceData),
+            ),
+          );
+        }
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
