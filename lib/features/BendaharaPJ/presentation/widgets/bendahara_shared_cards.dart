@@ -85,7 +85,7 @@ class _BendaharaSaldoCardState extends State<BendaharaSaldoCard> {
   }
 
   String get _dropdownLabel {
-    if (_selectedMonth == 0) return 'Tahun ${_selectedYear}';
+    if (_selectedMonth == 0) return 'Tahun $_selectedYear';
     return _monthNames[_selectedMonth - 1];
   }
 
@@ -240,7 +240,7 @@ class _BendaharaSaldoCardState extends State<BendaharaSaldoCard> {
           if (!_isLoading && _totalMembersPaid != null) ...[
             const SizedBox(height: 4),
             Text(
-              '$_totalMembersPaid Anggota Lunas ${_dropdownLabel}',
+              '$_totalMembersPaid Anggota Lunas $_dropdownLabel',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,

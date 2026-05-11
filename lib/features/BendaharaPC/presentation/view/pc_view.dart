@@ -189,7 +189,7 @@ class _PcViewPageState extends State<PcViewPage> {
                         status: item.category,
                       ),
                     );
-                  }).toList(),
+                  }),
 
                 const SizedBox(height: 20),
               ],
