@@ -156,6 +156,7 @@ class LoginController extends ChangeNotifier {
     }
   }
 
+  // ─── Cek NPA (Sudah diperbaiki error void-nya) ───────────────────────────
   Future<CekNpaResult> checkNpa(String npa) async {
     final trimmed = npa.trim();
 
@@ -171,15 +172,17 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await remoteDataSource.checkNpa(trimmed);
+      // Karena fungsi checkNpa ini mengembalikan void jika sukses,
+      // kita cukup menggunakan await tanpa menyimpan return valuenya
+      await remoteDataSource.checkNpa(trimmed);
 
       _isLoading = false;
       _npaNotFound = false;
       notifyListeners();
 
-      return CekNpaResult(
+      return const CekNpaResult(
         status: NpaStatus.valid,
-        message: response['message'] as String? ?? 'NPA ditemukan',
+        message: 'NPA ditemukan', // Karena response void, kita set pesan manual
       );
     } on Exception catch (e) {
       _isLoading = false;
@@ -214,7 +217,7 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── Role Routing (Disempurnakan) ──────────────────────────────────────────
+  // ─── Role Routing ──────────────────────────────────────────────────────────
   String _routeForRole(String? roleValue) {
     final role = roleValue?.trim().toUpperCase() ?? '';
 

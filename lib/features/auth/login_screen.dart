@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:persis_app/core/config/config.dart';
 import '../../app/routes.dart';
 import 'dart:developer';
+import 'forgot_password_screen.dart'; // <-- INI IMPORT BARU UNTUK LUPA PASSWORD
 
 // ─── API Config ────────────────────────────────────────────────────────────────
 final String _baseUrl = AppConfig.baseUrl;
@@ -276,7 +277,13 @@ class _LoginScreenState extends State<LoginScreen>
               ],
             ),
             TextButton(
-              onPressed: () {},
+              // <-- INI BAGIAN YANG DIGANTI AGAR BISA PINDAH KE LUPA PASSWORD
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
+                );
+              },
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.zero,
