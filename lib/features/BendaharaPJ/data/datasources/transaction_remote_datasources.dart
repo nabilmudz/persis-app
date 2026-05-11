@@ -134,6 +134,35 @@ class TransactionRemoteDataSource {
     }
   }
 
+  Future<Map<String, dynamic>?> getMembersPaymentStatus({
+    required int year,
+    String? regionId,
+  }) async {
+    try {
+      var url = '/transaction/members-payment-status?year=$year';
+      final normalizedRegionId = regionId?.trim();
+      if (normalizedRegionId != null && normalizedRegionId.isNotEmpty) {
+        url += '&region_id=$normalizedRegionId';
+      }
+
+      final response = await ApiClient.get(url);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final decoded = json.decode(response.body);
+        return decoded is Map<String, dynamic>
+            ? decoded
+            : Map<String, dynamic>.from(decoded as Map);
+      }
+
+      debugPrint(
+        'Error API Members Payment Status: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('Error API Members Payment Status: $e');
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> fetchSummary({
     required int year,
     int month = 0,

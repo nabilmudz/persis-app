@@ -51,7 +51,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
     final userId = widget.member.id;
     if (userId != null && userId.isNotEmpty) {
       _transactionController.loadTransactions(userId);
-      _itemController.loadByUser(userId);
+      _itemController.loadByUser(userId, year: _selectedYear);
     }
   }
 
@@ -143,6 +143,11 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
             selectedMonths: _selectedMonths,
             year: _selectedYear,
             getNominal: (month, year) {
+              final cachedAmount = _itemController.getMonthAmount(month, year);
+              if (cachedAmount > 0) {
+                return cachedAmount.toDouble();
+              }
+
               return widget.controller.getNominalForMemberMonth(
                 anggotaId: anggotaId,
                 month: month,
@@ -158,12 +163,38 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
       Navigator.pop(context); // Close loading dialog
 
       if (invoiceResult != null) {
-        widget.controller.addTransaction(invoiceResult.transaction);
+        await _itemController.markMonthsPaidLocally(
+          anggotaId: anggotaId,
+          months: invoiceResult.selectedMonths,
+          year: invoiceResult.year,
+          getNominal: (month, year) {
+            final cachedAmount = _itemController.getMonthAmount(month, year);
+            if (cachedAmount > 0) {
+              return cachedAmount;
+            }
+
+            return widget.controller
+                .getNominalForMemberMonth(
+                  anggotaId: anggotaId,
+                  month: month,
+                  year: year,
+                )
+                .round();
+          },
+          getPeriodId: (month, year) {
+            return _itemController.getMonthPeriodId(month, year) ??
+                PjTransactionItemController.localPeriodKey(month, year);
+          },
+        );
+
         await widget.controller.loadInitialData();
         final refreshedUserId = widget.member.id;
         if (refreshedUserId != null && refreshedUserId.isNotEmpty) {
           await _transactionController.loadTransactions(refreshedUserId);
-          await _itemController.loadByUser(refreshedUserId, forceRefresh: true);
+          await _itemController.loadByUser(
+            refreshedUserId,
+            year: _selectedYear,
+          );
         }
 
         final invoiceData = PjInvoiceData.fromCreationResult(
@@ -364,6 +395,18 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                                   _selectedYear = value;
                                   _selectedMonths.clear();
                                 });
+                                final userId = widget.member.id;
+                                if (userId != null && userId.isNotEmpty) {
+                                  widget.controller
+                                      .loadPaymentStatusSnapshot(year: value)
+                                      .then((_) {
+                                    if (!mounted) return;
+                                    _itemController.loadByUser(
+                                      userId,
+                                      year: value,
+                                    );
+                                  });
+                                }
                               },
                             ),
                           ),
