@@ -3,6 +3,7 @@ import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_bank_account_view.dart';
 import 'pc_verifikasi_view.dart';
+import 'pc_laporan_view.dart'; // IMPORT VIEW LAPORAN
 
 class PcViewPage extends StatefulWidget {
   const PcViewPage({super.key});
@@ -18,6 +19,8 @@ class _PcViewPageState extends State<PcViewPage> {
   void initState() {
     super.initState();
     _controller = PcController();
+    // Jika ingin memuat data di awal, bisa panggil:
+    // _controller.loadTransactions();
   }
 
   @override
@@ -69,7 +72,6 @@ class _PcViewPageState extends State<PcViewPage> {
             ),
             const SizedBox(height: 16),
             
-            // Komponen saldo asli dipertahankan
             BendaharaSaldoCard(
               role: 'pc',
               badgeText: 'Porsi PC (20%)',
@@ -77,7 +79,6 @@ class _PcViewPageState extends State<PcViewPage> {
             ),
             const SizedBox(height: 24),
 
-            // Grid 4 Menu - Baris Atas Kuning, Baris Bawah Hijau
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -86,7 +87,6 @@ class _PcViewPageState extends State<PcViewPage> {
               crossAxisSpacing: 16,
               childAspectRatio: 1.25, 
               children: [
-                // 1. Verifikasi Setoran (Kiri Atas - Kuning)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -100,24 +100,22 @@ class _PcViewPageState extends State<PcViewPage> {
                     context,
                     'Verifikasi Setoran',
                     Icons.assignment_outlined,
-                    const Color(0xFFFFFBEA), // Kuning Muda
-                    const Color(0xFFF57F17), // Orange
+                    const Color(0xFFFFFBEA), 
+                    const Color(0xFFF57F17), 
                   ),
                 ),
-                // 2. Riwayat Pembayaran (Kanan Atas - Kuning)
                 GestureDetector(
                   onTap: () {
-                    // TODO: Tambahkan navigasi ke Riwayat Pembayaran kalau pagenya udah ada
+                    // TODO: Navigasi ke Riwayat Pembayaran (jika sudah ada)
                   },
                   child: _buildMenuCard(
                     context,
                     'Riwayat Pembayaran',
                     Icons.history,
-                    const Color(0xFFFFFBEA), // Kuning Muda
-                    const Color(0xFFF57F17), // Orange
+                    const Color(0xFFFFFBEA), 
+                    const Color(0xFFF57F17), 
                   ),
                 ),
-                // 3. Kelola Rekening (Kiri Bawah - Hijau)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -131,21 +129,26 @@ class _PcViewPageState extends State<PcViewPage> {
                     context,
                     'Kelola Rekening',
                     Icons.account_balance_wallet_outlined,
-                    const Color(0xFFE8F5E9), // Hijau Muda
-                    const Color(0xFF0C844C), // Hijau Tua
+                    const Color(0xFFE8F5E9), 
+                    const Color(0xFF0C844C), 
                   ),
                 ),
-                // 4. Laporan Keuangan (Kanan Bawah - Hijau)
                 GestureDetector(
+                  // NAVIGASI KE HALAMAN LAPORAN KEUANGAN
                   onTap: () {
-                    // TODO: Tambahkan navigasi ke Laporan Keuangan
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PcLaporanViewPage(controller: _controller),
+                      ),
+                    );
                   },
                   child: _buildMenuCard(
                     context,
                     'Laporan Keuangan',
                     Icons.bar_chart,
-                    const Color(0xFFE8F5E9), // Hijau Muda
-                    const Color(0xFF0C844C), // Hijau Tua
+                    const Color(0xFFE8F5E9), 
+                    const Color(0xFF0C844C), 
                   ),
                 ),
               ],

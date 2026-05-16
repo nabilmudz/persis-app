@@ -1,0 +1,531 @@
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:excel/excel.dart' hide Border;
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import '../controller/pc_controller.dart';
+import '../controller/pc_laporan_controller.dart';
+import '../../../BendaharaPJ/data/models/transaction_model.dart';
+import 'pc_recap_detail_view.dart';
+
+class PcLaporanViewPage extends StatefulWidget {
+  final PcController controller;
+
+  const PcLaporanViewPage({super.key, required this.controller});
+
+  @override
+  State<PcLaporanViewPage> createState() => _PcLaporanViewPageState();
+}
+
+class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
+  DateTime _selectedMonth = DateTime.now();
+  late final PcLaporanController _laporanController;
+  List<TransactionModel> _monthlyTransactions = [];
+  bool _isInitialLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeDateFormatting('id_ID', null);
+    widget.controller.addListener(_onControllerChanged);
+    _laporanController = PcLaporanController();
+    _laporanController.addListener(_onLaporanChanged);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchMonthlyData();
+    });
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    _laporanController.removeListener(_onLaporanChanged);
+    _laporanController.dispose();
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onLaporanChanged() {
+    if (mounted) {
+      if (_laporanController.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_laporanController.errorMessage!),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      setState(() {});
+    }
+  }
+
+  Future<void> _fetchMonthlyData() async {
+    setState(() {
+      _isInitialLoading = _monthlyTransactions.isEmpty;
+    });
+
+    try {
+      final result = await _laporanController.exportLaporan(
+        month: _selectedMonth.month,
+        year: _selectedMonth.year,
+      );
+
+      if (result != null && result['data'] != null) {
+        final List rawData = result['data'];
+        if (mounted) {
+          setState(() {
+            _monthlyTransactions = rawData
+                .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+            _isInitialLoading = false;
+          });
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint('⚠ API Error: $e. Using local fallback.');
+    }
+
+    if (mounted) {
+      final localTransactions = widget.controller.allTransactions.where((t) {
+        if (t.createdAt == null) return false;
+        try {
+          final date = DateTime.parse(t.createdAt!);
+          return date.year == _selectedMonth.year && date.month == _selectedMonth.month;
+        } catch (_) {
+          return false;
+        }
+      }).toList();
+
+      setState(() {
+        _monthlyTransactions = localTransactions;
+        _isInitialLoading = false;
+      });
+
+      if (_laporanController.errorMessage != null || _monthlyTransactions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Menampilkan data lokal (mungkin tidak lengkap).'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  List<TransactionModel> _filterTransactionsByMonth(List<TransactionModel> transactions) {
+    return transactions.where((transaction) {
+      final isApproved = (transaction.accStatus == 'acc_pj' || transaction.accStatus == 'approved') ||
+          transaction.status == 'completed';
+      return isApproved;
+    }).toList();
+  }
+
+  Future<void> _selectMonth() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedMonth,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      helpText: 'PILIH BULAN LAPORAN',
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        _selectedMonth = pickedDate;
+      });
+      _fetchMonthlyData();
+    }
+  }
+
+  String _getMemberName(TransactionModel transaction) {
+    if (transaction.memberName != null && transaction.memberName!.isNotEmpty) {
+      return transaction.memberName!;
+    }
+    return transaction.creatorId ?? 'Member';
+  }
+
+  void _exportExcel() async {
+    try {
+      final result = await _laporanController.exportLaporan(
+        month: _selectedMonth.month,
+        year: _selectedMonth.year,
+      );
+
+      if (_laporanController.errorMessage != null) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_laporanController.errorMessage!), backgroundColor: Colors.red));
+        return;
+      }
+
+      List<TransactionModel> exportData = [];
+      if (result != null && result['data'] != null) {
+        final List rawData = result['data'];
+        exportData = rawData.map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e))).toList();
+      } else {
+        exportData = widget.controller.allTransactions.where((transaction) {
+          if (transaction.createdAt == null) return false;
+          try {
+            final date = DateTime.parse(transaction.createdAt!);
+            return date.year == _selectedMonth.year && date.month == _selectedMonth.month;
+          } catch (e) {
+            return false;
+          }
+        }).toList();
+      }
+
+      if (exportData.isEmpty) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tidak ada transaksi untuk periode ini'), duration: Duration(seconds: 2)));
+        return;
+      }
+
+      final excel = Excel.createExcel();
+      final sheet = excel['Transaksi pada Bulan'];
+      excel.delete('Sheet1');
+
+      final headers = ['Hari, Tanggal', 'Nama Anggota', 'Dari Bulan', 'Hingga Bulan', 'Total Bayar', 'Di ACC oleh', 'PJ', 'PC', 'PW', 'PD', 'PP'];
+      sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
+
+      final monthLabel = DateFormat('MMMM', 'id_ID').format(_selectedMonth);
+
+      for (int i = 0; i < exportData.length; i++) {
+        final t = exportData[i];
+        final amount = t.totalAmount ?? 0;
+        final dateFormatted = t.createdAt != null ? DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(DateTime.parse(t.createdAt!)) : '-';
+        final memberName = t.memberName ?? _getMemberName(t);
+        final pj = (amount * 30) ~/ 100;
+        final pc = (amount * 20) ~/ 100;
+        final pw = (amount * 15) ~/ 100;
+        final pd = (amount * 20) ~/ 100;
+        final pp = (amount * 15) ~/ 100;
+
+        sheet.appendRow([TextCellValue(dateFormatted), TextCellValue(memberName), TextCellValue(monthLabel), TextCellValue(monthLabel), IntCellValue(amount), TextCellValue(t.verifiedBy ?? '-'), IntCellValue(pj), IntCellValue(pc), IntCellValue(pw), IntCellValue(pd), IntCellValue(pp)]);
+      }
+
+      final bytes = excel.encode();
+      if (bytes == null) return;
+
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/Laporan_PC_$monthLabel.xlsx');
+      await file.writeAsBytes(bytes);
+
+      if (mounted) await Share.shareXFiles([XFile(file.path)], text: 'Laporan PC $monthLabel telah dibuat', subject: 'Laporan PC $monthLabel');
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuat file Excel: $e'), backgroundColor: Colors.red));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredTransactions = _filterTransactionsByMonth(_monthlyTransactions);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Data Pembayaran', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 18)),
+        elevation: 0,
+        backgroundColor: const Color(0xFF074D2C), // Hijau Gelap PC
+        foregroundColor: Colors.white,
+      ),
+      body: _isInitialLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF0C844C)))
+          : RefreshIndicator(
+              onRefresh: _fetchMonthlyData,
+              color: const Color(0xFF0C844C),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: _buildOverviewCard(filteredTransactions),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: _buildDistributionCard(filteredTransactions),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      color: const Color(0xFFF5F5F5),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: _selectMonth,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(border: Border.all(color: const Color(0xFFD0D0D0)), borderRadius: BorderRadius.circular(8), color: Colors.white),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF073D4D))),
+                                    const Icon(Icons.calendar_today, size: 18, color: Color(0xFF073D4D)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: _exportExcel,
+                            icon: const Icon(Icons.table_chart),
+                            label: const Text('Excel (.xlsx)'),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E6F42), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                          ),
+                          if (_laporanController.isLoading)
+                            const Padding(padding: EdgeInsets.only(left: 12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C844C))))),
+                        ],
+                      ),
+                    ),
+                    if (filteredTransactions.isEmpty)
+                      _buildEmptyState()
+                    else
+                      Column(
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                            child: Align(alignment: Alignment.centerLeft, child: Text('Rincian Pembayaran', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF073D4D)))),
+                          ),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                            itemCount: _groupTransactionsByType(filteredTransactions).keys.length,
+                            separatorBuilder: (_, _) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final groupedData = _groupTransactionsByType(filteredTransactions);
+                              final type = groupedData.keys.elementAt(index);
+                              final transactions = groupedData[type]!;
+
+                              final totalAmount = transactions.fold<int>(0, (sum, t) => sum + (t.totalAmount ?? 0));
+                              final latestTransaction = transactions.first;
+
+                              final recapTransaction = TransactionModel(
+                                type: type,
+                                totalAmount: totalAmount,
+                                code: 'REKAP-${type.toUpperCase()}',
+                                createdAt: latestTransaction.createdAt,
+                                accStatus: 'acc_pc',
+                                verifiedBy: 'Sistem',
+                              );
+
+                              return _PaymentDataCard(
+                                transaction: recapTransaction,
+                                isRecap: true,
+                                memberName: '-',
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PcRecapDetailViewPage(
+                                        title: type,
+                                        transactions: transactions,
+                                        monthLabel: DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth),
+                                        getMemberName: _getMemberName,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.receipt_long_outlined, size: 64, color: const Color(0xFF073D4D).withOpacity(0.3)),
+            const SizedBox(height: 16),
+            Text('Tidak Ada Data Pembayaran', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF073D4D).withOpacity(0.7))),
+            const SizedBox(height: 8),
+            Text('Belum ada transaksi pada bulan yang dipilih', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: const Color(0xFF4B5563).withOpacity(0.6))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverviewCard(List<TransactionModel> transactions) {
+    int totalAmount = 0;
+    int totalIncome = 0;
+    for (final transaction in transactions) {
+      final amount = transaction.totalAmount ?? 0;
+      totalAmount += amount;
+      totalIncome += amount;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4CAF50), // Sesuai warna hijau Dashboard PC
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: const [BoxShadow(color: Color(0x4C15803D), blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DecoratedBox(
+            decoration: const BoxDecoration(color: Color(0x77D9D9D9), borderRadius: BorderRadius.all(Radius.circular(80))),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text('TOTAL KAS PC', style: TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(totalAmount), style: const TextStyle(color: Colors.white, fontSize: 32, fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+          const SizedBox(height: 16),
+          _OverviewStatItem(label: 'Total Dana Masuk', amount: totalIncome),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistributionItemWidget({required String label, required int percentage, required int amount, required Color color, required String Function(int) formatAmount}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(color: Color(0xFF073D4D), fontSize: 11, fontWeight: FontWeight.w600)),
+            Text(formatAmount(amount), style: const TextStyle(color: Color(0xFF073D4D), fontSize: 11, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(value: percentage / 100, minHeight: 8, backgroundColor: const Color(0xFFF3F4F6), valueColor: AlwaysStoppedAnimation<Color>(color)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDistributionCard(List<TransactionModel> transactions) {
+    int totalAmount = transactions.fold(0, (sum, t) => sum + (t.totalAmount ?? 0));
+    String fmt(int amount) => NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E5E5))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Distribusi Iuran (%)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF073D4D))),
+          const SizedBox(height: 14),
+          _buildDistributionItemWidget(label: 'PJ (30%)', percentage: 30, amount: (totalAmount * 30) ~/ 100, color: const Color(0xFF10B367), formatAmount: fmt),
+          const SizedBox(height: 10),
+          _buildDistributionItemWidget(label: 'PC (20%)', percentage: 20, amount: (totalAmount * 20) ~/ 100, color: const Color(0xFF007AFF), formatAmount: fmt),
+          const SizedBox(height: 10),
+          _buildDistributionItemWidget(label: 'PD (20%)', percentage: 20, amount: (totalAmount * 20) ~/ 100, color: const Color(0xFFFFA500), formatAmount: fmt),
+          const SizedBox(height: 10),
+          _buildDistributionItemWidget(label: 'PW (15%)', percentage: 15, amount: (totalAmount * 15) ~/ 100, color: const Color(0xFF8B5CF6), formatAmount: fmt),
+          const SizedBox(height: 10),
+          _buildDistributionItemWidget(label: 'PP (15%)', percentage: 15, amount: (totalAmount * 15) ~/ 100, color: const Color(0xFFEC4899), formatAmount: fmt),
+        ],
+      ),
+    );
+  }
+
+  Map<String, List<TransactionModel>> _groupTransactionsByType(List<TransactionModel> transactions) {
+    final Map<String, List<TransactionModel>> grouped = {};
+    for (final t in transactions) {
+      String type = t.type ?? 'Tunai';
+      if (t.paymentMethodId == '69ee266797af79f7ef06e559' || type.toLowerCase() == 'tunai') type = 'Rekap Tunai';
+      grouped.putIfAbsent(type, () => []).add(t);
+    }
+    return grouped;
+  }
+}
+
+class _OverviewStatItem extends StatelessWidget {
+  final String label;
+  final int amount;
+
+  const _OverviewStatItem({required this.label, required this.amount});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Text(NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentDataCard extends StatelessWidget {
+  final TransactionModel transaction;
+  final String memberName;
+  final VoidCallback? onTap;
+  final bool isRecap;
+
+  const _PaymentDataCard({required this.transaction, required this.memberName, this.onTap, this.isRecap = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = transaction.totalAmount ?? 0;
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E5E5)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(transaction.type ?? 'Pembayaran', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF073D4D))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: const Color(0xFF0C844C).withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                  child: Text(isRecap ? 'Group' : 'Approved', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0C844C))),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(fmt.format(amount), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0C844C))),
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFE5E5E5)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Text('DISTRIBUSI PC', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280), letterSpacing: 0.5)),
+                const SizedBox(width: 6),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(4)), child: const Text('Porsi PC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF1976D2)))),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PC (20%)', style: TextStyle(fontSize: 11, color: Color(0xFF4B5563))), Text(fmt.format((amount * 20) ~/ 100), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF073D4D)))]),
+          ],
+        ),
+      ),
+    );
+  }
+}
