@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:gal/gal.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
@@ -79,6 +80,28 @@ class PjInvoiceData {
     required this.syncedToBackend,
     required this.generatedAt,
   });
+
+  PjInvoiceData copyWith({
+    UserModel? member,
+    TransactionModel? transaction,
+    List<PjInvoiceLineItem>? items,
+    List<int>? months,
+    int? year,
+    int? totalAmount,
+    bool? syncedToBackend,
+    DateTime? generatedAt,
+  }) {
+    return PjInvoiceData(
+      member: member ?? this.member,
+      transaction: transaction ?? this.transaction,
+      items: items ?? this.items,
+      months: months ?? this.months,
+      year: year ?? this.year,
+      totalAmount: totalAmount ?? this.totalAmount,
+      syncedToBackend: syncedToBackend ?? this.syncedToBackend,
+      generatedAt: generatedAt ?? this.generatedAt,
+    );
+  }
 
   factory PjInvoiceData.fromCreationResult({
     required UserModel member,
@@ -199,16 +222,15 @@ class PjInvoiceData {
 
   String get memberPhone => member.noHp?.trim() ?? '';
 
+  /// Format: {NPA}-{MM}-{YY}
+  /// Contoh: 12345-05-26 (untuk iuran Mei, tahun 2026)
   String get invoiceNumber {
-    final transactionId = transaction.id ?? transaction.code ?? '';
-    if (transactionId.isNotEmpty) {
-      final shortId = transactionId.length > 8
-          ? transactionId.substring(transactionId.length - 8)
-          : transactionId;
-      return 'INV-$shortId';
-    }
-
-    return 'INV-${DateFormat('yyyyMMddHHmmss').format(generatedAt)}';
+    final npa = memberCode != '-' ? memberCode : 'NA';
+    final month = months.isNotEmpty
+        ? months.first.toString().padLeft(2, '0')
+        : generatedAt.month.toString().padLeft(2, '0');
+    final shortYear = (year % 100).toString().padLeft(2, '0');
+    return '$npa-$month-$shortYear';
   }
 
   String get monthLabelSummary {
@@ -223,11 +245,19 @@ class PjInvoiceData {
       syncedToBackend ? 'Terkirim ke Server' : 'Tersimpan Lokal';
 
   String get generatedAtLabel {
-    final day = generatedAt.day.toString().padLeft(2, '0');
-    final monthName = _monthNames[generatedAt.month - 1];
-    final year = generatedAt.year;
-    final hour = generatedAt.hour.toString().padLeft(2, '0');
-    final minute = generatedAt.minute.toString().padLeft(2, '0');
+    if (generatedAt.year == 1900) {
+      return '-';
+    }
+
+    // Tampilkan dalam waktu WIB (UTC+7)
+    final dt = generatedAt.isUtc
+        ? generatedAt.toLocal()
+        : generatedAt;
+    final day = dt.day.toString().padLeft(2, '0');
+    final monthName = _monthNames[dt.month - 1];
+    final year = dt.year;
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
     return '$day $monthName $year, $hour:$minute';
   }
 

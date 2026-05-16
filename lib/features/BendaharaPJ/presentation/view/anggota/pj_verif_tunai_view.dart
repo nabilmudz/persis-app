@@ -6,6 +6,9 @@ import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_trans
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_verif_tunai_transaction_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_invoice.view.dart';
+import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
+import 'package:persis_app/core/network/api_client.dart';
+import 'package:persis_app/helpers/auth_helper.dart';
 
 class PjVerifTunaiViewPage extends StatefulWidget {
   final PjController controller;
@@ -145,10 +148,13 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
     );
 
     try {
+      final currentUserId = await AuthHelper.getUserId();
+
       final invoiceResult = await _transactionController
           .createTransactionForSelectedMonths(
             anggotaId: anggotaId,
             memberId: widget.member.id ?? '',
+            accById: currentUserId,
             selectedMonths: _selectedMonths,
             year: _selectedYear,
             getNominal: (month, year) {
@@ -206,8 +212,20 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
           );
         }
 
+        UserModel completeMember = widget.member;
+        if ((completeMember.noHp == null || completeMember.noHp!.isEmpty) && 
+            completeMember.id != null) {
+          try {
+            final userRemote = UserRemoteDataSource(ApiClient.baseUrl);
+            final fetchedUser = await userRemote.getOneUsers(completeMember.id!);
+            if (fetchedUser.noHp != null && fetchedUser.noHp!.isNotEmpty) {
+              completeMember = fetchedUser;
+            }
+          } catch (_) {}
+        }
+
         final invoiceData = PjInvoiceData.fromCreationResult(
-          member: widget.member,
+          member: completeMember,
           result: invoiceResult,
         );
 

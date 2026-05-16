@@ -26,18 +26,20 @@ class PjVerificationMemberCard extends StatelessWidget {
   });
 
   PjMonthStatus _aggregateStatus() {
+    PjMonthStatus status = PjMonthStatus.pending;
+
     if (cardStatus != null) {
-      return cardStatus!;
+      status = cardStatus!;
+    } else if (iuranStatuses.any((s) => s.status == PjMonthStatus.paid)) {
+      status = PjMonthStatus.paid;
     }
 
-    // Jika ada yang lunas, tampilkan lunas
-    if (iuranStatuses.any((status) => status.status == PjMonthStatus.paid)) {
-      return PjMonthStatus.paid;
+    // Force tunggakan to be treated as pending visually (no red card, no alert)
+    if (status == PjMonthStatus.tunggakan) {
+      return PjMonthStatus.pending;
     }
-
-    // Tunggakan dihilangkan dari warning visual utama kartu, 
-    // sehingga akan jatuh ke status default (pending/Belum Bayar)
-    return PjMonthStatus.pending;
+    
+    return status;
   }
 
 

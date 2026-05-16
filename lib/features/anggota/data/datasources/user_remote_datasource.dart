@@ -77,9 +77,58 @@ class UserRemoteDataSource {
     throw Exception('Gagal mengambil data user');
   }
 
+  // Get Users With Status (GET dengan query param ?status_tag=lunas|tunggakan)
+  Future<List<UserModel>> getUsersWithStatus(String statusTag, {String? regionId}) async {
+    var urlStr = '$baseUrl/users/with-status?status_tag=$statusTag';
+    if (regionId != null) {
+      urlStr += '&region_id=$regionId';
+    }
+
+    // ignore: avoid_print
+    print('[UserRemoteDataSource] GET $urlStr');
+
+    final response = await http
+        .get(Uri.parse(urlStr))
+        .timeout(const Duration(seconds: 15));
+
+    // ignore: avoid_print
+    print('[UserRemoteDataSource] with-status => HTTP ${response.statusCode}');
+    // ignore: avoid_print
+    print('[UserRemoteDataSource] body => ${response.body}');
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final responseBody = json.decode(response.body);
+      List rawData = [];
+      if (responseBody is List) {
+        rawData = responseBody;
+      } else if (responseBody is Map && responseBody['data'] is List) {
+        rawData = responseBody['data'];
+      } else if (responseBody is Map && responseBody['users'] is List) {
+        rawData = responseBody['users'];
+      }
+
+      // Filter berdasarkan status_tag karena BE mengembalikan semua user
+      final filtered = rawData.where((e) {
+        final tag = (e['status_tag'] ?? '').toString().toLowerCase();
+        return tag == statusTag.toLowerCase();
+      }).toList();
+
+      return filtered.map((e) => UserModel.fromJson(e)).toList();
+    }
+    throw Exception(
+      'Gagal mengambil data user dengan status $statusTag '
+      '(HTTP ${response.statusCode}): ${response.body}',
+    );
+  }
+
   // Get Riwayat Iuran dari API
-  Future<List<TransactionItemModel>> getRiwayatIuran(String userId) async {
-    final url = Uri.parse('$baseUrl/transaction-item/user/$userId');
+  Future<List<TransactionItemModel>> getRiwayatIuran(String userId, {int? year}) async {
+    var urlStr = '$baseUrl/transaction-item/user/$userId';
+    if (year != null) {
+      urlStr += '?year=$year';
+    }
+    
+    final url = Uri.parse(urlStr);
     final response = await http.get(url).timeout(const Duration(seconds: 10));
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -88,6 +137,7 @@ class UserRemoteDataSource {
     }
     throw Exception('Gagal mengambil data riwayat iuran');
   }
+
 
   Future<Map<String, dynamic>> checkNpa(String npa) async {
     final response = await http

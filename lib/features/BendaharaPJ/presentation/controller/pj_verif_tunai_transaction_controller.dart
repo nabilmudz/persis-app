@@ -159,6 +159,7 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
   Future<PjTransactionCreationResult?> createTransactionForSelectedMonths({
     required String anggotaId,
     required String memberId,
+    required String? accById,
     required Set<int> selectedMonths,
     required int year,
     required double Function(int month, int year) getNominal,
@@ -223,15 +224,14 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
       final transaction = TransactionModel(
         id: transactionId,
         type: 'tunai',
-        creatorId: memberId,
+        creatorId: accById ?? memberId, // Creator adalah Bendahara (yang login)
         paymentMethodId: _tunaiPaymentMethodId ?? 'tunai', 
         totalAmount: totalAmount,
         status: 'completed', // Langsung completed karena ini pembayaran tunai langsung
         accStatus: 'acc_pj', // Sesuai enum NestJS: 'pending' | 'acc_pj'
-        accBy: memberId,       
-
+        accBy: accById,       
         accAt: nowIso,         
-        isSynced: false,
+        isSynced: false, // isSynced false dulu, lalu di-set true jika berhasil API
         createdAt: nowIso,
         items: items,
       );

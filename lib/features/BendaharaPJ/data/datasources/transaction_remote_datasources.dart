@@ -19,7 +19,19 @@ class TransactionRemoteDataSource {
     
     // Set sync flags agar server tahu data ini sudah tersinkron dari client
     payload['is_synced'] = true;
+    payload['isSynced'] = true;
     payload['synced_at'] = DateTime.now().toIso8601String();
+    payload['syncedAt'] = payload['synced_at'];
+
+    // Explicitly add accBy and accAt in both formats to ensure backend receives it
+    if (transaction.accBy != null) {
+      payload['acc_by'] = transaction.accBy;
+      payload['accBy'] = transaction.accBy;
+    }
+    if (transaction.accAt != null) {
+      payload['acc_at'] = transaction.accAt;
+      payload['accAt'] = transaction.accAt;
+    }
 
     final items = (payload['items'] as List?)?.map((item) {
       final itemMap = Map<String, dynamic>.from(item as Map);

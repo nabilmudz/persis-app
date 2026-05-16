@@ -123,6 +123,7 @@ class LoginController extends ChangeNotifier {
           accessToken: token,
           refreshToken: refreshToken,
           role: role,
+          userId: parsedUser?.id,
         );
       } else {
         await AuthHelper.clearSession();

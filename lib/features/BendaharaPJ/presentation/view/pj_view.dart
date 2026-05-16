@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/laporan/pj_payment_data_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/anggota/riwayat_view.dart';
+
 import '../controller/pj_controller.dart';
 import 'anggota/pj_anggota_view.dart';
 import 'tunai/pending_transaction_view.dart';
@@ -137,9 +139,7 @@ class _PjViewPageState extends State<PjViewPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PjPaymentDataViewPage(
-                                controller: _controller,
-                              ),
+                              builder: (_) => const PjRiwayatView(),
                             ),
                           );
                         },
