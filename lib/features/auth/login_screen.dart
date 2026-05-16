@@ -586,23 +586,24 @@ class _LoginScreenState extends State<LoginScreen>
           'refresh_token',
           'refreshToken',
         ]);
-        log('$role');
+        final userMap = body['user'] ?? body['data']?['user'];
+        final userId = userMap?['id']?.toString() ?? userMap?['_id']?.toString();
+        log('$role, UserID: $userId');
 
-        if (_rememberMe && token != null) {
+        if (token != null) {
           await AuthHelper.saveSession(
             accessToken: token,
             refreshToken: refreshToken,
             role: role?.toString(),
+            userId: userId,
           );
-        } else {
-          await AuthHelper.clearSession();
         }
 
         _snackbar('Login berhasil! Selamat datang 👋');
 
         Future.delayed(const Duration(milliseconds: 800), () {
           if (mounted) {
-            final route = _routeForRole(resolvedRole?.toString());
+            final route = _routeForRole(role?.toString());
             Navigator.pushReplacementNamed(context, route);
           }
         });
@@ -620,8 +621,8 @@ class _LoginScreenState extends State<LoginScreen>
     final data = body['data'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(body['data'])
         : body['data'] is Map
-            ? Map<String, dynamic>.from(body['data'] as Map)
-            : null;
+        ? Map<String, dynamic>.from(body['data'] as Map)
+        : null;
 
     for (final key in keys) {
       final value = body[key] ?? data?[key];

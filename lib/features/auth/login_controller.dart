@@ -118,15 +118,13 @@ class LoginController extends ChangeNotifier {
       role ??= userMap?['role'] is String ? userMap!['role'] : null;
       role ??= parsedUser?.role;
 
-      if (rememberMe && token != null) {
+      if (token != null) {
         await AuthHelper.saveSession(
           accessToken: token,
           refreshToken: refreshToken,
           role: role,
           userId: parsedUser?.id,
         );
-      } else {
-        await AuthHelper.clearSession();
       }
 
       final route = _routeForRole(role);
