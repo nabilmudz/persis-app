@@ -602,7 +602,7 @@ class _LoginScreenState extends State<LoginScreen>
 
         Future.delayed(const Duration(milliseconds: 800), () {
           if (mounted) {
-            final route = _routeForRole(resolvedRole?.toString());
+            final route = _routeForRole(role?.toString());
             Navigator.pushReplacementNamed(context, route);
           }
         });
