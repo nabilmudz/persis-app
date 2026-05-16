@@ -13,13 +13,16 @@ class AnggotaController extends ChangeNotifier {
   List<TransactionItemModel> riwayatTransaksi = [];
   int totalTagihan = 0;
 
-  Future<void> fetchRiwayatTransaksi({required String userId}) async {
+  // Status yang dianggap "lunas" / sudah dibayar
+  static const _statusLunas = {'lunas', 'paid', 'selesai', 'success'};
+
+  Future<void> fetchRiwayatTransaksi({required String userId, int? year}) async {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
 
     try {
-      final data = await repository.getRiwayatIuran(userId);
+      final data = await repository.getRiwayatIuran(userId, year: year);
       riwayatTransaksi = data;
       _hitungTotalTagihan();
     } catch (e) {
@@ -36,23 +39,50 @@ class AnggotaController extends ChangeNotifier {
   void _hitungTotalTagihan() {
     totalTagihan = 0;
     for (final item in riwayatTransaksi) {
-      if (item.status == 'pending' ||
-          item.status == 'tunggakan' ||
-          item.status == 'unpaid') {
-        totalTagihan += (item.amount ?? 0);
+      final status = (item.status ?? '').toLowerCase();
+      if (status == 'pending' ||
+          status == 'tunggakan' ||
+          status == 'unpaid') {
+        final amount = item.amount ?? item.jumlah ?? 0;
+        totalTagihan += (amount is String
+            ? int.tryParse(amount) ?? 0
+            : (amount as num).toInt());
       }
     }
   }
 
-  List<TransactionItemModel> get riwayatTerakhir =>
-      riwayatTransaksi.take(3).toList();
-
-  List<TransactionItemModel> filterByTahun(String tahun) {
-    if (tahun == 'Semua') return riwayatTransaksi;
-    
+  /// Hanya transaksi yang sudah lunas/dibayar
+  List<TransactionItemModel> get riwayatLunas {
     return riwayatTransaksi.where((tx) {
-      final deskripsi = (tx.description ?? '').toLowerCase();
-      return deskripsi.contains(tahun.toLowerCase().replaceAll('tahun ', ''));
+      final status = (tx.status ?? '').toLowerCase();
+      return _statusLunas.any((s) => status.contains(s));
     }).toList();
   }
+
+  /// Filter riwayat lunas berdasarkan tahun (string seperti "2025")
+  /// Gunakan "Semua" untuk mengembalikan semua data lunas.
+  List<TransactionItemModel> filterLunasByTahun(String tahun) {
+    final lunas = riwayatLunas;
+    if (tahun == 'Semua') return lunas;
+
+    final keyword = tahun.replaceAll(RegExp(r'[Tt]ahun\s*'), '').trim();
+    return lunas.where((tx) {
+      final deskripsi = (tx.description ?? '').toLowerCase();
+      return deskripsi.contains(keyword);
+    }).toList();
+  }
+
+  /// Total nominal dari daftar transaksi yang diberikan
+  double hitungTotalNominal(List<TransactionItemModel> transactions) {
+    return transactions.fold(0.0, (sum, tx) {
+      final amount = tx.amount ?? tx.jumlah ?? 0;
+      return sum +
+          (amount is String
+              ? double.tryParse(amount) ?? 0
+              : (amount as num).toDouble());
+    });
+  }
+
+  List<TransactionItemModel> get riwayatTerakhir =>
+      riwayatLunas.take(3).toList();
 }

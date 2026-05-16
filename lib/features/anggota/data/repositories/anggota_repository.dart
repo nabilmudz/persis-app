@@ -22,11 +22,12 @@ class AnggotaRepository {
     }
   }
 
-  Future<List<TransactionItemModel>> getRiwayatIuran(String userId) async {
+  Future<List<TransactionItemModel>> getRiwayatIuran(String userId, {int? year}) async {
     try {
-      return await userRemoteDataSource.getRiwayatIuran(userId);
+      return await userRemoteDataSource.getRiwayatIuran(userId, year: year);
     } catch (e) {
       rethrow;
     }
   }
+
 }

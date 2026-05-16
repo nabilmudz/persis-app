@@ -32,7 +32,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     widget.controller.addListener(_onControllerChanged);
     _laporanController = PjLaporanController();
     _laporanController.addListener(_onLaporanChanged);
-    
+
     // Fetch data awal untuk bulan berjalan
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchMonthlyData();
@@ -83,7 +83,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         if (mounted) {
           setState(() {
             _monthlyTransactions = rawData
-                .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+                .map(
+                  (e) =>
+                      TransactionModel.fromJson(Map<String, dynamic>.from(e)),
+                )
                 .toList();
             _isInitialLoading = false;
           });
@@ -101,7 +104,8 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         if (t.createdAt == null) return false;
         try {
           final date = DateTime.parse(t.createdAt!);
-          return date.year == _selectedMonth.year && date.month == _selectedMonth.month;
+          return date.year == _selectedMonth.year &&
+              date.month == _selectedMonth.month;
         } catch (_) {
           return false;
         }
@@ -113,10 +117,13 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       });
 
       // Tampilkan peringatan jika ini adalah fallback karena error API
-      if (_laporanController.errorMessage != null || _monthlyTransactions.isEmpty) {
+      if (_laporanController.errorMessage != null ||
+          _monthlyTransactions.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Koneksi server terputus. Menampilkan data lokal (mungkin tidak lengkap).'),
+            content: Text(
+              'Koneksi server terputus. Menampilkan data lokal (mungkin tidak lengkap).',
+            ),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 3),
           ),
@@ -125,7 +132,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     }
   }
 
-
   List<TransactionModel> _filterTransactionsByMonth(
     List<TransactionModel> transactions,
   ) {
@@ -133,7 +139,8 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     // kita hanya perlu memfilter berdasarkan status acc/completed saja jika perlu.
     return transactions.where((transaction) {
       final isApproved =
-          (transaction.accStatus == 'acc_pj' || transaction.accStatus == 'approved') ||
+          (transaction.accStatus == 'acc_pj' ||
+              transaction.accStatus == 'approved') ||
           transaction.status == 'completed';
       return isApproved;
     }).toList();
@@ -156,7 +163,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       _fetchMonthlyData();
     }
   }
-
 
   String _formatCurrency(int? amount) {
     if (amount == null) return 'Rp. 0';
@@ -218,11 +224,15 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         exportData = rawData
             .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
             .toList();
-        debugPrint('✓ API Export: ${exportData.length} transaksi diterima dari server');
+        debugPrint(
+          '✓ API Export: ${exportData.length} transaksi diterima dari server',
+        );
       } else {
         // Fallback ke data lokal jika API tidak return data array
         // Ambil SEMUA transaksi bulan itu (tidak filter status) jika API gagal
-        final allTransactionsMonth = widget.controller.transactions.where((transaction) {
+        final allTransactionsMonth = widget.controller.transactions.where((
+          transaction,
+        ) {
           if (transaction.createdAt == null) return false;
           try {
             final transactionDate = DateTime.parse(transaction.createdAt!);
@@ -235,7 +245,9 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
           }
         }).toList();
         exportData = allTransactionsMonth;
-        debugPrint('⚠ Fallback: ${exportData.length} transaksi dari data lokal');
+        debugPrint(
+          '⚠ Fallback: ${exportData.length} transaksi dari data lokal',
+        );
       }
 
       if (exportData.isEmpty) {
@@ -256,37 +268,52 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       excel.delete('Sheet1');
 
       // Header sesuai template
-      final headers = ['Hari, Tanggal', 'Nama Anggota', 'Dari Bulan', 'Hingga Bulan', 'Total Bayar', 'Di ACC oleh', 'PJ', 'PC', 'PW', 'PD', 'PP'];
+      final headers = [
+        'Hari, Tanggal',
+        'Nama Anggota',
+        'Dari Bulan',
+        'Hingga Bulan',
+        'Total Bayar',
+        'Di ACC oleh',
+        'PJ',
+        'PC',
+        'PW',
+        'PD',
+        'PP',
+      ];
       sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
 
       // 3. Tambah Data
       final monthLabel = DateFormat('MMMM', 'id_ID').format(_selectedMonth);
-      
+
       for (int i = 0; i < exportData.length; i++) {
         final t = exportData[i];
         final amount = t.totalAmount ?? 0;
-        
+
         // Format: "Hari, dd MMM yyyy"
-        final dateFormatted = t.createdAt != null 
-            ? DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(DateTime.parse(t.createdAt!))
+        final dateFormatted = t.createdAt != null
+            ? DateFormat(
+                'EEEE, dd MMM yyyy',
+                'id_ID',
+              ).format(DateTime.parse(t.createdAt!))
             : '-';
-        
+
         // Ambil member name
         final memberName = t.memberName ?? _getMemberName(t);
-        
+
         // Dari Bulan dan Hingga Bulan (sama dengan bulan yang dipilih untuk sekarang)
         final dariHingga = monthLabel;
-        
+
         // Di ACC oleh
         final diAccOleh = t.verifiedBy ?? '-';
-        
+
         // Hitung pembagian
         final pj = (amount * 30) ~/ 100;
         final pc = (amount * 20) ~/ 100;
         final pw = (amount * 15) ~/ 100;
         final pd = (amount * 20) ~/ 100;
         final pp = (amount * 15) ~/ 100;
-        
+
         sheet.appendRow([
           TextCellValue(dateFormatted),
           TextCellValue(memberName),
@@ -301,15 +328,20 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
           IntCellValue(pp),
         ]);
       }
-      
-      debugPrint('✓ Excel: ${exportData.length} baris data berhasil ditambahkan');
+
+      debugPrint(
+        '✓ Excel: ${exportData.length} baris data berhasil ditambahkan',
+      );
 
       // 4. Simpan ke file .xlsx
       final bytes = excel.encode();
       if (bytes == null) return;
 
       final directory = await getTemporaryDirectory();
-      final monthLabelFile = DateFormat('MMMM_yyyy', 'id_ID').format(_selectedMonth);
+      final monthLabelFile = DateFormat(
+        'MMMM_yyyy',
+        'id_ID',
+      ).format(_selectedMonth);
       final file = File('${directory.path}/Laporan_PJ_$monthLabelFile.xlsx');
       await file.writeAsBytes(bytes);
 
@@ -321,7 +353,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
           subject: 'Laporan PJ $monthLabelFile',
         );
       }
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -349,9 +380,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       ),
       body: _isInitialLoading
           ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF10B367),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFF10B367)),
             )
           : RefreshIndicator(
               onRefresh: _fetchMonthlyData,
@@ -366,160 +395,178 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                       child: _buildOverviewCard(filteredTransactions),
                     ),
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: _buildDistributionCard(filteredTransactions),
-            ),
-            // Filter and Export Bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              color: const Color(0xFFF5F5F5),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: _selectMonth,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: const Color(0xFFD0D0D0)),
-                          borderRadius: BorderRadius.circular(8),
-                          color: Colors.white,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              DateFormat(
-                                'MMMM yyyy',
-                                'id_ID',
-                              ).format(_selectedMonth),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF073D4D),
-                              ),
-                            ),
-                            const Icon(
-                              Icons.calendar_today,
-                              size: 18,
-                              color: Color(0xFF073D4D),
-                            ),
-                          ],
-                        ),
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: _buildDistributionCard(filteredTransactions),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: _exportExcel,
-                    icon: const Icon(Icons.table_chart),
-                    label: const Text('Excel (.xlsx)'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E6F42), // Excel color
-                      foregroundColor: Colors.white,
+                    // Filter and Export Bar
+                    Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
                       ),
-                    ),
-                  ),
-                  if (_laporanController.isLoading)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 12),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xFF10B367),
+                      color: const Color(0xFFF5F5F5),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: _selectMonth,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: const Color(0xFFD0D0D0),
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.white,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      DateFormat(
+                                        'MMMM yyyy',
+                                        'id_ID',
+                                      ).format(_selectedMonth),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF073D4D),
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.calendar_today,
+                                      size: 18,
+                                      color: Color(0xFF073D4D),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: _exportExcel,
+                            icon: const Icon(Icons.table_chart),
+                            label: const Text('Excel (.xlsx)'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(
+                                0xFF1E6F42,
+                              ), // Excel color
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                          if (_laporanController.isLoading)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 12),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF10B367),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                ],
+                    // Transactions List
+                    if (filteredTransactions.isEmpty)
+                      _buildEmptyState()
+                    else
+                      Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Rincian Pembayaran',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF073D4D),
+                                ),
+                              ),
+                            ),
+                          ),
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                            itemCount: _groupTransactionsByType(
+                              filteredTransactions,
+                            ).keys.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final groupedData = _groupTransactionsByType(
+                                filteredTransactions,
+                              );
+                              final type = groupedData.keys.elementAt(index);
+                              final transactions = groupedData[type]!;
+
+                              // Create a synthetic recap transaction
+                              final totalAmount = transactions.fold<int>(
+                                0,
+                                (sum, t) => sum + (t.totalAmount ?? 0),
+                              );
+                              final latestTransaction = transactions
+                                  .first; // Use first one for metadata
+
+                              final recapTransaction = TransactionModel(
+                                type: type,
+                                totalAmount: totalAmount,
+                                code: 'REKAP-${type.toUpperCase()}',
+                                createdAt: latestTransaction.createdAt,
+                                accStatus: 'acc_pj',
+                                verifiedBy: 'Sistem',
+                              );
+
+                              return _PaymentDataCard(
+                                transaction: recapTransaction,
+                                isRecap: true,
+                                memberName: '-',
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PjRecapDetailViewPage(
+                                        title: type,
+                                        transactions: transactions,
+                                        month: _selectedMonth.month,
+                                        year: _selectedMonth.year,
+                                        monthLabel: DateFormat(
+                                          'MMMM',
+                                          'id_ID',
+                                        ).format(_selectedMonth),
+                                        getMemberName: _getMemberName,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
             ),
-            // Transactions List
-            if (filteredTransactions.isEmpty)
-              _buildEmptyState()
-            else
-              Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Rincian Pembayaran',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF073D4D),
-                        ),
-                      ),
-                    ),
-                  ),
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    itemCount: _groupTransactionsByType(filteredTransactions).keys.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final groupedData = _groupTransactionsByType(filteredTransactions);
-                      final type = groupedData.keys.elementAt(index);
-                      final transactions = groupedData[type]!;
-                      
-                      // Create a synthetic recap transaction
-                      final totalAmount = transactions.fold<int>(0, (sum, t) => sum + (t.totalAmount ?? 0));
-                      final latestTransaction = transactions.first; // Use first one for metadata
-                      
-                      final recapTransaction = TransactionModel(
-                        type: type,
-                        totalAmount: totalAmount,
-                        code: 'REKAP-${type.toUpperCase()}',
-                        createdAt: latestTransaction.createdAt,
-                        accStatus: 'acc_pj',
-                        verifiedBy: 'Sistem',
-                      );
-
-                      return _PaymentDataCard(
-                        transaction: recapTransaction,
-                        isRecap: true,
-                        memberName: '-',
-                        onTap: (type.toLowerCase() == 'tunai' || 
-                                transactions.any((t) => t.paymentMethodId == '69ee266797af79f7ef06e559'))
-                            ? () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => PjRecapDetailViewPage(
-                                      title: type,
-                                      transactions: transactions,
-                                      month: _selectedMonth.month,
-                                      year: _selectedMonth.year,
-                                      monthLabel: DateFormat('MMMM', 'id_ID').format(_selectedMonth),
-                                      getMemberName: _getMemberName, // Pass helper
-                                    ),
-                                  ),
-                                );
-                              }
-                            : null,
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ]
-            ),     
-      ),
-    ));
+    );
   }
 
   Widget _buildEmptyState() {
@@ -676,7 +723,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     }
 
     String fmt(int amount) => NumberFormat.currency(
-        locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(amount);
 
     return Container(
       width: double.infinity,
@@ -689,33 +739,54 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Distribusi Iuran (%)',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF073D4D))),
+          const Text(
+            'Distribusi Iuran (%)',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF073D4D),
+            ),
+          ),
           const SizedBox(height: 14),
           _buildDistributionItemWidget(
-              label: 'PJ (30%)', percentage: 30,
-              amount: (totalAmount * 30) ~/ 100,
-              color: const Color(0xFF10B367), formatAmount: fmt),
+            label: 'PJ (30%)',
+            percentage: 30,
+            amount: (totalAmount * 30) ~/ 100,
+            color: const Color(0xFF10B367),
+            formatAmount: fmt,
+          ),
           const SizedBox(height: 10),
           _buildDistributionItemWidget(
-              label: 'PC (20%)', percentage: 20,
-              amount: (totalAmount * 20) ~/ 100,
-              color: const Color(0xFF007AFF), formatAmount: fmt),
+            label: 'PC (20%)',
+            percentage: 20,
+            amount: (totalAmount * 20) ~/ 100,
+            color: const Color(0xFF007AFF),
+            formatAmount: fmt,
+          ),
           const SizedBox(height: 10),
           _buildDistributionItemWidget(
-              label: 'PD (20%)', percentage: 20,
-              amount: (totalAmount * 20) ~/ 100,
-              color: const Color(0xFFFFA500), formatAmount: fmt),
+            label: 'PD (20%)',
+            percentage: 20,
+            amount: (totalAmount * 20) ~/ 100,
+            color: const Color(0xFFFFA500),
+            formatAmount: fmt,
+          ),
           const SizedBox(height: 10),
           _buildDistributionItemWidget(
-              label: 'PW (15%)', percentage: 15,
-              amount: (totalAmount * 15) ~/ 100,
-              color: const Color(0xFF8B5CF6), formatAmount: fmt),
+            label: 'PW (15%)',
+            percentage: 15,
+            amount: (totalAmount * 15) ~/ 100,
+            color: const Color(0xFF8B5CF6),
+            formatAmount: fmt,
+          ),
           const SizedBox(height: 10),
           _buildDistributionItemWidget(
-              label: 'PP (15%)', percentage: 15,
-              amount: (totalAmount * 15) ~/ 100,
-              color: const Color(0xFFEC4899), formatAmount: fmt),
+            label: 'PP (15%)',
+            percentage: 15,
+            amount: (totalAmount * 15) ~/ 100,
+            color: const Color(0xFFEC4899),
+            formatAmount: fmt,
+          ),
         ],
       ),
     );
@@ -726,13 +797,13 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   ) {
     final Map<String, List<TransactionModel>> grouped = {};
     for (final t in transactions) {
-      String type = t.type ?? 'Lainnya';
-      
+      String type = t.type ?? 'Tunai';
+
       // Specifically handle the requested payment method ID
-      if (t.paymentMethodId == '69ee266797af79f7ef06e559') {
-        type = 'Pembayaran Tunai';
+      if (t.paymentMethodId == '69ee266797af79f7ef06e559' || type.toLowerCase() == 'tunai') {
+        type = 'Rekap Tunai';
       }
-      
+
       grouped.putIfAbsent(type, () => []).add(t);
     }
     return grouped;
@@ -803,21 +874,44 @@ class _PaymentDataCard extends StatelessWidget {
 
   Widget _buildPjDistribution() {
     final amount = transaction.totalAmount ?? 0;
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final fmt = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [
-          const Text('DISTRIBUSI PJ',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280), letterSpacing: 0.5)),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(4)),
-            child: const Text('PJ saja', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF92400E))),
-          ),
-        ]),
+        Row(
+          children: [
+            const Text(
+              'DISTRIBUSI PJ',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF6B7280),
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'PJ saja',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF92400E),
+                ),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         _distRow('PJ (30%)', fmt.format((amount * 30) ~/ 100)),
         _distRow('PC (20%)', fmt.format((amount * 20) ~/ 100)),
@@ -833,8 +927,18 @@ class _PaymentDataCard extends StatelessWidget {
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF4B5563))),
-        Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF073D4D))),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF4B5563)),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF073D4D),
+          ),
+        ),
       ],
     ),
   );
@@ -863,6 +967,8 @@ class _PaymentDataCard extends StatelessWidget {
     switch (type?.toLowerCase()) {
       case 'tunai':
         return 'Tunai';
+      case 'rekap tunai':
+        return 'Rekap Tunai';
       case 'non-tunai':
       case 'transfer':
         return 'Transfer Bank';
@@ -893,198 +999,207 @@ class _PaymentDataCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap, // gunakan onTap di sini
       child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Row with Type and Status
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _getPaymentTypeLabel(transaction.type),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF073D4D),
-                      ),
-                    ),
-                    if (!isRecap) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Nama: $displayMemberName',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF10B367),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 4),
-                    Text(
-                      'Kode: ${((transaction.code != null && transaction.code!.isNotEmpty) ? transaction.code : (transaction.id != null && transaction.id!.isNotEmpty ? (transaction.id!.length > 8 ? transaction.id!.substring(transaction.id!.length - 8).toUpperCase() : transaction.id!.toUpperCase()) : '-'))}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(
-                    transaction.accStatus,
-                  ).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isRecap ? 'Group' : ((transaction.accStatus == 'acc_pj' || transaction.accStatus == 'approved') ? 'approved' : 'pending'),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: _getStatusColor(transaction.accStatus),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Amount
-          Text(
-            _formatCurrency(transaction.totalAmount),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF10B367),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E5E5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
-          ),
-          if (!isRecap) ...[
-            const SizedBox(height: 12),
-            // Date and Details Row
+          ],
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row with Type and Status
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tanggal',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: const Color(0xFF6B7280).withValues(alpha: 0.7),
+                        _getPaymentTypeLabel(transaction.type),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF073D4D),
                         ),
                       ),
+                      if (!isRecap) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Nama: $displayMemberName',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF10B367),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 4),
                       Text(
-                        _formatDate(transaction.createdAt),
+                        'Kode: ${((transaction.code != null && transaction.code!.isNotEmpty) ? transaction.code : (transaction.id != null && transaction.id!.isNotEmpty ? (transaction.id!.length > 8 ? transaction.id!.substring(transaction.id!.length - 8).toUpperCase() : transaction.id!.toUpperCase()) : '-'))}',
                         style: const TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF073D4D),
+                          color: Color(0xFF6B7280),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Diverifikasi Oleh',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: const Color(0xFF6B7280).withValues(alpha: 0.7),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        transaction.verifiedBy ?? '-',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF073D4D),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(
+                      transaction.accStatus,
+                    ).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isRecap
+                        ? 'Group'
+                        : ((transaction.accStatus == 'acc_pj' ||
+                                  transaction.accStatus == 'approved')
+                              ? 'approved'
+                              : 'pending'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _getStatusColor(transaction.accStatus),
+                    ),
                   ),
                 ),
               ],
             ),
-          ] else
-            const SizedBox(height: 8),
-          // Bank Info (if non-tunai)
-          if (transaction.type?.toLowerCase() != 'tunai' &&
-              (transaction.bankName != null ||
-                  transaction.bankAccountName != null))
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (transaction.bankName != null)
+            const SizedBox(height: 12),
+            // Amount
+            Text(
+              _formatCurrency(transaction.totalAmount),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF10B367),
+              ),
+            ),
+            if (!isRecap) ...[
+              const SizedBox(height: 12),
+              // Date and Details Row
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          'Bank: ${transaction.bankName}',
-                          style: const TextStyle(
+                          'Tanggal',
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF4B5563),
+                            color: const Color(
+                              0xFF6B7280,
+                            ).withValues(alpha: 0.7),
                           ),
                         ),
-                      if (transaction.bankAccountName != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'Atas Nama: ${transaction.bankAccountName}',
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatDate(transaction.createdAt),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF073D4D),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Diverifikasi Oleh',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: const Color(
+                              0xFF6B7280,
+                            ).withValues(alpha: 0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          transaction.verifiedBy ?? '-',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF073D4D),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ] else
+              const SizedBox(height: 8),
+            // Bank Info (if non-tunai)
+            if (transaction.type?.toLowerCase() != 'tunai' &&
+                (transaction.bankName != null ||
+                    transaction.bankAccountName != null))
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (transaction.bankName != null)
+                          Text(
+                            'Bank: ${transaction.bankName}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF4B5563),
                             ),
                           ),
-                        ),
-                    ],
+                        if (transaction.bankAccountName != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Atas Nama: ${transaction.bankAccountName}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF4B5563),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             // Di bagian bawah build(), setelah bank info:
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFE5E5E5)),
             const SizedBox(height: 10),
             _buildPjDistribution(),
-        ],
+          ],
+        ),
       ),
-    )
     );
   }
 }

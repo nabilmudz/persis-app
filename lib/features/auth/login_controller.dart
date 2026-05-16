@@ -123,7 +123,9 @@ class LoginController extends ChangeNotifier {
           accessToken: token,
           refreshToken: refreshToken,
           role: role,
+          userId: parsedUser?.id,
         );
+
       }
 
       final route = _routeForRole(role);

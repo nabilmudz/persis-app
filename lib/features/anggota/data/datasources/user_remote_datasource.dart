@@ -78,8 +78,13 @@ class UserRemoteDataSource {
   }
 
   // Get Riwayat Iuran dari API
-  Future<List<TransactionItemModel>> getRiwayatIuran(String userId) async {
-    final url = Uri.parse('$baseUrl/transaction-item/user/$userId');
+  Future<List<TransactionItemModel>> getRiwayatIuran(String userId, {int? year}) async {
+    var urlStr = '$baseUrl/transaction-item/user/$userId';
+    if (year != null) {
+      urlStr += '?year=$year';
+    }
+    
+    final url = Uri.parse(urlStr);
     final response = await http.get(url).timeout(const Duration(seconds: 10));
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -88,6 +93,7 @@ class UserRemoteDataSource {
     }
     throw Exception('Gagal mengambil data riwayat iuran');
   }
+
 
   Future<Map<String, dynamic>> checkNpa(String npa) async {
     final response = await http

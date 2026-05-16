@@ -10,6 +10,8 @@ import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pj_verif
 import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_invoice.view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/anggota/pj_detail_anggota_view.dart';
+import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
+import 'package:persis_app/core/network/api_client.dart';
 
 class PjAnggotaViewPage extends StatefulWidget {
   final PjController controller;
@@ -117,14 +119,12 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
             final memberId = member.id ?? '';
             if (memberId.isEmpty) return true;
 
-            final totalTunggakan = widget.controller.tunggakanNominalByMember(
-              memberId,
-            );
+            final cardStatus = widget.controller.memberCardStatus(memberId);
 
             if (_filterStatus == 'Tunggakan') {
-              return totalTunggakan > 0;
+              return cardStatus == PjMonthStatus.tunggakan;
             } else if (_filterStatus == 'Lunas') {
-              return totalTunggakan == 0;
+              return cardStatus == PjMonthStatus.paid;
             }
             return true;
           }).toList();
@@ -286,15 +286,29 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                             );
                           },
                           onTapInvoice: _getLastInvoiceForMember(member) != null
-                              ? () {
-                                  final invoiceData =
+                              ? () async {
+                                  var invoiceData =
                                       _getLastInvoiceForMember(member);
                                   if (invoiceData == null) return;
+
+                                  // Fetch complete member if phone is missing
+                                  if ((invoiceData.member.noHp == null || invoiceData.member.noHp!.isEmpty) && 
+                                      invoiceData.member.id != null) {
+                                    try {
+                                      final userRemote = UserRemoteDataSource(ApiClient.baseUrl);
+                                      final fetchedUser = await userRemote.getOneUsers(invoiceData.member.id!);
+                                      if (fetchedUser.noHp != null && fetchedUser.noHp!.isNotEmpty) {
+                                        invoiceData = invoiceData.copyWith(member: fetchedUser);
+                                      }
+                                    } catch (_) {}
+                                  }
+
+                                  if (!mounted) return;
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) => PjInvoiceViewPage(
-                                        invoiceData: invoiceData,
+                                        invoiceData: invoiceData!,
                                       ),
                                     ),
                                   );

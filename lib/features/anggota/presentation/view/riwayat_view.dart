@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
+import 'package:persis_app/features/anggota/presentation/widgets/anggota_card.dart';
 import 'package:provider/provider.dart';
-import '../widgets/anggota_card.dart';
-import '../controller/anggota_controller.dart';
 
 class RiwayatView extends StatefulWidget {
   const RiwayatView({super.key});
@@ -11,7 +11,14 @@ class RiwayatView extends StatefulWidget {
 }
 
 class _RiwayatViewState extends State<RiwayatView> {
-  String selectedFilter = 'Semua';
+  String _selectedFilter = 'Semua';
+
+  static const _filterOptions = [
+    'Semua',
+    'Tahun 2026',
+    'Tahun 2025',
+    'Tahun 2024',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -40,71 +47,57 @@ class _RiwayatViewState extends State<RiwayatView> {
         ),
       ),
       body: Consumer<AnggotaController>(
-        builder: (context, controller, child) {
-          // Filter berdasarkan tahun
-          final filteredTransactions = controller.riwayatTransaksi.where((tx) {
-            bool passesYearFilter = true;
-            if (selectedFilter != 'Semua') {
-              final deskripsi = (tx.description ?? '').toLowerCase();
-              passesYearFilter = deskripsi.contains(selectedFilter
-                  .toLowerCase()
-                  .replaceAll('tahun ', ''));
-            }
-            return passesYearFilter;
-          }).toList();
+        builder: (context, controller, _) {
+          // Semua filtering & perhitungan dilakukan di controller
+          final transactions =
+              controller.filterLunasByTahun(_selectedFilter);
+          final totalAmount = controller.hitungTotalNominal(transactions);
 
           return Column(
             children: [
               const SizedBox(height: 16),
 
+              // ── Filter chips ──────────────────────────────────────
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
-                  children: [
-                    _buildFilterChip('Semua'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Tahun 2026'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Tahun 2025'),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Tahun 2024'),
-                  ],
+                  children: _filterOptions
+                      .map((label) => Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _FilterChip(
+                              label: label,
+                              isSelected: _selectedFilter == label,
+                              onTap: () =>
+                                  setState(() => _selectedFilter = label),
+                            ),
+                          ))
+                      .toList(),
                 ),
               ),
 
               const SizedBox(height: 24),
 
+              // ── Kartu total pembayaran lunas ──────────────────────
+              if (transactions.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _TotalCard(totalAmount: totalAmount),
+                ),
+
+              const SizedBox(height: 20),
+
+              // ── Daftar transaksi ──────────────────────────────────
               Expanded(
-                child: filteredTransactions.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              size: 48,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Tidak ada riwayat transaksi.',
-                              style: TextStyle(
-                                fontFamily: 'Poppins',
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
+                child: transactions.isEmpty
+                    ? const _EmptyState()
                     : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        itemCount: filteredTransactions.length,
-                        itemBuilder: (context, index) {
-                          return AnggotaCard(
-                            transaction: filteredTransactions[index],
-                          );
-                        },
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 24),
+                        itemCount: transactions.length,
+                        itemBuilder: (context, index) => AnggotaCard(
+                          transaction: transactions[index],
+                        ),
                       ),
               ),
             ],
@@ -113,21 +106,33 @@ class _RiwayatViewState extends State<RiwayatView> {
       ),
     );
   }
+}
 
-  Widget _buildFilterChip(String label) {
-    bool isSelected = selectedFilter == label;
+// ── Sub-widgets ────────────────────────────────────────────────────────────────
 
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedFilter = label;
-        });
-      },
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF189D4A) : const Color(0xFFEDEDED),
+          color: isSelected
+              ? const Color(0xFF189D4A)
+              : const Color(0xFFEDEDED),
           borderRadius: BorderRadius.circular(30),
         ),
         child: Text(
@@ -139,6 +144,89 @@ class _RiwayatViewState extends State<RiwayatView> {
             fontSize: 14,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _TotalCard extends StatelessWidget {
+  const _TotalCard({required this.totalAmount});
+
+  final double totalAmount;
+
+  String _formatRupiah(double amount) {
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (_) => '.',
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F5EE),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF189D4A),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Total Pembayaran Lunas',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              color: Color(0xFF7F7F7F),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Rp ${_formatRupiah(totalAmount)}',
+            style: const TextStyle(
+              fontFamily: 'Poppins',
+              color: Color(0xFF189D4A),
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 48,
+            color: Colors.grey.shade300,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Tidak ada riwayat pembayaran.',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              color: Colors.grey,
+            ),
+          ),
+        ],
       ),
     );
   }

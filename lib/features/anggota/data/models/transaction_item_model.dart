@@ -27,4 +27,6 @@ class TransactionItemModel {
       createdAt: json['created_at'],
     );
   }
+
+  Object? get jumlah => null;
 }

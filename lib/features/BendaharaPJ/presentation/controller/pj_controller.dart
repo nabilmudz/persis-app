@@ -237,6 +237,50 @@ class PjController extends ChangeNotifier {
       _transactions
         ..clear()
         ..addAll(_transactionsFromPaymentSnapshot(snapshot));
+
+      // ── Enrich transactions with created_at from history endpoint ──────────
+      // Payment snapshot tidak menyertakan created_at, sedangkan getHistory()
+      // mengembalikan created_at yang lengkap. Kita gunakan history untuk
+      // mengisi tanggal agar invoice menampilkan tanggal transaksi yang benar.
+      try {
+        final historyTxs = await _transactionDataSource.getHistory();
+        if (historyTxs.isNotEmpty) {
+          // Index history by ID untuk lookup O(1)
+          final historyById = <String, TransactionModel>{
+            for (final tx in historyTxs)
+              if (tx.id != null && tx.id!.isNotEmpty) tx.id!: tx,
+          };
+
+          // Ganti _transactions dengan versi yang diperkaya created_at
+          final enriched = _transactions.map((tx) {
+            if (tx.createdAt != null) return tx;
+            final hist = historyById[tx.id];
+            if (hist?.createdAt == null) return tx;
+            return tx.copyWith(createdAt: hist!.createdAt);
+          }).toList();
+
+          _transactions
+            ..clear()
+            ..addAll(enriched);
+
+          // Simpan juga transaksi dari history yang belum ada di snapshot
+          for (final histTx in historyTxs) {
+            if (histTx.id != null &&
+                !_transactions.any((t) => t.id == histTx.id)) {
+              _transactions.add(histTx);
+            }
+          }
+
+          await PjTransactionItemController.cachePeriodsFromTransactions(
+            historyTxs,
+          );
+        }
+      } catch (historyError) {
+        // Jika history gagal, tetap lanjut dengan transaksi dari snapshot
+        debugPrint('[PjController] Gagal enrich dari history: $historyError');
+      }
+      // ──────────────────────────────────────────────────────────────────────
+
       await _cacheBox.put(
         'transactions',
         _transactions.map((e) => e.toJson()).toList(),
@@ -249,6 +293,7 @@ class PjController extends ChangeNotifier {
       await _fetchAndCacheData();
     }
   }
+
 
   Future<String?> resolveRegionId() async {
     final token = await SecureStorageService.read(
@@ -370,6 +415,9 @@ class PjController extends ChangeNotifier {
           TransactionModel(
             id:
                 payment['transaction_id']?.toString() ??
+                payment['transactionId']?.toString() ??
+                payment['id']?.toString() ??
+                payment['_id']?.toString() ??
                 'snapshot-$memberId-$periodKey',
             type: 'tunai',
             creatorId: memberId,
@@ -377,6 +425,10 @@ class PjController extends ChangeNotifier {
             status: status == 'paid' ? 'completed' : status,
             memberName: member['fullname']?.toString(),
             npa: member['npa']?.toString(),
+            // Ambil tanggal transaksi dari berbagai kemungkinan field backend
+            createdAt: payment['created_at']?.toString() ??
+                payment['createdAt']?.toString() ??
+                payment['paid_at']?.toString(),
             items: [
               TransactionItemModel(
                 anggotaId: memberId,
