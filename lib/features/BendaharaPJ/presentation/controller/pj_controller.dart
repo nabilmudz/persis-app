@@ -199,6 +199,38 @@ class PjController extends ChangeNotifier {
     }
   }
 
+  Future<void> fetchMembersByStatus(String statusTag) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final regionId = await resolveRegionId();
+      
+      List<UserModel> users;
+      if (statusTag.toLowerCase() == 'semua') {
+        await loadInitialData();
+        return;
+      } else {
+        users = await _userDataSource.getUsersWithStatus(statusTag.toLowerCase(), regionId: regionId);
+        
+        final filteredUsers = users
+            .where((u) => u.id != null && u.id!.trim().isNotEmpty)
+            .toList();
+
+        _members
+          ..clear()
+          ..addAll(filteredUsers);
+      }
+    } catch (e) {
+      debugPrint('[PjController] Error fetchMembersByStatus: $e');
+      _errorMessage = 'Gagal memuat data anggota berdasarkan status: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> loadPaymentStatusSnapshot({
     required int year,
     String? regionId,

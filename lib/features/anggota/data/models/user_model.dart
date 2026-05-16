@@ -35,7 +35,7 @@ class UserModel {
     email: json['email'],
     role: json['role'],
     roleId: json['role_id'],
-    status: json['status'],
+    status: json['status_tag'] ?? json['status'],
     noHp:
         json['no_hp'] ??
         json['no_telp'] ??

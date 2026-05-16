@@ -26,6 +26,8 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
   final TextEditingController _searchController = TextEditingController();
   String _filterStatus = 'Semua';
   final List<String> _statusFilters = ['Semua', 'Tunggakan', 'Lunas'];
+  int _currentPage = 1;
+  final int _itemsPerPage = 20;
 
   @override
   void initState() {
@@ -110,24 +112,15 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
             );
           }
 
-          final List<UserModel> allMembers = widget.controller.filterMembers(
+          final List<UserModel> filteredMembers = widget.controller.filterMembers(
             _searchController.text,
           );
 
-          // Filter berdasarkan status
-          final List<UserModel> filteredMembers = allMembers.where((member) {
-            final memberId = member.id ?? '';
-            if (memberId.isEmpty) return true;
-
-            final cardStatus = widget.controller.memberCardStatus(memberId);
-
-            if (_filterStatus == 'Tunggakan') {
-              return cardStatus == PjMonthStatus.tunggakan;
-            } else if (_filterStatus == 'Lunas') {
-              return cardStatus == PjMonthStatus.paid;
-            }
-            return true;
-          }).toList();
+          final int totalPages = (filteredMembers.length / _itemsPerPage).ceil();
+          final List<UserModel> paginatedMembers = filteredMembers
+              .skip((_currentPage - 1) * _itemsPerPage)
+              .take(_itemsPerPage)
+              .toList();
 
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -145,7 +138,9 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                 children: [
                   TextField(
                     controller: _searchController,
-                    onChanged: (_) => setState(() {}),
+                    onChanged: (_) => setState(() {
+                      _currentPage = 1;
+                    }),
                     decoration: InputDecoration(
                       hintText: 'Cari nama, no anggota, lokasi',
                       prefixIcon: const Icon(Icons.search),
@@ -182,9 +177,13 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                             label: Text(status),
                             selected: isSelected,
                             onSelected: (_) {
-                              setState(() {
-                                _filterStatus = status;
-                              });
+                              if (_filterStatus != status) {
+                                setState(() {
+                                  _filterStatus = status;
+                                  _currentPage = 1;
+                                });
+                                widget.controller.fetchMembersByStatus(status);
+                              }
                             },
                             selectedColor: const Color(0xFF0C844C),
                             backgroundColor: const Color(0xFFF0F0F0),
@@ -210,7 +209,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (filteredMembers.isEmpty)
+                  if (paginatedMembers.isEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         vertical: 28,
@@ -233,7 +232,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                       ),
                     )
                   else
-                    ...filteredMembers.map((member) {
+                    ...paginatedMembers.map((member) {
                       final memberId = member.id ?? '';
                       final totalTunggakan = memberId.isEmpty
                           ? 0.0
@@ -246,9 +245,15 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                               memberId,
                               limit: 4,
                             );
-                      final cardStatus = memberId.isEmpty
-                          ? null
-                          : widget.controller.memberCardStatus(memberId);
+                      final PjMonthStatus? cardStatus = member.status != null
+                          ? (member.status!.toLowerCase() == 'lunas'
+                              ? PjMonthStatus.paid
+                              : (member.status!.toLowerCase() == 'tunggakan'
+                                  ? PjMonthStatus.tunggakan
+                                  : PjMonthStatus.pending))
+                          : (memberId.isEmpty
+                              ? null
+                              : widget.controller.memberCardStatus(memberId));
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16),
@@ -317,6 +322,42 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                         ),
                       );
                     }),
+                  if (totalPages > 1)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            onPressed: _currentPage > 1
+                                ? () {
+                                    setState(() {
+                                      _currentPage--;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          Text(
+                            'Halaman $_currentPage dari $totalPages',
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: _currentPage < totalPages
+                                ? () {
+                                    setState(() {
+                                      _currentPage++;
+                                    });
+                                  }
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               );
             },
