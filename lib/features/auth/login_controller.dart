@@ -118,12 +118,16 @@ class LoginController extends ChangeNotifier {
       role ??= userMap?['role'] is String ? userMap!['role'] : null;
       role ??= parsedUser?.role;
 
+      final regionMap = userMap?['region_id'] ?? userMap?['regionId'] ?? userMap?['region'];
+      final regionId = regionMap is Map ? (regionMap['_id']?.toString() ?? regionMap['id']?.toString()) : regionMap?.toString();
+
       if (token != null) {
         await AuthHelper.saveSession(
           accessToken: token,
           refreshToken: refreshToken,
           role: role,
           userId: parsedUser?.id,
+          regionId: regionId,
         );
       }
 

@@ -586,9 +586,11 @@ class _LoginScreenState extends State<LoginScreen>
           'refresh_token',
           'refreshToken',
         ]);
-        final userMap = body['user'] ?? body['data']?['user'];
+        final userMap = body['user'] ?? body['data']?['user'] ?? body['data'];
         final userId = userMap?['id']?.toString() ?? userMap?['_id']?.toString();
-        log('$role, UserID: $userId');
+        final regionMap = userMap?['region_id'] ?? userMap?['regionId'] ?? userMap?['region'];
+        final regionId = regionMap is Map ? (regionMap['_id']?.toString() ?? regionMap['id']?.toString()) : regionMap?.toString();
+        log('$role, UserID: $userId, RegionID: $regionId');
 
         if (token != null) {
           await AuthHelper.saveSession(
@@ -596,6 +598,7 @@ class _LoginScreenState extends State<LoginScreen>
             refreshToken: refreshToken,
             role: role?.toString(),
             userId: userId,
+            regionId: regionId,
           );
         }
 
