@@ -15,19 +15,14 @@ Future<void> main() async {
   await dotenv.load(fileName: '.env');
   await Hive.initFlutter();
   await HiveService.init();
-  await PjHiveController.init(); // Inisialisasi Box untuk PjHiveController
-  await PjController.initCache(); // Inisialisasi Box Cache untuk PjAnggota
-  await PjTransactionItemController.initCache(); // Inisialisasi Box Cache untuk Detail Iuran
+  await PjHiveController.init();
+  await PjController.initCache();
+  await PjTransactionItemController.initCache();
   final hiveController = PjHiveController();
-  await hiveController.syncPendingTransactions(); // Sync saat startup
-  await Hive.openBox('riwayat_anggota'); // Box untuk data riwayat anggota (local-first)
-
-  // Mulai listener konektivitas — sync dipicu event-driven saat internet kembali
+  await hiveController.syncPendingTransactions();
+  await Hive.openBox('riwayat_anggota');
   await ConnectivityService.init();
-
-  // Backup polling setiap 30 detik (fallback jika event connectivity terlewat)
   hiveController.startAutoSync();
-
 
   runApp(const MyApp());
 }

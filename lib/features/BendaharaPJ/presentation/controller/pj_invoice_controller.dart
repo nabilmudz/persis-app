@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:gal/gal.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:intl/intl.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -152,7 +153,7 @@ class PjInvoiceData {
     for (final item in sourceItems) {
       final desc = item.description ?? '';
       int month = 0;
-      
+
       // Extract month from description if possible
       for (var i = 0; i < _monthNames.length; i++) {
         if (desc.contains(_monthNames[i])) {
@@ -169,19 +170,18 @@ class PjInvoiceData {
         months.add(month);
       }
 
-      invoiceItems.add(PjInvoiceLineItem(
-        month: month,
-        year: year,
-        label: desc.isNotEmpty ? desc : 'Iuran',
-        amount: item.amount ?? 0,
-      ));
+      invoiceItems.add(
+        PjInvoiceLineItem(
+          month: month,
+          year: year,
+          label: desc.isNotEmpty ? desc : 'Iuran',
+          amount: item.amount ?? 0,
+        ),
+      );
     }
 
-    // Hanya gunakan created_at dari transaksi (jangan fallback ke waktu sekarang)
-    final createdAt = (transaction.createdAt != null &&
-            transaction.createdAt!.trim().isNotEmpty)
-        ? (DateTime.tryParse(transaction.createdAt!) ?? DateTime(1900))
-        : DateTime(1900);
+    final createdAt =
+        DateTime.tryParse(transaction.createdAt ?? '') ?? DateTime(1900);
 
     return PjInvoiceData(
       member: member,
@@ -190,11 +190,11 @@ class PjInvoiceData {
       months: months,
       year: year,
       totalAmount: transaction.totalAmount ?? 0,
-      syncedToBackend: true, // If it's a TransactionModel from history, it's synced
+      syncedToBackend:
+          true, // If it's a TransactionModel from history, it's synced
       generatedAt: createdAt,
     );
   }
-
 
   String get memberName {
     final fullname = member.fullname?.trim();

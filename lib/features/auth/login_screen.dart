@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:persis_app/core/config/config.dart';
+import 'package:persis_app/helpers/auth_helper.dart';
 import '../../app/routes.dart';
 import 'dart:developer';
 import 'package:persis_app/helpers/auth_helper.dart';
@@ -574,88 +575,28 @@ class _LoginScreenState extends State<LoginScreen>
       final body = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // Parse potential nested response structures (match LoginController logic)
-        Map<String, dynamic>? dataMap;
-        try {
-          dataMap = body['data'] is Map<String, dynamic>
-              ? Map<String, dynamic>.from(body['data'])
-              : Map<String, dynamic>.from(body);
-        } catch (_) {
-          dataMap = null;
-        }
+        final role = body['user']?['role'];
+        final token = _extractString(body, const [
+          'access_token',
+          'accessToken',
+          'token',
+          'jwt',
+        ]);
+        final refreshToken = _extractString(body, const [
+          'refresh_token',
+          'refreshToken',
+        ]);
+        log('$role');
 
-        Map<String, dynamic>? userMap;
-        if (body['user'] is Map<String, dynamic>) {
-          userMap = Map.from(body['user']);
-        }
-        userMap ??= dataMap?['user'] is Map<String, dynamic>
-            ? Map.from(dataMap!['user'])
-            : null;
-        userMap ??= dataMap;
-
-        String? token;
-        for (final key in ['access_token', 'accessToken', 'token', 'jwt']) {
-          final v = body[key] ?? dataMap?[key];
-          if (v is String && v.trim().isNotEmpty) {
-            token = v.trim();
-            break;
-          }
-        }
-
-        String? refreshToken;
-        for (final key in ['refresh_token', 'refreshToken']) {
-          final v = body[key] ?? dataMap?[key];
-          if (v is String && v.trim().isNotEmpty) {
-            refreshToken = v.trim();
-            break;
-          }
-        }
-
-        String? role;
-        final dynamic _userRoleCandidate = (body['user'] is Map<String, dynamic>)
-            ? body['user']['role']
-            : null;
-        role = _userRoleCandidate is String ? _userRoleCandidate : null;
-        role ??= (dataMap?['role'] is String) ? dataMap!['role'] : null;
-        role ??= (userMap?['role'] is String) ? userMap!['role'] : null;
-
-        String? userId;
-        if (userMap != null) {
-          final idVal = userMap['_id'] ?? userMap['id'];
-          if (idVal != null) userId = idVal.toString();
-        }
-
-        // Try decode from token if still null
-        if (userId == null && token != null && token.contains('.')) {
-          try {
-            final parts = token.split('.');
-            final payloadPart = parts[1];
-            final normalized = base64Url.normalize(payloadPart);
-            final decoded = utf8.decode(base64Url.decode(normalized));
-            final payload = jsonDecode(decoded);
-            final idVal = payload['id'] ?? payload['_id'] ?? payload['sub'];
-            if (idVal != null) userId = idVal.toString();
-          } catch (_) {}
-        }
-
-        // Persist session and optional user data for fallbacks
-        if (token != null) {
-          if (userMap != null) {
-            try {
-              await SecureStorageService.write('user_data', jsonEncode(userMap));
-            } catch (_) {}
-          }
-
+        if (_rememberMe && token != null) {
           await AuthHelper.saveSession(
             accessToken: token,
             refreshToken: refreshToken,
-            role: role,
-            userId: userId,
+            role: role?.toString(),
           );
+        } else {
+          await AuthHelper.clearSession();
         }
-
-        final resolvedRole = role ?? body['user']?['role'];
-        log('$resolvedRole');
 
         _snackbar('Login berhasil! Selamat datang 👋');
 
@@ -673,6 +614,23 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() => _isCheckingNpa = false);
       _snackbar('Tidak dapat terhubung ke server', isError: true);
     }
+  }
+
+  String? _extractString(Map<String, dynamic> body, List<String> keys) {
+    final data = body['data'] is Map<String, dynamic>
+        ? Map<String, dynamic>.from(body['data'])
+        : body['data'] is Map
+            ? Map<String, dynamic>.from(body['data'] as Map)
+            : null;
+
+    for (final key in keys) {
+      final value = body[key] ?? data?[key];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+
+    return null;
   }
 
   String _routeForRole(String? roleValue) {

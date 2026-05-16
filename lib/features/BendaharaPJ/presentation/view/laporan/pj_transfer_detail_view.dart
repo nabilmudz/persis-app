@@ -77,7 +77,7 @@ class TransferDetailPage extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        (transaction.accStatus as String?) ?? 'approved',
+                        transaction.accStatus ?? 'approved',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,

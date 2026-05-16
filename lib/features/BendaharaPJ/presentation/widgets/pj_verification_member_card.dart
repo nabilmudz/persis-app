@@ -82,16 +82,8 @@ class PjVerificationMemberCard extends StatelessWidget {
     final aggregateColor = _statusColor(aggregateStatus);
     final aggregateIcon = _statusIcon(aggregateStatus);
     final aggregateLabel = _statusLabel(aggregateStatus);
-    final cardBackground = aggregateStatus == PjMonthStatus.paid
-        ? const Color(0xFFF2FBF4)
-        : aggregateStatus == PjMonthStatus.tunggakan
-        ? const Color(0xFFFFF6F6)
-        : Colors.white;
-    final cardBorder = aggregateStatus == PjMonthStatus.paid
-        ? const Color(0xFFBFE7C7)
-        : aggregateStatus == PjMonthStatus.tunggakan
-        ? const Color(0xFFF2C8C8)
-        : Colors.white;
+    const cardBackground = Colors.white;
+    const cardBorder = Color(0xFFE8E8E8);
 
     return Container(
       width: double.infinity,
@@ -158,7 +150,7 @@ class PjVerificationMemberCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (aggregateStatus != PjMonthStatus.pending) ...[
+                        if (aggregateStatus == PjMonthStatus.paid) ...[
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
