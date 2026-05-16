@@ -8,6 +8,7 @@ import '../../app/routes.dart';
 import 'dart:developer';
 import 'package:persis_app/helpers/auth_helper.dart';
 import 'package:persis_app/core/storage/secure_storage_service.dart';
+import 'package:persis_app/features/auth/forgot_password_screen.dart';
 
 // ─── API Config ────────────────────────────────────────────────────────────────
 final String _baseUrl = AppConfig.baseUrl;
@@ -602,7 +603,7 @@ class _LoginScreenState extends State<LoginScreen>
 
         Future.delayed(const Duration(milliseconds: 800), () {
           if (mounted) {
-            final route = _routeForRole(resolvedRole?.toString());
+            final route = _routeForRole(role?.toString());
             Navigator.pushReplacementNamed(context, route);
           }
         });
