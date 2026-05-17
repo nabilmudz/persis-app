@@ -5,7 +5,7 @@ import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/theme/app_colors.dart';
 import 'buat_password_screen.dart';
 
-final String _baseUrl = AppConfig.baseUrl;
+String get _baseUrl => AppConfig.baseUrl;
 
 class OtpScreen extends StatefulWidget {
   final String npa;
@@ -71,11 +71,21 @@ class _OtpScreenState extends State<OtpScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: darkText, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: darkText,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Aktivasi Akun',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: darkText)),
+        title: const Text(
+          'Aktivasi Akun',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: darkText,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -83,17 +93,30 @@ class _OtpScreenState extends State<OtpScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            const Text('Aktivasi Akun',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: darkText)),
+            const Text(
+              'Aktivasi Akun',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: darkText,
+              ),
+            ),
             const SizedBox(height: 8),
             RichText(
               text: TextSpan(
-                style: const TextStyle(fontSize: 13, color: greyText, height: 1.5),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: greyText,
+                  height: 1.5,
+                ),
                 children: [
                   const TextSpan(text: 'Masukkan kode OTP yang dikirimkan ke '),
                   TextSpan(
                     text: widget.email,
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: darkText),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: darkText,
+                    ),
                   ),
                 ],
               ),
@@ -108,7 +131,9 @@ class _OtpScreenState extends State<OtpScreen> {
                   height: 64,
                   margin: EdgeInsets.only(right: i < 3 ? 16 : 0),
                   decoration: BoxDecoration(
-                    color: _otp[i].isNotEmpty ? lightGreen : const Color(0xFFF5F5F5),
+                    color: _otp[i].isNotEmpty
+                        ? lightGreen
+                        : const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: _otp[i].isNotEmpty ? primaryGreen : inputBorder,
@@ -119,7 +144,10 @@ class _OtpScreenState extends State<OtpScreen> {
                     child: Text(
                       _otp[i],
                       style: const TextStyle(
-                          fontSize: 24, fontWeight: FontWeight.bold, color: primaryGreen),
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: primaryGreen,
+                      ),
                     ),
                   ),
                 ),
@@ -130,8 +158,13 @@ class _OtpScreenState extends State<OtpScreen> {
               child: _canResend
                   ? TextButton(
                       onPressed: _handleResend,
-                      child: const Text('Kirim Ulang',
-                          style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600)),
+                      child: const Text(
+                        'Kirim Ulang',
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     )
                   : Text(
                       'Tidak menerima kode? Kirim ulang dalam ${_resendSeconds}s',
@@ -142,23 +175,35 @@ class _OtpScreenState extends State<OtpScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: (_otpString.length == 4 && !_isVerifying) ? _handleVerifikasi : null,
+                onPressed: (_otpString.length == 4 && !_isVerifying)
+                    ? _handleVerifikasi
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: const Color(0xFFBDBDBD),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 child: _isVerifying
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
-                    : const Text('Verifikasi OTP',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    : const Text(
+                        'Verifikasi OTP',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 32),
@@ -184,9 +229,14 @@ class _OtpScreenState extends State<OtpScreen> {
                           onPressed: _deleteDigit,
                           style: TextButton.styleFrom(
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: const Icon(Icons.backspace_outlined, color: darkText, size: 22),
+                          child: const Icon(
+                            Icons.backspace_outlined,
+                            color: darkText,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ],
@@ -201,23 +251,28 @@ class _OtpScreenState extends State<OtpScreen> {
   }
 
   Widget _numpadRow(List<String> digits) => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: digits.map(_numpadButton).toList(),
-      );
+    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    children: digits.map(_numpadButton).toList(),
+  );
 
   Widget _numpadButton(String digit) => SizedBox(
-        width: 80,
-        height: 56,
-        child: TextButton(
-          onPressed: () => _inputDigit(digit),
-          style: TextButton.styleFrom(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          child: Text(digit,
-              style: const TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.w500, color: darkText)),
+    width: 80,
+    height: 56,
+    child: TextButton(
+      onPressed: () => _inputDigit(digit),
+      style: TextButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: Text(
+        digit,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
+          color: darkText,
         ),
-      );
+      ),
+    ),
+  );
 
   Future<void> _handleVerifikasi() async {
     setState(() => _isVerifying = true);
@@ -239,11 +294,15 @@ class _OtpScreenState extends State<OtpScreen> {
         if (!mounted) return;
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => BuatPasswordScreen(npa: widget.npa)),
+          MaterialPageRoute(
+            builder: (_) => BuatPasswordScreen(npa: widget.npa),
+          ),
         );
       } else {
         setState(() {
-          for (int i = 0; i < 4; i++) _otp[i] = '';
+          for (int i = 0; i < 4; i++) {
+            _otp[i] = '';
+          }
         });
         final msg = body['message'] ?? 'Kode OTP salah. Silakan coba lagi.';
         _snackbar(msg, isError: true);
@@ -251,7 +310,9 @@ class _OtpScreenState extends State<OtpScreen> {
     } catch (e) {
       setState(() {
         _isVerifying = false;
-        for (int i = 0; i < 4; i++) _otp[i] = '';
+        for (int i = 0; i < 4; i++) {
+          _otp[i] = '';
+        }
       });
       _snackbar('Tidak dapat terhubung ke server.', isError: true);
     }

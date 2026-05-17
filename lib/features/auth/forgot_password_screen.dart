@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/theme/app_colors.dart';
 
-final String _baseUrl = AppConfig.baseUrl;
+String get _baseUrl => AppConfig.baseUrl;
 
 // ==========================================
 // SCREEN 1: INPUT EMAIL / NPA
@@ -54,7 +54,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         );
       } else {
-        final msg = jsonDecode(response.body)['message'] ?? 'Pengguna tidak ditemukan';
+        final msg =
+            jsonDecode(response.body)['message'] ?? 'Pengguna tidak ditemukan';
         _snackbar(msg, isError: true);
       }
     } catch (e) {
@@ -71,12 +72,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: darkText, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: darkText,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Lupa Password',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: darkText),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: darkText,
+          ),
         ),
       ),
       body: Padding(
@@ -87,7 +96,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             const SizedBox(height: 8),
             const Text(
               'Reset Password',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: darkText),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: darkText,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -101,10 +114,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               decoration: InputDecoration(
                 hintText: 'Email / NPA',
                 hintStyle: const TextStyle(color: greyText, fontSize: 14),
-                prefixIcon: const Icon(Icons.person_outline, color: greyText, size: 20),
+                prefixIcon: const Icon(
+                  Icons.person_outline,
+                  color: greyText,
+                  size: 20,
+                ),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(color: inputBorder, width: 1.5),
@@ -123,7 +143,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 onPressed: _isLoading ? null : _kirimOtp,
@@ -131,11 +153,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Text(
                         'Kirim OTP',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
                       ),
               ),
             ),
@@ -165,7 +193,8 @@ class ForgotPasswordOtpScreen extends StatefulWidget {
   final String identifier;
   const ForgotPasswordOtpScreen({super.key, required this.identifier});
   @override
-  State<ForgotPasswordOtpScreen> createState() => _ForgotPasswordOtpScreenState();
+  State<ForgotPasswordOtpScreen> createState() =>
+      _ForgotPasswordOtpScreenState();
 }
 
 class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
@@ -224,12 +253,20 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: darkText, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: darkText,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Lupa Password',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: darkText),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: darkText,
+          ),
         ),
       ),
       body: Padding(
@@ -240,17 +277,28 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
             const SizedBox(height: 8),
             const Text(
               'Verifikasi OTP',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: darkText),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: darkText,
+              ),
             ),
             const SizedBox(height: 8),
             RichText(
               text: TextSpan(
-                style: const TextStyle(fontSize: 13, color: greyText, height: 1.5),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: greyText,
+                  height: 1.5,
+                ),
                 children: [
                   const TextSpan(text: 'Masukkan kode OTP yang dikirimkan ke '),
                   TextSpan(
                     text: widget.identifier,
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: darkText),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: darkText,
+                    ),
                   ),
                 ],
               ),
@@ -267,7 +315,9 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
                   height: 64,
                   margin: EdgeInsets.only(right: i < 3 ? 16 : 0),
                   decoration: BoxDecoration(
-                    color: _otp[i].isNotEmpty ? lightGreen : const Color(0xFFF5F5F5),
+                    color: _otp[i].isNotEmpty
+                        ? lightGreen
+                        : const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: _otp[i].isNotEmpty ? primaryGreen : inputBorder,
@@ -296,7 +346,10 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
                       onPressed: _handleResend,
                       child: const Text(
                         'Kirim Ulang',
-                        style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: primaryGreen,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     )
                   : Text(
@@ -310,24 +363,34 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: (_otpString.length == 4 && !_isVerifying) ? _handleVerifikasi : null,
+                onPressed: (_otpString.length == 4 && !_isVerifying)
+                    ? _handleVerifikasi
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: const Color(0xFFBDBDBD),
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 child: _isVerifying
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Text(
                         'Verifikasi OTP',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
               ),
             ),
@@ -378,28 +441,28 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
   }
 
   Widget _numpadRow(List<String> digits) => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: digits.map(_numpadButton).toList(),
-      );
+    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    children: digits.map(_numpadButton).toList(),
+  );
 
   Widget _numpadButton(String digit) => SizedBox(
-        width: 80,
-        height: 56,
-        child: TextButton(
-          onPressed: () => _inputDigit(digit),
-          style: TextButton.styleFrom(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          child: Text(
-            digit,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w500,
-              color: darkText,
-            ),
-          ),
+    width: 80,
+    height: 56,
+    child: TextButton(
+      onPressed: () => _inputDigit(digit),
+      style: TextButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: Text(
+        digit,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
+          color: darkText,
         ),
-      );
+      ),
+    ),
+  );
 
   Future<void> _handleVerifikasi() async {
     setState(() => _isVerifying = true);
@@ -411,10 +474,7 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: jsonEncode({
-          'identifier': widget.identifier,
-          'otp': _otpString,
-        }),
+        body: jsonEncode({'identifier': widget.identifier, 'otp': _otpString}),
       );
 
       setState(() => _isVerifying = false);
@@ -433,7 +493,9 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
         );
       } else {
         setState(() {
-          for (int i = 0; i < 4; i++) _otp[i] = '';
+          for (int i = 0; i < 4; i++) {
+            _otp[i] = '';
+          }
         });
         final msg = body['message'] ?? 'Kode OTP salah. Silakan coba lagi.';
         _snackbar(msg, isError: true);
@@ -441,7 +503,9 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
     } catch (e) {
       setState(() {
         _isVerifying = false;
-        for (int i = 0; i < 4; i++) _otp[i] = '';
+        for (int i = 0; i < 4; i++) {
+          _otp[i] = '';
+        }
       });
       _snackbar('Tidak dapat terhubung ke server.', isError: true);
     }
@@ -482,7 +546,11 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
 // ==========================================
 class ResetPasswordScreen extends StatefulWidget {
   final String identifier, otp;
-  const ResetPasswordScreen({super.key, required this.identifier, required this.otp});
+  const ResetPasswordScreen({
+    super.key,
+    required this.identifier,
+    required this.otp,
+  });
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
@@ -551,12 +619,20 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: darkText, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            color: darkText,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Lupa Password',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: darkText),
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: darkText,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -567,7 +643,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             const SizedBox(height: 8),
             const Text(
               'Buat Password Baru',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: darkText),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: darkText,
+              ),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -596,7 +676,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 onPressed: _isLoading ? null : _resetPassword,
@@ -604,11 +686,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
                       )
                     : const Text(
                         'Simpan Password',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
                       ),
               ),
             ),
@@ -631,16 +719,25 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: greyText, fontSize: 14),
-        prefixIcon: const Icon(Icons.lock_outline_rounded, color: greyText, size: 20),
+        prefixIcon: const Icon(
+          Icons.lock_outline_rounded,
+          color: greyText,
+          size: 20,
+        ),
         suffixIcon: IconButton(
           icon: Icon(
-            isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            isObscure
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
             color: greyText,
             size: 20,
           ),
           onPressed: onToggle,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         filled: true,
         fillColor: Colors.white,
         enabledBorder: OutlineInputBorder(

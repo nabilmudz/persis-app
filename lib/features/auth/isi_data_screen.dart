@@ -5,7 +5,7 @@ import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/theme/app_colors.dart';
 import 'otp_screen.dart';
 
-final String _baseUrl = AppConfig.baseUrl;
+String get _baseUrl => AppConfig.baseUrl;
 
 class IsiDataScreen extends StatefulWidget {
   final String npa;

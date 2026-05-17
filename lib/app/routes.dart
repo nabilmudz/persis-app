@@ -28,7 +28,7 @@ class AppRoutes {
   static const String anggota = '/anggota';
   static const String profile = '/profile';
   static const String verifikasiNonTunai = '/verifikasi-non-tunai';
-  static final String _baseUrl = AppConfig.baseUrl;
+  static String get _baseUrl => AppConfig.baseUrl;
 
   static Map<String, WidgetBuilder> get routes {
     return {

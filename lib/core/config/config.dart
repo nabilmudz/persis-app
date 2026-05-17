@@ -1,5 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AppConfig {
-  static const String baseUrl = 'https://siamese-oblivion-ranger.ngrok-free.dev/api'; 
+  static String get baseUrl => (dotenv.env['BASE_URL'] ?? 'http://localhost:3000/api').trim();
 }

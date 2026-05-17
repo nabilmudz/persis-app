@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/theme/app_colors.dart';
 
-final String _baseUrl = AppConfig.baseUrl;
+String get _baseUrl => AppConfig.baseUrl;
 
 class BuatPasswordScreen extends StatefulWidget {
   final String npa;

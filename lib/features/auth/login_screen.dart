@@ -9,7 +9,7 @@ import '../../app/routes.dart';
 import 'isi_data_screen.dart';
 import 'forgot_password_screen.dart';
 
-final String _baseUrl = AppConfig.baseUrl;
+String get _baseUrl => AppConfig.baseUrl;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

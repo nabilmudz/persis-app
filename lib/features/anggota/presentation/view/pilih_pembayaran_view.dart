@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/core/config/config.dart';
 import 'package:provider/provider.dart';
-// --- FIX IMPORT: Pakai PaymentRemoteDataSource ---
 import 'package:persis_app/features/anggota/data/datasources/payment_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/repositories/payment_repository.dart';
 import '../controller/pembayaran_controller.dart';
@@ -9,9 +8,9 @@ import 'transfer_bank_view.dart';
 import 'qris_view.dart';
 
 class PilihPembayaranView extends StatelessWidget {
-  PilihPembayaranView({super.key});
+  const PilihPembayaranView({super.key});
 
-  final String _baseUrl = AppConfig.baseUrl;
+  String get _baseUrl => AppConfig.baseUrl;
 
   @override
   Widget build(BuildContext context) {
