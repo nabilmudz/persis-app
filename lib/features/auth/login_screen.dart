@@ -499,19 +499,31 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final role = body['user']?['role'];
-        final userId = body['user']?['_id']?.toString();
-        final token = _extractString(body, const ['access_token', 'accessToken', 'token', 'jwt']);
-        final refreshToken = _extractString(body, const ['refresh_token', 'refreshToken']);
+        final token = _extractString(body, const [
+          'access_token',
+          'accessToken',
+          'token',
+          'jwt',
+        ]);
+        final refreshToken = _extractString(body, const [
+          'refresh_token',
+          'refreshToken',
+        ]);
+        final userMap = body['user'] ?? body['data']?['user'] ?? body['data'];
+        final userId = userMap?['id']?.toString() ?? userMap?['_id']?.toString();
+        final regionMap = userMap?['region_id'] ?? userMap?['regionId'] ?? userMap?['region'];
+        final regionId = regionMap is Map ? (regionMap['_id']?.toString() ?? regionMap['id']?.toString()) : regionMap?.toString();
+        log('$role, UserID: $userId, RegionID: $regionId');
 
-        log('role: $role');
-        log('userId: $userId');
-
-        await AuthHelper.saveSession(
-          accessToken: token ?? '',
-          refreshToken: refreshToken,
-          role: role?.toString(),
-          userId: userId,
-        );
+        if (token != null) {
+          await AuthHelper.saveSession(
+            accessToken: token,
+            refreshToken: refreshToken,
+            role: role?.toString(),
+            userId: userId,
+            regionId: regionId,
+          );
+        }
 
         _snackbar('Login berhasil! Selamat datang 👋');
 
@@ -535,8 +547,8 @@ class _LoginScreenState extends State<LoginScreen>
     final data = body['data'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(body['data'])
         : body['data'] is Map
-            ? Map<String, dynamic>.from(body['data'] as Map)
-            : null;
+        ? Map<String, dynamic>.from(body['data'] as Map)
+        : null;
 
     for (final key in keys) {
       final value = body[key] ?? data?[key];

@@ -5,8 +5,6 @@ import 'dart:ui' as ui;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:gal/gal.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:intl/intl.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -250,9 +248,7 @@ class PjInvoiceData {
     }
 
     // Tampilkan dalam waktu WIB (UTC+7)
-    final dt = generatedAt.isUtc
-        ? generatedAt.toLocal()
-        : generatedAt;
+    final dt = generatedAt.isUtc ? generatedAt.toLocal() : generatedAt;
     final day = dt.day.toString().padLeft(2, '0');
     final monthName = _monthNames[dt.month - 1];
     final year = dt.year;

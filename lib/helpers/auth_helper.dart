@@ -35,10 +35,12 @@ class AuthHelper {
     String? refreshToken,
     String? role,
     String? userId,
+    String? regionId,
   }) async {
     debugPrint('=== AUTH SESSION SAVING ===');
     debugPrint('Role: $role');
     debugPrint('User ID: $userId');
+    debugPrint('Region ID: $regionId');
     debugPrint('Token: ${accessToken.substring(0, 10)}...');
 
     await SecureStorageService.write(
@@ -59,12 +61,13 @@ class AuthHelper {
 
     if (userId != null) {
       await SecureStorageService.write('user_id', userId);
-      
     } else {
       debugPrint('User ID is null, cannot fetch history');
     }
-    
-    
+
+    if (regionId != null) {
+      await SecureStorageService.write('region_id', regionId);
+    }
   }
 
   static Future<void> clearSession() async {

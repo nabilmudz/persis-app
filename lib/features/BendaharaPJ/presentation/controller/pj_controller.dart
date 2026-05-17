@@ -163,7 +163,8 @@ class PjController extends ChangeNotifier {
 
   Future<void> _fetchAndCacheData() async {
     try {
-      final users = await _userDataSource.getAllUsers();
+      final regionId = await resolveRegionId();
+      final users = await _userDataSource.getAllUsers(regionId: regionId);
       final transactions = await _transactionDataSource.getHistory();
 
       final filteredUsers = users
@@ -328,11 +329,20 @@ class PjController extends ChangeNotifier {
 
 
   Future<String?> resolveRegionId() async {
+    // 1. Coba baca dari secure storage (hasil login) terlebih dahulu
+    final storedRegion = await SecureStorageService.read('region_id');
+    if (storedRegion != null && storedRegion.trim().isNotEmpty) {
+      debugPrint('[PjController] resolveRegionId: Found in SecureStorage -> $storedRegion');
+      return storedRegion.trim();
+    }
+
+    // 2. Fallback baca dari JWT Token
     final token = await SecureStorageService.read(
       SecureStorageService.accessTokenKey,
     );
 
     if (token == null || token.trim().isEmpty) {
+      debugPrint('[PjController] resolveRegionId: Token is null/empty');
       return null;
     }
 
@@ -343,7 +353,9 @@ class PjController extends ChangeNotifier {
 
     try {
       final payload = _decodeJwtPayload(parts[1]);
-      return _extractRegionId(payload);
+      final extracted = _extractRegionId(payload);
+      debugPrint('[PjController] resolveRegionId: Extracted from JWT -> $extracted');
+      return extracted;
     } catch (_) {
       return null;
     }
