@@ -62,8 +62,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Cek apakah dia Bendahara (PD, PC, atau PJ)
     bool isBendahara = _role.contains('BENDAHARA');
     final homeRoute = _role.contains('BENDAHARA_PJ')
-      ? AppRoutes.bendaharaPJ
-      : _role.contains('BENDAHARA_PC')
+        ? AppRoutes.bendaharaPJ
+        : _role.contains('BENDAHARA_PC')
         ? AppRoutes.bendaharaPC
         : AppRoutes.anggota;
 

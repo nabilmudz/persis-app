@@ -30,11 +30,14 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
   }
 
   Future<void> _handleVerifikasi(var item) async {
-    final nominalText = _controller.formatCurrency(item.transaction.totalAmount ?? 0);
+    final nominalText = _controller.formatCurrency(
+      item.transaction.totalAmount ?? 0,
+    );
     final shouldContinue = await SweetAlertDialog.showConfirmation(
       context: context,
       title: 'Verifikasi Laporan',
-      message: 'Uang fisik sebesar $nominalText dari ${item.name} sudah diterima dan sesuai?',
+      message:
+          'Uang fisik sebesar $nominalText dari ${item.name} sudah diterima dan sesuai?',
       confirmText: 'Ya, Verifikasi',
       cancelText: 'Batal',
     );
@@ -45,9 +48,9 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
 
     if (result == PcAccResult.success) {
       await SweetAlertDialog.showSuccess(
-        context: context, 
-        title: 'Berhasil', 
-        message: 'Data berhasil diverifikasi dan dipindahkan ke Riwayat.', 
+        context: context,
+        title: 'Berhasil',
+        message: 'Data berhasil diverifikasi dan dipindahkan ke Riwayat.',
         buttonText: 'OK',
       );
     }
@@ -63,19 +66,27 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF363636)), 
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF363636)),
             onPressed: () => Navigator.pop(context),
           ),
           title: const Text(
-            'Verifikasi Laporan PJ', 
-            style: TextStyle(color: Color(0xFF363636), fontSize: 18, fontFamily: 'Poppins', fontWeight: FontWeight.w700),
+            'Verifikasi Laporan PJ',
+            style: TextStyle(
+              color: Color(0xFF363636),
+              fontSize: 18,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+            ),
           ),
           bottom: const TabBar(
-            labelColor: Color(0xFF0C844C), 
-            unselectedLabelColor: Color(0xFF6A6A6A), 
+            labelColor: Color(0xFF0C844C),
+            unselectedLabelColor: Color(0xFF6A6A6A),
             indicatorColor: Color(0xFF0C844C),
             // TEKS TAB UDAH DIKEMBALIKAN KE SEMULA:
-            tabs: [Tab(text: 'Perlu Review'), Tab(text: 'Sudah Diverifikasi')],
+            tabs: [
+              Tab(text: 'Perlu Review'),
+              Tab(text: 'Sudah Diverifikasi'),
+            ],
           ),
         ),
         body: Column(
@@ -86,12 +97,21 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
                 onChanged: (query) => setState(() => _searchQuery = query),
                 decoration: InputDecoration(
                   hintText: 'Cari Nama Anggota atau Wilayah...',
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF6A6A6A)),
-                  filled: true, 
-                  fillColor: Colors.white, 
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: Color(0xFF6A6A6A),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
                   contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFD0D0D0))),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF0C844C))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFD0D0D0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFF0C844C)),
+                  ),
                 ),
               ),
             ),
@@ -99,8 +119,18 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
               child: ListenableBuilder(
                 listenable: _controller,
                 builder: (context, _) {
-                  if (_controller.isLoading) return const Center(child: CircularProgressIndicator(color: Color(0xFF0C844C)));
-                  return TabBarView(children: [_buildListTab('Belum Diverifikasi'), _buildListTab('Sudah Diverifikasi')]);
+                  if (_controller.isLoading)
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF0C844C),
+                      ),
+                    );
+                  return TabBarView(
+                    children: [
+                      _buildListTab('Belum Diverifikasi'),
+                      _buildListTab('Sudah Diverifikasi'),
+                    ],
+                  );
                 },
               ),
             ),
@@ -115,8 +145,17 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
   }
 
   Widget _buildListTab(String category) {
-    final items = _controller.filteredVerifikasiItems(category: category, query: _searchQuery);
-    if (items.isEmpty) return const Center(child: Text('Tidak ada data.', style: TextStyle(fontFamily: 'Poppins', color: Colors.grey)));
+    final items = _controller.filteredVerifikasiItems(
+      category: category,
+      query: _searchQuery,
+    );
+    if (items.isEmpty)
+      return const Center(
+        child: Text(
+          'Tidak ada data.',
+          style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
+        ),
+      );
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -127,11 +166,11 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12.0),
           child: VerifikasiCard(
-            name: item.name, 
-            date: item.date, 
+            name: item.name,
+            date: item.date,
             location: item.location,
             idNumber: item.transaction.creatorId ?? item.idNumber,
-            paymentMethod: item.paymentMethod, 
+            paymentMethod: item.paymentMethod,
             price: item.price,
             onAccPressed: isPending ? () => _handleVerifikasi(item) : null,
             status: isPending ? null : item.category,

@@ -133,7 +133,9 @@ class _NavItem extends StatelessWidget {
                 width: iconSize + 12,
                 height: iconSize + 12,
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFFE8F7EE) : Colors.transparent,
+                  color: isSelected
+                      ? const Color(0xFFE8F7EE)
+                      : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: iconSize, color: color),

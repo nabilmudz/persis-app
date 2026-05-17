@@ -111,11 +111,11 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
             );
           }
 
-          final List<UserModel> filteredMembers = widget.controller.filterMembers(
-            _searchController.text,
-          );
+          final List<UserModel> filteredMembers = widget.controller
+              .filterMembers(_searchController.text);
 
-          final int totalPages = (filteredMembers.length / _itemsPerPage).ceil();
+          final int totalPages = (filteredMembers.length / _itemsPerPage)
+              .ceil();
           final List<UserModel> paginatedMembers = filteredMembers
               .skip((_currentPage - 1) * _itemsPerPage)
               .take(_itemsPerPage)
@@ -247,15 +247,19 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                                     memberId,
                                     limit: 4,
                                   );
-                            final PjMonthStatus? cardStatus = member.status != null
+                            final PjMonthStatus? cardStatus =
+                                member.status != null
                                 ? (member.status!.toLowerCase() == 'lunas'
-                                    ? PjMonthStatus.paid
-                                    : (member.status!.toLowerCase() == 'tunggakan'
-                                        ? PjMonthStatus.tunggakan
-                                        : PjMonthStatus.pending))
+                                      ? PjMonthStatus.paid
+                                      : (member.status!.toLowerCase() ==
+                                                'tunggakan'
+                                            ? PjMonthStatus.tunggakan
+                                            : PjMonthStatus.pending))
                                 : (memberId.isEmpty
-                                    ? null
-                                    : widget.controller.memberCardStatus(memberId));
+                                      ? null
+                                      : widget.controller.memberCardStatus(
+                                          memberId,
+                                        ));
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 16),
@@ -297,20 +301,35 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                                         PjDetailAnggotaView(member: member),
                                   );
                                 },
-                                onTapInvoice: _getLastInvoiceForMember(member) != null
+                                onTapInvoice:
+                                    _getLastInvoiceForMember(member) != null
                                     ? () async {
                                         var invoiceData =
                                             _getLastInvoiceForMember(member);
                                         if (invoiceData == null) return;
 
                                         // Fetch complete member if phone is missing
-                                        if ((invoiceData.member.noHp == null || invoiceData.member.noHp!.isEmpty) && 
+                                        if ((invoiceData.member.noHp == null ||
+                                                invoiceData
+                                                    .member
+                                                    .noHp!
+                                                    .isEmpty) &&
                                             invoiceData.member.id != null) {
                                           try {
-                                            final userRemote = UserRemoteDataSource(ApiClient.baseUrl);
-                                            final fetchedUser = await userRemote.getOneUsers(invoiceData.member.id!);
-                                            if (fetchedUser.noHp != null && fetchedUser.noHp!.isNotEmpty) {
-                                              invoiceData = invoiceData.copyWith(member: fetchedUser);
+                                            final userRemote =
+                                                UserRemoteDataSource(
+                                                  ApiClient.baseUrl,
+                                                );
+                                            final fetchedUser = await userRemote
+                                                .getOneUsers(
+                                                  invoiceData.member.id!,
+                                                );
+                                            if (fetchedUser.noHp != null &&
+                                                fetchedUser.noHp!.isNotEmpty) {
+                                              invoiceData = invoiceData
+                                                  .copyWith(
+                                                    member: fetchedUser,
+                                                  );
                                             }
                                           } catch (_) {}
                                         }
@@ -393,12 +412,13 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
     try {
       final hiveController = PjHiveController();
       final allPending = hiveController.getPendingTransactions();
-      
+
       final memberPending = allPending.where((entry) {
         final data = entry['data'] as Map<String, dynamic>;
-        
+
         // Cocokkan creatorId
-        final creatorId = (data['creatorId'] ?? data['creator_id'])?.toString() ?? '';
+        final creatorId =
+            (data['creatorId'] ?? data['creator_id'])?.toString() ?? '';
         if (creatorId == memberId) return true;
 
         // Cocokkan items anggotaId
@@ -406,7 +426,8 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
         if (items is List) {
           return items.any((item) {
             if (item is Map) {
-              final id = (item['anggotaId'] ?? item['anggota_id'])?.toString() ?? '';
+              final id =
+                  (item['anggotaId'] ?? item['anggota_id'])?.toString() ?? '';
               return id == memberId;
             }
             return false;
@@ -418,12 +439,19 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
       if (memberPending.isNotEmpty) {
         // Sort by local_timestamp or createdAt
         memberPending.sort((a, b) {
-          final aTs = (a['data'] as Map)['local_timestamp'] ?? (a['data'] as Map)['createdAt'] ?? '';
-          final bTs = (b['data'] as Map)['local_timestamp'] ?? (b['data'] as Map)['createdAt'] ?? '';
+          final aTs =
+              (a['data'] as Map)['local_timestamp'] ??
+              (a['data'] as Map)['createdAt'] ??
+              '';
+          final bTs =
+              (b['data'] as Map)['local_timestamp'] ??
+              (b['data'] as Map)['createdAt'] ??
+              '';
           return bTs.toString().compareTo(aTs.toString());
         });
 
-        final lastHiveData = memberPending.first['data'] as Map<String, dynamic>;
+        final lastHiveData =
+            memberPending.first['data'] as Map<String, dynamic>;
         hiveInvoice = _buildInvoiceFromHiveMap(member, lastHiveData);
       }
     } catch (e) {
@@ -432,7 +460,9 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
 
     // 2. Cek dari Controller (History/Synced)
     try {
-      final lastHistoryTx = widget.controller.lastTransactionForMember(memberId);
+      final lastHistoryTx = widget.controller.lastTransactionForMember(
+        memberId,
+      );
       if (lastHistoryTx != null) {
         historyInvoice = PjInvoiceData.fromTransaction(
           member: member,
@@ -453,7 +483,10 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
     return hiveInvoice ?? historyInvoice;
   }
 
-  PjInvoiceData _buildInvoiceFromHiveMap(UserModel member, Map<String, dynamic> data) {
+  PjInvoiceData _buildInvoiceFromHiveMap(
+    UserModel member,
+    Map<String, dynamic> data,
+  ) {
     // Helper logic same as above
     final transaction = _buildTransactionFromHive(data);
     final rawItems = data['items'] as List? ?? [];
@@ -462,8 +495,18 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
     int year = DateTime.now().year;
 
     const monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
     ];
 
     for (final rawItem in rawItems) {
@@ -474,17 +517,20 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
         if (desc.contains(monthNames[i])) {
           month = i + 1;
           final yearMatch = RegExp(r'(20\d{2})').firstMatch(desc);
-          if (yearMatch != null) year = int.tryParse(yearMatch.group(0)!) ?? year;
+          if (yearMatch != null)
+            year = int.tryParse(yearMatch.group(0)!) ?? year;
           break;
         }
       }
       if (month > 0) months.add(month);
-      invoiceItems.add(PjInvoiceLineItem(
-        month: month,
-        year: year,
-        label: desc,
-        amount: (rawItem['amount'] as num?)?.toInt() ?? 0,
-      ));
+      invoiceItems.add(
+        PjInvoiceLineItem(
+          month: month,
+          year: year,
+          label: desc,
+          amount: (rawItem['amount'] as num?)?.toInt() ?? 0,
+        ),
+      );
     }
 
     return PjInvoiceData(
@@ -493,21 +539,21 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
       items: invoiceItems,
       months: months,
       year: year,
-      totalAmount: (data['totalAmount'] ?? data['total_amount'] as num?)?.toInt() ?? 0,
+      totalAmount:
+          (data['totalAmount'] ?? data['total_amount'] as num?)?.toInt() ?? 0,
       syncedToBackend: data['isSynced'] == true,
-      generatedAt: DateTime.tryParse(
+      generatedAt:
+          DateTime.tryParse(
             data['createdAt']?.toString() ??
-            data['created_at']?.toString() ??
-            data['local_timestamp']?.toString() ??
-            '',
+                data['created_at']?.toString() ??
+                data['local_timestamp']?.toString() ??
+                '',
           ) ??
           DateTime(1900),
     );
   }
 
-  static TransactionModel _buildTransactionFromHive(
-    Map<String, dynamic> data,
-  ) {
+  static TransactionModel _buildTransactionFromHive(Map<String, dynamic> data) {
     try {
       return TransactionModel.fromJson(data);
     } catch (_) {
@@ -515,10 +561,12 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
         id: data['id']?.toString() ?? data['_id']?.toString() ?? '',
         type: data['type']?.toString() ?? 'tunai',
         status: data['status']?.toString() ?? 'pending',
-        totalAmount: (data['totalAmount'] ?? data['total_amount'] as num?)?.toInt() ?? 0,
-        createdAt: data['createdAt']?.toString() ?? data['local_timestamp']?.toString(),
+        totalAmount:
+            (data['totalAmount'] ?? data['total_amount'] as num?)?.toInt() ?? 0,
+        createdAt:
+            data['createdAt']?.toString() ??
+            data['local_timestamp']?.toString(),
       );
     }
   }
 }
-

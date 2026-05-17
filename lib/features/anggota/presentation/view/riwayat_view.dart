@@ -51,8 +51,7 @@ class _RiwayatViewState extends State<RiwayatView> {
       body: Consumer<AnggotaController>(
         builder: (context, controller, _) {
           // Semua filtering & perhitungan dilakukan di controller
-          final transactions =
-              controller.filterLunasByTahun(_selectedFilter);
+          final transactions = controller.filterLunasByTahun(_selectedFilter);
           final totalAmount = controller.hitungTotalNominal(transactions);
 
           return Column(
@@ -65,15 +64,17 @@ class _RiwayatViewState extends State<RiwayatView> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: _filterOptions
-                      .map((label) => Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: _FilterChip(
-                              label: label,
-                              isSelected: _selectedFilter == label,
-                              onTap: () =>
-                                  setState(() => _selectedFilter = label),
-                            ),
-                          ))
+                      .map(
+                        (label) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: _FilterChip(
+                            label: label,
+                            isSelected: _selectedFilter == label,
+                            onTap: () =>
+                                setState(() => _selectedFilter = label),
+                          ),
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -94,12 +95,10 @@ class _RiwayatViewState extends State<RiwayatView> {
                 child: transactions.isEmpty
                     ? const _EmptyState()
                     : ListView.builder(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 24),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         itemCount: transactions.length,
-                        itemBuilder: (context, index) => AnggotaCard(
-                          transaction: transactions[index],
-                        ),
+                        itemBuilder: (context, index) =>
+                            AnggotaCard(transaction: transactions[index]),
                       ),
               ),
             ],
@@ -133,12 +132,9 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF189D4A)
-              : const Color(0xFFEDEDED),
+          color: isSelected ? const Color(0xFF189D4A) : const Color(0xFFEDEDED),
           borderRadius: BorderRadius.circular(30),
         ),
         child: Text(
@@ -163,10 +159,7 @@ class _TotalCard extends StatelessWidget {
   String _formatRupiah(double amount) {
     return amount
         .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (_) => '.',
-        );
+        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => '.');
   }
 
   @override
@@ -177,10 +170,7 @@ class _TotalCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFE8F5EE),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF189D4A),
-          width: 1.5,
-        ),
+        border: Border.all(color: const Color(0xFF189D4A), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,10 +217,7 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           const Text(
             'Tidak ada riwayat pembayaran.',
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontFamily: 'Poppins', color: Colors.grey),
           ),
         ],
       ),

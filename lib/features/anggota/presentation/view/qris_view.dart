@@ -392,7 +392,8 @@ class _QrisViewState extends State<QrisView> {
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: ElevatedButton(
-                    onPressed: controller.isLoading || controller.buktiUrl == null
+                    onPressed:
+                        controller.isLoading || controller.buktiUrl == null
                         ? null
                         : () => _handleSubmit(context, controller),
                     style: ElevatedButton.styleFrom(

@@ -466,7 +466,8 @@ class _TransferBankViewState extends State<TransferBankView> {
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: ElevatedButton(
-                    onPressed: controller.isLoading || controller.buktiFile == null
+                    onPressed:
+                        controller.isLoading || controller.buktiFile == null
                         ? null
                         : () => _handleSubmit(context, controller),
                     style: ElevatedButton.styleFrom(

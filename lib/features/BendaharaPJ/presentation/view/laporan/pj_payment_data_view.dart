@@ -568,10 +568,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                 ),
               ),
             ),
-            bottomNavigationBar: const RoleBottomNavigationBar(
-              currentRoute: AppRoutes.bendaharaPJ,
-              homeRoute: AppRoutes.bendaharaPJ,
-            ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
+      ),
     );
   }
 
@@ -806,7 +806,8 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       String type = t.type ?? 'Tunai';
 
       // Specifically handle the requested payment method ID
-      if (t.paymentMethodId == '69ee266797af79f7ef06e559' || type.toLowerCase() == 'tunai') {
+      if (t.paymentMethodId == '69ee266797af79f7ef06e559' ||
+          type.toLowerCase() == 'tunai') {
         type = 'Rekap Tunai';
       }
 
