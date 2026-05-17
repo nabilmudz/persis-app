@@ -24,11 +24,12 @@ class AuthHelper {
   }
 
   static Future<String?> getAccessToken() async {
-    final token = await SecureStorageService.read(SecureStorageService.accessTokenKey);
-    debugPrint('AuthHelper: Reading Access Token -> ${token != null ? "FOUND" : "NULL"}');
+    final token = await SecureStorageService.read(
+        SecureStorageService.accessTokenKey);
+    debugPrint(
+        'AuthHelper: Reading Access Token -> ${token != null ? "FOUND" : "NULL"}');
     return token;
   }
-
 
   static Future<void> saveSession({
     required String accessToken,
@@ -59,16 +60,32 @@ class AuthHelper {
 
     if (userId != null) {
       await SecureStorageService.write('user_id', userId);
-      
     } else {
       debugPrint('User ID is null, cannot fetch history');
     }
-    
-    
   }
 
   static Future<void> clearSession() async {
     debugPrint('=== CLEARING AUTH SESSION ===');
+
+    // Simpan credentials dulu sebelum deleteAll
+    final savedEmail = await SecureStorageService.read('saved_email');
+    final savedPassword = await SecureStorageService.read('saved_password');
+    final rememberMe = await SecureStorageService.read('remember_me');
+
+    debugPrint('rememberMe saat logout: $rememberMe');
+
+    // Hapus semua data session
     await SecureStorageService.deleteAll();
+
+    // Restore credentials kalau rememberMe aktif
+    if (rememberMe == 'true' &&
+        savedEmail != null &&
+        savedPassword != null) {
+      debugPrint('Restoring credentials untuk autofill...');
+      await SecureStorageService.write('saved_email', savedEmail);
+      await SecureStorageService.write('saved_password', savedPassword);
+      await SecureStorageService.write('remember_me', 'true');
+    }
   }
 }
