@@ -33,7 +33,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('${AppConfig.baseUrl}/forgot-password'),
+        Uri.parse('${AppConfig.baseUrl}/users/forgot-password'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -182,7 +182,7 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('${AppConfig.baseUrl}/verify-reset-otp'),
+        Uri.parse('${AppConfig.baseUrl}/users/verify-reset-otp'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -346,7 +346,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('${AppConfig.baseUrl}/reset-password'),
+        Uri.parse('${AppConfig.baseUrl}/users/reset-password'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
