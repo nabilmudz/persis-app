@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/theme/app_colors.dart';
 
+final String _baseUrl = AppConfig.baseUrl;
+
 // ==========================================
 // SCREEN 1: INPUT EMAIL / NPA
 // ==========================================
@@ -33,7 +35,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('${AppConfig.baseUrl}/users/forgot-password'),
+        Uri.parse('$_baseUrl/users/forgot-password'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -66,22 +68,23 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Lupa Password',
-          style: TextStyle(color: darkText, fontSize: 16, fontWeight: FontWeight.bold),
-        ),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, color: darkText, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
+        title: const Text(
+          'Lupa Password',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: darkText),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(28.0),
+        padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 8),
             const Text(
               'Reset Password',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: darkText),
@@ -89,17 +92,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             const SizedBox(height: 8),
             const Text(
               'Masukkan Email atau NPA untuk menerima kode OTP reset password.',
-              style: TextStyle(color: greyText, height: 1.5),
+              style: TextStyle(color: greyText, height: 1.5, fontSize: 13),
             ),
             const SizedBox(height: 24),
             TextField(
               controller: _inputController,
+              style: const TextStyle(fontSize: 14, color: darkText),
               decoration: InputDecoration(
                 hintText: 'Email / NPA',
                 hintStyle: const TextStyle(color: greyText, fontSize: 14),
-                prefixIcon: const Icon(Icons.person_outline, color: greyText),
+                prefixIcon: const Icon(Icons.person_outline, color: greyText, size: 20),
                 filled: true,
                 fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                   borderSide: const BorderSide(color: inputBorder, width: 1.5),
@@ -130,7 +135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       )
                     : const Text(
                         'Kirim OTP',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                       ),
               ),
             ),
@@ -154,7 +159,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 }
 
 // ==========================================
-// SCREEN 2: VERIFIKASI OTP
+// SCREEN 2: VERIFIKASI OTP (tampilan sama seperti aktivasi)
 // ==========================================
 class ForgotPasswordOtpScreen extends StatefulWidget {
   final String identifier;
@@ -164,54 +169,50 @@ class ForgotPasswordOtpScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
-  final _otpController = TextEditingController();
-  bool _isLoading = false;
+  final List<String> _otp = ['', '', '', ''];
+  int _resendSeconds = 30;
+  bool _canResend = false;
+  bool _isVerifying = false;
 
   @override
-  void dispose() {
-    _otpController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _startResendTimer();
   }
 
-  Future<void> _verifikasiOtp() async {
-    if (_otpController.text.isEmpty) {
-      _snackbar('Kode OTP tidak boleh kosong', isError: true);
-      return;
-    }
+  void _startResendTimer() {
+    setState(() {
+      _resendSeconds = 30;
+      _canResend = false;
+    });
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return false;
+      setState(() {
+        if (_resendSeconds > 0) {
+          _resendSeconds--;
+        } else {
+          _canResend = true;
+        }
+      });
+      return _resendSeconds > 0;
+    });
+  }
 
-    setState(() => _isLoading = true);
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConfig.baseUrl}/users/verify-reset-otp'),
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: jsonEncode({
-          'identifier': widget.identifier,
-          'otp': _otpController.text,
-        }),
-      );
+  String get _otpString => _otp.join();
 
-      setState(() => _isLoading = false);
+  void _inputDigit(String digit) {
+    final idx = _otp.indexOf('');
+    if (idx == -1) return;
+    setState(() => _otp[idx] = digit);
+  }
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        if (!mounted) return;
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ResetPasswordScreen(
-              identifier: widget.identifier,
-              otp: _otpController.text,
-            ),
-          ),
-        );
-      } else {
-        _snackbar('OTP salah atau kadaluarsa', isError: true);
+  void _deleteDigit() {
+    for (int i = 3; i >= 0; i--) {
+      if (_otp[i] != '') {
+        setState(() => _otp[i] = '');
+        return;
       }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      _snackbar('Gagal terhubung ke server', isError: true);
     }
   }
 
@@ -220,80 +221,247 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Verifikasi OTP',
-          style: TextStyle(color: darkText, fontSize: 16, fontWeight: FontWeight.bold),
-        ),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, color: darkText, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
+        title: const Text(
+          'Lupa Password',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: darkText),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(28.0),
+        padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 8),
             const Text(
-              'Masukkan Kode OTP',
+              'Verifikasi OTP',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: darkText),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Kode OTP telah dikirimkan ke ${widget.identifier}',
-              style: const TextStyle(color: greyText, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _otpController,
-              keyboardType: TextInputType.number,
-              maxLength: 6,
-              decoration: InputDecoration(
-                hintText: 'Kode OTP',
-                hintStyle: const TextStyle(color: greyText, fontSize: 14),
-                prefixIcon: const Icon(Icons.security, color: greyText),
-                filled: true,
-                fillColor: Colors.white,
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: inputBorder, width: 1.5),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: primaryGreen, width: 1.5),
-                ),
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 13, color: greyText, height: 1.5),
+                children: [
+                  const TextSpan(text: 'Masukkan kode OTP yang dikirimkan ke '),
+                  TextSpan(
+                    text: widget.identifier,
+                    style: const TextStyle(fontWeight: FontWeight.w600, color: darkText),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
+
+            // 4 kotak OTP
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                4,
+                (i) => Container(
+                  width: 64,
+                  height: 64,
+                  margin: EdgeInsets.only(right: i < 3 ? 16 : 0),
+                  decoration: BoxDecoration(
+                    color: _otp[i].isNotEmpty ? lightGreen : const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _otp[i].isNotEmpty ? primaryGreen : inputBorder,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _otp[i],
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: primaryGreen,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Kirim ulang
+            Center(
+              child: _canResend
+                  ? TextButton(
+                      onPressed: _handleResend,
+                      child: const Text(
+                        'Kirim Ulang',
+                        style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600),
+                      ),
+                    )
+                  : Text(
+                      'Tidak menerima kode? Kirim ulang dalam ${_resendSeconds}s',
+                      style: const TextStyle(fontSize: 12, color: greyText),
+                    ),
+            ),
+            const SizedBox(height: 24),
+
+            // Tombol verifikasi
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
+                onPressed: (_otpString.length == 4 && !_isVerifying) ? _handleVerifikasi : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor: const Color(0xFFBDBDBD),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                onPressed: _isLoading ? null : _verifikasiOtp,
-                child: _isLoading
+                child: _isVerifying
                     ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
                     : const Text(
-                        'Verifikasi',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        'Verifikasi OTP',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                       ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Numpad custom
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _numpadRow(['1', '2', '3']),
+                  const SizedBox(height: 16),
+                  _numpadRow(['4', '5', '6']),
+                  const SizedBox(height: 16),
+                  _numpadRow(['7', '8', '9']),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      const SizedBox(width: 80),
+                      _numpadButton('0'),
+                      SizedBox(
+                        width: 80,
+                        height: 56,
+                        child: TextButton(
+                          onPressed: _deleteDigit,
+                          style: TextButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.backspace_outlined,
+                            color: darkText,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _numpadRow(List<String> digits) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: digits.map(_numpadButton).toList(),
+      );
+
+  Widget _numpadButton(String digit) => SizedBox(
+        width: 80,
+        height: 56,
+        child: TextButton(
+          onPressed: () => _inputDigit(digit),
+          style: TextButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: Text(
+            digit,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w500,
+              color: darkText,
+            ),
+          ),
+        ),
+      );
+
+  Future<void> _handleVerifikasi() async {
+    setState(() => _isVerifying = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/users/verify-reset-otp'),
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+        body: jsonEncode({
+          'identifier': widget.identifier,
+          'otp': _otpString,
+        }),
+      );
+
+      setState(() => _isVerifying = false);
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ResetPasswordScreen(
+              identifier: widget.identifier,
+              otp: _otpString,
+            ),
+          ),
+        );
+      } else {
+        setState(() {
+          for (int i = 0; i < 4; i++) _otp[i] = '';
+        });
+        final msg = body['message'] ?? 'Kode OTP salah. Silakan coba lagi.';
+        _snackbar(msg, isError: true);
+      }
+    } catch (e) {
+      setState(() {
+        _isVerifying = false;
+        for (int i = 0; i < 4; i++) _otp[i] = '';
+      });
+      _snackbar('Tidak dapat terhubung ke server.', isError: true);
+    }
+  }
+
+  Future<void> _handleResend() async {
+    _startResendTimer();
+    try {
+      await http.post(
+        Uri.parse('$_baseUrl/users/forgot-password'),
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+        body: jsonEncode({'identifier': widget.identifier}),
+      );
+      _snackbar('Kode OTP telah dikirim ulang ke ${widget.identifier}');
+    } catch (_) {
+      _snackbar('Gagal kirim ulang OTP', isError: true);
+    }
   }
 
   void _snackbar(String msg, {bool isError = false}) {
@@ -346,7 +514,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('${AppConfig.baseUrl}/users/reset-password'),
+        Uri.parse('$_baseUrl/users/reset-password'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
@@ -380,22 +548,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Password Baru',
-          style: TextStyle(color: darkText, fontSize: 16, fontWeight: FontWeight.bold),
-        ),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, color: darkText, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
+        title: const Text(
+          'Lupa Password',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: darkText),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(28.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 8),
             const Text(
               'Buat Password Baru',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: darkText),
@@ -403,9 +572,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             const SizedBox(height: 8),
             const Text(
               'Password baru harus minimal 8 karakter.',
-              style: TextStyle(color: greyText, height: 1.5),
+              style: TextStyle(color: greyText, height: 1.5, fontSize: 13),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             _buildPasswordField(
               _passController,
               'Password Baru',
@@ -439,7 +608,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       )
                     : const Text(
                         'Simpan Password',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                       ),
               ),
             ),
@@ -462,14 +631,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: greyText, fontSize: 14),
-        prefixIcon: const Icon(Icons.lock_outline, color: greyText),
+        prefixIcon: const Icon(Icons.lock_outline_rounded, color: greyText, size: 20),
         suffixIcon: IconButton(
           icon: Icon(
             isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
             color: greyText,
+            size: 20,
           ),
           onPressed: onToggle,
         ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         filled: true,
         fillColor: Colors.white,
         enabledBorder: OutlineInputBorder(
