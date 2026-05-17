@@ -3,7 +3,8 @@ import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_bank_account_view.dart';
 import 'pc_verifikasi_view.dart';
-import 'pc_laporan_view.dart'; // IMPORT VIEW LAPORAN
+import 'pc_laporan_view.dart'; 
+import 'pc_riwayat_pembayaran_view.dart'; // IMPORT VIEW RIWAYAT BARU
 
 class PcViewPage extends StatefulWidget {
   const PcViewPage({super.key});
@@ -19,8 +20,8 @@ class _PcViewPageState extends State<PcViewPage> {
   void initState() {
     super.initState();
     _controller = PcController();
-    // Jika ingin memuat data di awal, bisa panggil:
-    // _controller.loadTransactions();
+    // Otomatis load data transaksi pas masuk aplikasi biar data Riwayat & Verifikasi ter-update
+    _controller.loadTransactions();
   }
 
   @override
@@ -87,6 +88,7 @@ class _PcViewPageState extends State<PcViewPage> {
               crossAxisSpacing: 16,
               childAspectRatio: 1.25, 
               children: [
+                // 1. Verifikasi Setoran (Kiri Atas - Kuning)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -104,9 +106,15 @@ class _PcViewPageState extends State<PcViewPage> {
                     const Color(0xFFF57F17), 
                   ),
                 ),
+                // 2. Riwayat Pembayaran (Kanan Atas - Kuning)
                 GestureDetector(
                   onTap: () {
-                    // TODO: Navigasi ke Riwayat Pembayaran (jika sudah ada)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PcRiwayatPembayaranViewPage(controller: _controller),
+                      ),
+                    );
                   },
                   child: _buildMenuCard(
                     context,
@@ -116,6 +124,7 @@ class _PcViewPageState extends State<PcViewPage> {
                     const Color(0xFFF57F17), 
                   ),
                 ),
+                // 3. Kelola Rekening (Kiri Bawah - Hijau)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -133,8 +142,8 @@ class _PcViewPageState extends State<PcViewPage> {
                     const Color(0xFF0C844C), 
                   ),
                 ),
+                // 4. Laporan Keuangan (Kanan Bawah - Hijau)
                 GestureDetector(
-                  // NAVIGASI KE HALAMAN LAPORAN KEUANGAN
                   onTap: () {
                     Navigator.push(
                       context,
