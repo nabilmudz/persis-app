@@ -586,16 +586,20 @@ class _LoginScreenState extends State<LoginScreen>
           'refresh_token',
           'refreshToken',
         ]);
-        log('$role');
+        final userMap = body['user'] ?? body['data']?['user'] ?? body['data'];
+        final userId = userMap?['id']?.toString() ?? userMap?['_id']?.toString();
+        final regionMap = userMap?['region_id'] ?? userMap?['regionId'] ?? userMap?['region'];
+        final regionId = regionMap is Map ? (regionMap['_id']?.toString() ?? regionMap['id']?.toString()) : regionMap?.toString();
+        log('$role, UserID: $userId, RegionID: $regionId');
 
-        if (_rememberMe && token != null) {
+        if (token != null) {
           await AuthHelper.saveSession(
             accessToken: token,
             refreshToken: refreshToken,
             role: role?.toString(),
+            userId: userId,
+            regionId: regionId,
           );
-        } else {
-          await AuthHelper.clearSession();
         }
 
         _snackbar('Login berhasil! Selamat datang 👋');
@@ -620,8 +624,8 @@ class _LoginScreenState extends State<LoginScreen>
     final data = body['data'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(body['data'])
         : body['data'] is Map
-            ? Map<String, dynamic>.from(body['data'] as Map)
-            : null;
+        ? Map<String, dynamic>.from(body['data'] as Map)
+        : null;
 
     for (final key in keys) {
       final value = body[key] ?? data?[key];
