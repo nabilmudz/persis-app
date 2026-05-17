@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/presentation/widgets/anggota_card.dart';
 import 'package:provider/provider.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
 class RiwayatView extends StatefulWidget {
   const RiwayatView({super.key});
@@ -103,6 +105,10 @@ class _RiwayatViewState extends State<RiwayatView> {
             ],
           );
         },
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.anggota,
+        homeRoute: AppRoutes.anggota,
       ),
     );
   }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/widgets/pj_verification_member_card.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/anggota/pj_verif_tunai_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
@@ -372,6 +374,10 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
           ); // LayoutBuilder
         }, // ListenableBuilder builder
       ), // ListenableBuilder (body)
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
+      ),
     ); // Scaffold
   }
 

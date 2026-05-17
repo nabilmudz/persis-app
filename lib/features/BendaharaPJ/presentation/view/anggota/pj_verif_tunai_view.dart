@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
@@ -513,6 +515,10 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
             },
           );
         },
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
       ),
     );
   }

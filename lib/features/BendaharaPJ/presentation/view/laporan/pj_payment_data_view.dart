@@ -3,8 +3,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../../controller/pj_controller.dart';
 import '../../controller/pj_laporan_controller.dart';
 import '../../../data/models/transaction_model.dart';
@@ -565,6 +567,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                   ],
                 ),
               ),
+            ),
+            bottomNavigationBar: const RoleBottomNavigationBar(
+              currentRoute: AppRoutes.bendaharaPJ,
+              homeRoute: AppRoutes.bendaharaPJ,
             ),
     );
   }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../../helpers/auth_helper.dart'; // <-- Alamatnya udah aku ganti jadi pendek!
 
 class ProfileScreen extends StatefulWidget {
@@ -59,6 +61,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     // Cek apakah dia Bendahara (PD, PC, atau PJ)
     bool isBendahara = _role.contains('BENDAHARA');
+    final homeRoute = _role.contains('BENDAHARA_PJ')
+      ? AppRoutes.bendaharaPJ
+      : _role.contains('BENDAHARA_PC')
+        ? AppRoutes.bendaharaPC
+        : AppRoutes.anggota;
 
     return Scaffold(
       appBar: AppBar(
@@ -93,6 +100,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // TOMBOL LOGOUT
           _buildMenuItem(Icons.logout, "Keluar", _handleLogout, isLogout: true),
         ],
+      ),
+      bottomNavigationBar: RoleBottomNavigationBar(
+        currentRoute: AppRoutes.profile,
+        homeRoute: homeRoute,
       ),
     );
   }

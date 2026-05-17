@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -439,52 +441,61 @@ class _TransferBankViewState extends State<TransferBankView> {
               ],
             ),
           ),
-          bottomNavigationBar: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
+          bottomNavigationBar: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: controller.buktiFile == null
-                      ? [const Color(0xFFAAAAAA), const Color(0xFFCCCCCC)]
-                      : [const Color(0xFF074D2C), const Color(0xFF10B367)],
-                ),
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: ElevatedButton(
-                onPressed: controller.isLoading || controller.buktiFile == null
-                    ? null
-                    : () => _handleSubmit(context, controller),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: controller.buktiFile == null
+                          ? [const Color(0xFFAAAAAA), const Color(0xFFCCCCCC)]
+                          : [const Color(0xFF074D2C), const Color(0xFF10B367)],
+                    ),
                     borderRadius: BorderRadius.circular(15),
                   ),
-                ),
-                child: controller.isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Kirim Bukti Pembayaran',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          fontFamily: 'Poppins',
-                        ),
+                  child: ElevatedButton(
+                    onPressed: controller.isLoading || controller.buktiFile == null
+                        ? null
+                        : () => _handleSubmit(context, controller),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
+                    ),
+                    child: controller.isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Kirim Bukti Pembayaran',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                  ),
+                ),
               ),
-            ),
+              const RoleBottomNavigationBar(
+                currentRoute: AppRoutes.anggota,
+                homeRoute: AppRoutes.anggota,
+              ),
+            ],
           ),
         );
       },

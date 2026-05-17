@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
 // Import Absolute
 import 'package:persis_app/features/anggota/presentation/widgets/anggota_card.dart';
@@ -351,6 +353,10 @@ class _AnggotaViewState extends State<AnggotaView> {
             ),
           );
         },
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.anggota,
+        homeRoute: AppRoutes.anggota,
       ),
     );
   }

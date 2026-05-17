@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
 import 'package:intl/intl.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
 class TransferDetailPage extends StatelessWidget {
   final TransactionModel transaction;
@@ -238,6 +240,10 @@ class TransferDetailPage extends StatelessWidget {
             const SizedBox(height: 24),
           ],
         ),
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
       ),
     );
   }

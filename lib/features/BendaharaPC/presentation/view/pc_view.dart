@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_bank_account_view.dart';
@@ -196,6 +198,10 @@ class _PcViewPageState extends State<PcViewPage> {
             ),
           );
         },
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPC,
+        homeRoute: AppRoutes.bendaharaPC,
       ),
     );
   }
