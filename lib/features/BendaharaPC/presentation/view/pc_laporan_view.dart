@@ -110,7 +110,7 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       if (_laporanController.errorMessage != null || _monthlyTransactions.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Menampilkan data lokal (mungkin tidak lengkap).'),
+            content: Text('Koneksi server terputus. Menampilkan data lokal (mungkin tidak lengkap).'),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 3),
           ),
@@ -144,6 +144,11 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
     }
   }
 
+  String _formatCurrency(int? amount) {
+    if (amount == null) return 'Rp 0';
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+  }
+
   String _getMemberName(TransactionModel transaction) {
     if (transaction.memberName != null && transaction.memberName!.isNotEmpty) {
       return transaction.memberName!;
@@ -159,7 +164,11 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       );
 
       if (_laporanController.errorMessage != null) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_laporanController.errorMessage!), backgroundColor: Colors.red));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_laporanController.errorMessage!), backgroundColor: Colors.red),
+          );
+        }
         return;
       }
 
@@ -180,7 +189,11 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       }
 
       if (exportData.isEmpty) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tidak ada transaksi untuk periode ini'), duration: Duration(seconds: 2)));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak ada transaksi untuk periode ini'), duration: Duration(seconds: 2)),
+          );
+        }
         return;
       }
 
@@ -196,7 +209,9 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       for (int i = 0; i < exportData.length; i++) {
         final t = exportData[i];
         final amount = t.totalAmount ?? 0;
-        final dateFormatted = t.createdAt != null ? DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(DateTime.parse(t.createdAt!)) : '-';
+        final dateFormatted = t.createdAt != null
+            ? DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(DateTime.parse(t.createdAt!))
+            : '-';
         final memberName = t.memberName ?? _getMemberName(t);
         final pj = (amount * 30) ~/ 100;
         final pc = (amount * 20) ~/ 100;
@@ -204,7 +219,19 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         final pd = (amount * 20) ~/ 100;
         final pp = (amount * 15) ~/ 100;
 
-        sheet.appendRow([TextCellValue(dateFormatted), TextCellValue(memberName), TextCellValue(monthLabel), TextCellValue(monthLabel), IntCellValue(amount), TextCellValue(t.verifiedBy ?? '-'), IntCellValue(pj), IntCellValue(pc), IntCellValue(pw), IntCellValue(pd), IntCellValue(pp)]);
+        sheet.appendRow([
+          TextCellValue(dateFormatted),
+          TextCellValue(memberName),
+          TextCellValue(monthLabel),
+          TextCellValue(monthLabel),
+          IntCellValue(amount),
+          TextCellValue(t.verifiedBy ?? '-'),
+          IntCellValue(pj),
+          IntCellValue(pc),
+          IntCellValue(pw),
+          IntCellValue(pd),
+          IntCellValue(pp),
+        ]);
       }
 
       final bytes = excel.encode();
@@ -214,9 +241,19 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       final file = File('${directory.path}/Laporan_PC_$monthLabel.xlsx');
       await file.writeAsBytes(bytes);
 
-      if (mounted) await Share.shareXFiles([XFile(file.path)], text: 'Laporan PC $monthLabel telah dibuat', subject: 'Laporan PC $monthLabel');
+      if (mounted) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Laporan PC $monthLabel telah dibuat',
+          subject: 'Laporan PC $monthLabel',
+        );
+      }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuat file Excel: $e'), backgroundColor: Colors.red));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal membuat file Excel: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -226,9 +263,12 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Data Pembayaran', style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 18)),
+        title: const Text(
+          'Data Pembayaran',
+          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 18),
+        ),
         elevation: 0,
-        backgroundColor: const Color(0xFF074D2C), // Hijau Gelap PC
+        backgroundColor: const Color(0xFF074D2C),
         foregroundColor: Colors.white,
       ),
       body: _isInitialLoading
@@ -258,11 +298,22 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                               onTap: _selectMonth,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                decoration: BoxDecoration(border: Border.all(color: const Color(0xFFD0D0D0)), borderRadius: BorderRadius.circular(8), color: Colors.white),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: const Color(0xFFD0D0D0)),
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.white,
+                                ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF073D4D))),
+                                    Text(
+                                      DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: Color(0xFF073D4D),
+                                      ),
+                                    ),
                                     const Icon(Icons.calendar_today, size: 18, color: Color(0xFF073D4D)),
                                   ],
                                 ),
@@ -274,10 +325,24 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                             onPressed: _exportExcel,
                             icon: const Icon(Icons.table_chart),
                             label: const Text('Excel (.xlsx)'),
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E6F42), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E6F42),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
                           ),
                           if (_laporanController.isLoading)
-                            const Padding(padding: EdgeInsets.only(left: 12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C844C))))),
+                            const Padding(
+                              padding: EdgeInsets.only(left: 12),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C844C)),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -288,14 +353,24 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                         children: [
                           const Padding(
                             padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-                            child: Align(alignment: Alignment.centerLeft, child: Text('Rincian Pembayaran', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF073D4D)))),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Rincian Pembayaran',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF073D4D),
+                                ),
+                              ),
+                            ),
                           ),
                           ListView.separated(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                             itemCount: _groupTransactionsByType(filteredTransactions).keys.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 12),
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final groupedData = _groupTransactionsByType(filteredTransactions);
                               final type = groupedData.keys.elementAt(index);
@@ -349,54 +424,94 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 64, color: const Color(0xFF073D4D).withOpacity(0.3)),
+            Icon(Icons.receipt_long_outlined, size: 64, color: const Color(0xFF073D4D).withValues(alpha: 0.3)),
             const SizedBox(height: 16),
-            Text('Tidak Ada Data Pembayaran', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF073D4D).withOpacity(0.7))),
+            Text(
+              'Tidak Ada Data Pembayaran',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF073D4D).withValues(alpha: 0.7),
+              ),
+            ),
             const SizedBox(height: 8),
-            Text('Belum ada transaksi pada bulan yang dipilih', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: const Color(0xFF4B5563).withOpacity(0.6))),
+            Text(
+              'Belum ada pembayaran yang selesai pada bulan yang dipilih',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: const Color(0xFF4B5563).withValues(alpha: 0.6),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
+  // ── Overview Card: gradient seperti PJ ──
   Widget _buildOverviewCard(List<TransactionModel> transactions) {
-    int totalAmount = 0;
-    int totalIncome = 0;
-    for (final transaction in transactions) {
-      final amount = transaction.totalAmount ?? 0;
-      totalAmount += amount;
-      totalIncome += amount;
-    }
+    final totalAmount = transactions.fold<int>(0, (sum, t) => sum + (t.totalAmount ?? 0));
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50), // Sesuai warna hijau Dashboard PC
+        gradient: const LinearGradient(
+          begin: Alignment(-0.03, 0.21),
+          end: Alignment(1.55, 1.16),
+          colors: [Color(0xFF4CAF50), Color(0xFF0C844C), Color(0xFF074D2C)],
+        ),
         borderRadius: BorderRadius.circular(15),
-        boxShadow: const [BoxShadow(color: Color(0x4C15803D), blurRadius: 10, offset: Offset(0, 4))],
+        boxShadow: const [
+          BoxShadow(color: Color(0x4C15803D), blurRadius: 10, offset: Offset(0, 4)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DecoratedBox(
-            decoration: const BoxDecoration(color: Color(0x77D9D9D9), borderRadius: BorderRadius.all(Radius.circular(80))),
-            child: const Padding(
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              color: Color(0x77D9D9D9),
+              borderRadius: BorderRadius.all(Radius.circular(80)),
+            ),
+            child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text('TOTAL KAS PC', style: TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+              child: Text(
+                'TOTAL KAS PC',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 12),
-          Text(NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(totalAmount), style: const TextStyle(color: Colors.white, fontSize: 32, fontFamily: 'Poppins', fontWeight: FontWeight.w700)),
+          Text(
+            _formatCurrency(totalAmount),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 16),
-          _OverviewStatItem(label: 'Total Dana Masuk', amount: totalIncome),
+          _OverviewStatItem(label: 'Total Dana Masuk', amount: totalAmount),
         ],
       ),
     );
   }
 
-  Widget _buildDistributionItemWidget({required String label, required int percentage, required int amount, required Color color, required String Function(int) formatAmount}) {
+  Widget _buildDistributionItemWidget({
+    required String label,
+    required int percentage,
+    required int amount,
+    required Color color,
+    required String Function(int) formatAmount,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -410,20 +525,29 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(value: percentage / 100, minHeight: 8, backgroundColor: const Color(0xFFF3F4F6), valueColor: AlwaysStoppedAnimation<Color>(color)),
+          child: LinearProgressIndicator(
+            value: percentage / 100,
+            minHeight: 8,
+            backgroundColor: const Color(0xFFF3F4F6),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
         ),
       ],
     );
   }
 
   Widget _buildDistributionCard(List<TransactionModel> transactions) {
-    int totalAmount = transactions.fold(0, (sum, t) => sum + (t.totalAmount ?? 0));
+    final totalAmount = transactions.fold<int>(0, (sum, t) => sum + (t.totalAmount ?? 0));
     String fmt(int amount) => NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E5E5))),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -454,6 +578,7 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
   }
 }
 
+// ── Overview Stat Item ──
 class _OverviewStatItem extends StatelessWidget {
   final String label;
   final int amount;
@@ -464,36 +589,144 @@ class _OverviewStatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          Text(NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+          Text(
+            NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount),
+            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+          ),
         ],
       ),
     );
   }
 }
 
+// ── Payment Data Card: distribusi lengkap seperti PJ ──
 class _PaymentDataCard extends StatelessWidget {
   final TransactionModel transaction;
   final String memberName;
   final VoidCallback? onTap;
   final bool isRecap;
 
-  const _PaymentDataCard({required this.transaction, required this.memberName, this.onTap, this.isRecap = false});
+  const _PaymentDataCard({
+    required this.transaction,
+    required this.memberName,
+    this.onTap,
+    this.isRecap = false,
+  });
+
+  String _formatCurrency(int? amount) {
+    if (amount == null) return 'Rp 0';
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+  }
+
+  String _formatDate(String? dateString) {
+    if (dateString == null) return '-';
+    try {
+      final date = DateTime.parse(dateString);
+      return DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(date);
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  String _getPaymentTypeLabel(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'tunai':
+        return 'Tunai';
+      case 'rekap tunai':
+        return 'Rekap Tunai';
+      case 'non-tunai':
+      case 'transfer':
+        return 'Transfer Bank';
+      case 'e-wallet':
+        return 'E-Wallet';
+      default:
+        return type ?? 'Pembayaran';
+    }
+  }
+
+  Color _getStatusColor() {
+    if (isRecap) return const Color(0xFF0C844C);
+    if (transaction.accStatus == 'acc_pj' || transaction.accStatus == 'acc_pc' || transaction.accStatus == 'approved') {
+      return const Color(0xFF0C844C);
+    } else if (transaction.accStatus == 'rejected') {
+      return const Color(0xFFEF4444);
+    }
+    return const Color(0xFFFFA500);
+  }
+
+  Widget _buildDistribution() {
+    final amount = transaction.totalAmount ?? 0;
+    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'DISTRIBUSI',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280), letterSpacing: 0.5),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(4)),
+              child: const Text(
+                'PC saja',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF1976D2)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _distRow('PJ (30%)', fmt.format((amount * 30) ~/ 100)),
+        _distRow('PC (20%)', fmt.format((amount * 20) ~/ 100)),
+        _distRow('PD (20%)', fmt.format((amount * 20) ~/ 100)),
+        _distRow('PW (15%)', fmt.format((amount * 15) ~/ 100)),
+        _distRow('PP (15%)', fmt.format((amount * 15) ~/ 100)),
+      ],
+    );
+  }
+
+  Widget _distRow(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF4B5563))),
+            Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF073D4D))),
+          ],
+        ),
+      );
 
   @override
   Widget build(BuildContext context) {
     final amount = transaction.totalAmount ?? 0;
     final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final displayMemberName = (memberName.isNotEmpty && memberName != '-')
+        ? memberName
+        : (transaction.memberName ?? '-');
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E5E5)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E5E5)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
+          ],
+        ),
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,28 +734,84 @@ class _PaymentDataCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(transaction.type ?? 'Pembayaran', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF073D4D))),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _getPaymentTypeLabel(transaction.type),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF073D4D)),
+                      ),
+                      if (!isRecap) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Nama: $displayMemberName',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0C844C)),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Kode: ${(transaction.code != null && transaction.code!.isNotEmpty) ? transaction.code : (transaction.id != null && transaction.id!.isNotEmpty ? (transaction.id!.length > 8 ? transaction.id!.substring(transaction.id!.length - 8).toUpperCase() : transaction.id!.toUpperCase()) : '-')}',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                      ),
+                    ],
+                  ),
+                ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: const Color(0xFF0C844C).withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                  child: Text(isRecap ? 'Group' : 'Approved', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF0C844C))),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor().withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isRecap ? 'Group' : (transaction.accStatus == 'acc_pj' || transaction.accStatus == 'acc_pc' || transaction.accStatus == 'approved' ? 'approved' : 'pending'),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _getStatusColor()),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(fmt.format(amount), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0C844C))),
+            Text(
+              fmt.format(amount),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0C844C)),
+            ),
+            if (!isRecap) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Tanggal', style: TextStyle(fontSize: 12, color: const Color(0xFF6B7280).withValues(alpha: 0.7))),
+                        const SizedBox(height: 4),
+                        Text(_formatDate(transaction.createdAt), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF073D4D))),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Diverifikasi Oleh', style: TextStyle(fontSize: 12, color: const Color(0xFF6B7280).withValues(alpha: 0.7))),
+                        const SizedBox(height: 4),
+                        Text(
+                          transaction.verifiedBy ?? '-',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF073D4D)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ] else
+              const SizedBox(height: 8),
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFE5E5E5)),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                const Text('DISTRIBUSI PC', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280), letterSpacing: 0.5)),
-                const SizedBox(width: 6),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(4)), child: const Text('Porsi PC', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF1976D2)))),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('PC (20%)', style: TextStyle(fontSize: 11, color: Color(0xFF4B5563))), Text(fmt.format((amount * 20) ~/ 100), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF073D4D)))]),
+            _buildDistribution(),
           ],
         ),
       ),

@@ -15,6 +15,10 @@ class PcController extends ChangeNotifier {
   final TransactionRemoteDataSource _dataSource;
   final List<TransactionModel> _allTransactions = <TransactionModel>[];
 
+  // Lookup map dari creatorId → nama & NPA
+  final Map<String, String> _memberNames = {};
+  final Map<String, String> _memberNpas = {};
+
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -29,7 +33,28 @@ class PcController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final transactions = await _dataSource.getHistory();
+      // Load dua API paralel
+      final results = await Future.wait([
+        _dataSource.getHistory(),
+        _dataSource.getMembersPaymentStatus(year: DateTime.now().year),
+      ]);
+
+      final transactions = results[0] as List<TransactionModel>;
+      final membersData = results[1] as Map<String, dynamic>?;
+
+      // Build lookup map: member _id → fullname & npa
+      _memberNames.clear();
+      _memberNpas.clear();
+      if (membersData != null) {
+        final members = membersData['members'] as List? ?? [];
+        for (final m in members) {
+          final id = m['_id'] as String? ?? '';
+          if (id.isNotEmpty) {
+            _memberNames[id] = m['fullname'] as String? ?? '';
+            _memberNpas[id] = m['npa'] as String? ?? '-';
+          }
+        }
+      }
 
       _allTransactions
         ..clear()
@@ -46,7 +71,6 @@ class PcController extends ChangeNotifier {
     final filtered = _allTransactions
         .where((item) => !isVerified(item))
         .toList();
-
     filtered.sort(_compareByCreatedAtDesc);
     return filtered.take(2).toList();
   }
@@ -59,13 +83,8 @@ class PcController extends ChangeNotifier {
 
     return _allTransactions.map(toVerifikasiItem).where((item) {
       final sameCategory = item.category == category;
-      if (!sameCategory) {
-        return false;
-      }
-
-      if (normalizedQuery.isEmpty) {
-        return true;
-      }
+      if (!sameCategory) return false;
+      if (normalizedQuery.isEmpty) return true;
 
       return item.name.toLowerCase().contains(normalizedQuery) ||
           item.location.toLowerCase().contains(normalizedQuery) ||
@@ -78,13 +97,41 @@ class PcController extends ChangeNotifier {
     return PcVerifikasiItem(
       transaction: item,
       date: formatDate(item.createdAt),
-      location: 'Transaksi #${item.creatorId ?? '-'}',
-      name: item.creatorId ?? 'Unknown',
-      idNumber: '-',
+      location: 'Setoran Kas PJ',
+      name: _resolveMemberName(item),
+      idNumber: _resolveMemberNpa(item),
       paymentMethod: paymentMethodText(item.paymentMethodId),
       price: formatCurrency(item.totalAmount ?? 0),
       category: categoryFromTransaction(item),
+      txCode: _resolveTransactionCode(item),
     );
+  }
+
+  /// Resolve nama member: lookup map dulu, fallback ke field di model, lalu Unknown
+  String _resolveMemberName(TransactionModel item) {
+    final fromMap = _memberNames[item.creatorId] ?? '';
+    if (fromMap.isNotEmpty) return fromMap;
+
+    if (item.memberName != null && item.memberName!.trim().isNotEmpty) {
+      return item.memberName!.trim();
+    }
+    return 'Unknown';
+  }
+
+  /// Resolve NPA: lookup map dulu, fallback ke field di model
+  String _resolveMemberNpa(TransactionModel item) {
+    final fromMap = _memberNpas[item.creatorId] ?? '';
+    if (fromMap.isNotEmpty) return fromMap;
+    return item.npa ?? '-';
+  }
+
+  /// Kode tampilan transaksi: 8 karakter terakhir dari transaction ID
+  String _resolveTransactionCode(TransactionModel item) {
+    final id = item.id ?? item.creatorId ?? '';
+    if (id.length >= 8) {
+      return id.substring(id.length - 8).toUpperCase();
+    }
+    return id.toUpperCase().isNotEmpty ? id.toUpperCase() : '-';
   }
 
   Future<PcAccResult> accTransaction(TransactionModel item) async {
@@ -92,14 +139,10 @@ class PcController extends ChangeNotifier {
       (i) => _isSameTransaction(i, item),
     );
 
-    if (index == -1) {
-      return PcAccResult.notFound;
-    }
+    if (index == -1) return PcAccResult.notFound;
 
     final current = _allTransactions[index];
-    if (isVerified(current)) {
-      return PcAccResult.alreadyVerified;
-    }
+    if (isVerified(current)) return PcAccResult.alreadyVerified;
 
     _allTransactions[index] = TransactionModel(
       creatorId: current.creatorId,
@@ -121,22 +164,14 @@ class PcController extends ChangeNotifier {
   }
 
   String categoryFromTransaction(TransactionModel item) {
-    if (isVerified(item)) {
-      return 'Sudah Diverifikasi';
-    }
-
+    if (isVerified(item)) return 'Sudah Diverifikasi';
     final status = _normalize(item.status);
-    if (status == 'tunggakan') {
-      return 'Tunggakan';
-    }
-
+    if (status == 'tunggakan') return 'Tunggakan';
     return 'Belum Diverifikasi';
   }
 
   String paymentMethodText(String? methodId) {
-    if (methodId == null || methodId.trim().isEmpty) {
-      return 'Unknown';
-    }
+    if (methodId == null || methodId.trim().isEmpty) return 'Unknown';
 
     switch (_normalize(methodId)) {
       case 'bank_transfer':
@@ -155,28 +190,14 @@ class PcController extends ChangeNotifier {
   }
 
   String formatDate(String? dateString) {
-    if (dateString == null || dateString.trim().isEmpty) {
-      return 'N/A';
-    }
+    if (dateString == null || dateString.trim().isEmpty) return 'N/A';
 
     final parsed = DateTime.tryParse(dateString);
-    if (parsed == null) {
-      return 'Invalid date';
-    }
+    if (parsed == null) return 'Invalid date';
 
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
 
     final day = parsed.day.toString().padLeft(2, '0');
@@ -186,16 +207,11 @@ class PcController extends ChangeNotifier {
   String formatCurrency(int amount) {
     final number = amount.toString();
     final buffer = StringBuffer();
-
     for (var i = 0; i < number.length; i++) {
       final reverseIndex = number.length - i;
       buffer.write(number[i]);
-
-      if (reverseIndex > 1 && reverseIndex % 3 == 1) {
-        buffer.write('.');
-      }
+      if (reverseIndex > 1 && reverseIndex % 3 == 1) buffer.write('.');
     }
-
     return 'Rp. ${buffer.toString()}';
   }
 
@@ -208,16 +224,13 @@ class PcController extends ChangeNotifier {
   int _compareByCreatedAtDesc(TransactionModel a, TransactionModel b) {
     final dateA = a.createdAt != null ? DateTime.tryParse(a.createdAt!) : null;
     final dateB = b.createdAt != null ? DateTime.tryParse(b.createdAt!) : null;
-
     if (dateA == null && dateB == null) return 0;
     if (dateA == null) return 1;
     if (dateB == null) return -1;
     return dateB.compareTo(dateA);
   }
 
-  String _normalize(String? value) {
-    return value?.trim().toLowerCase() ?? '';
-  }
+  String _normalize(String? value) => value?.trim().toLowerCase() ?? '';
 }
 
 class PcVerifikasiItem {
@@ -229,6 +242,7 @@ class PcVerifikasiItem {
   final String paymentMethod;
   final String price;
   final String category;
+  final String txCode;
 
   const PcVerifikasiItem({
     required this.transaction,
@@ -239,6 +253,7 @@ class PcVerifikasiItem {
     required this.paymentMethod,
     required this.price,
     required this.category,
+    this.txCode = '-',
   });
 }
 
