@@ -24,18 +24,26 @@ class AuthHelper {
   }
 
   static Future<String?> getAccessToken() async {
-    final token = await SecureStorageService.read(SecureStorageService.accessTokenKey);
-    debugPrint('AuthHelper: Reading Access Token -> ${token != null ? "FOUND" : "NULL"}');
+    final token = await SecureStorageService.read(
+        SecureStorageService.accessTokenKey);
+    debugPrint(
+        'AuthHelper: Reading Access Token -> ${token != null ? "FOUND" : "NULL"}');
     return token;
   }
 
+  // ── Tambahan getter untuk regionId ────────────────────────────────────────
+  static Future<String?> getRegionId() async {
+    final regionId = await SecureStorageService.read('region_id');
+    debugPrint('AuthHelper: Reading Region ID -> $regionId');
+    return regionId;
+  }
 
   static Future<void> saveSession({
     required String accessToken,
     String? refreshToken,
     String? role,
     String? userId,
-    String? regionId,
+    String? regionId, // ← parameter baru
   }) async {
     debugPrint('=== AUTH SESSION SAVING ===');
     debugPrint('Role: $role');
@@ -72,6 +80,25 @@ class AuthHelper {
 
   static Future<void> clearSession() async {
     debugPrint('=== CLEARING AUTH SESSION ===');
+
+    // Simpan credentials dulu sebelum deleteAll
+    final savedEmail = await SecureStorageService.read('saved_email');
+    final savedPassword = await SecureStorageService.read('saved_password');
+    final rememberMe = await SecureStorageService.read('remember_me');
+
+    debugPrint('rememberMe saat logout: $rememberMe');
+
+    // Hapus semua data session
     await SecureStorageService.deleteAll();
+
+    // Restore credentials kalau rememberMe aktif
+    if (rememberMe == 'true' &&
+        savedEmail != null &&
+        savedPassword != null) {
+      debugPrint('Restoring credentials untuk autofill...');
+      await SecureStorageService.write('saved_email', savedEmail);
+      await SecureStorageService.write('saved_password', savedPassword);
+      await SecureStorageService.write('remember_me', 'true');
+    }
   }
 }
