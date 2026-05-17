@@ -78,6 +78,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       final result = await _laporanController.exportLaporan(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
+        status: 'lunas',
       );
 
       if (result != null && result['data'] != null) {
@@ -137,14 +138,15 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   List<TransactionModel> _filterTransactionsByMonth(
     List<TransactionModel> transactions,
   ) {
-    // Karena data dari _fetchMonthlyData SUDAH difilter berdasarkan bulan oleh server,
-    // kita hanya perlu memfilter berdasarkan status acc/completed saja jika perlu.
+    // Data laporan yang dipakai hanya transaksi yang sudah lunas.
     return transactions.where((transaction) {
-      final isApproved =
-          (transaction.accStatus == 'acc_pj' ||
-              transaction.accStatus == 'approved') ||
-          transaction.status == 'completed';
-      return isApproved;
+      final status = (transaction.status ?? '').trim().toLowerCase();
+      final accStatus = (transaction.accStatus ?? '').trim().toLowerCase();
+      return status == 'lunas' ||
+          status == 'paid' ||
+          status == 'completed' ||
+          accStatus == 'acc_pj' ||
+          accStatus == 'approved';
     }).toList();
   }
 
@@ -203,6 +205,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       final result = await _laporanController.exportLaporan(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
+        status: 'lunas',
       );
 
       // 2. Handle error dari controller

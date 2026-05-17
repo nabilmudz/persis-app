@@ -167,6 +167,11 @@ class _PcViewPageState extends State<PcViewPage> {
           ],
         ),
       ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPC,
+        activeRoute: AppRoutes.bendaharaPC,
+        homeRoute: AppRoutes.bendaharaPC,
+      ),
     );
   }
 
@@ -194,10 +199,6 @@ class _PcViewPageState extends State<PcViewPage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: const RoleBottomNavigationBar(
-        currentRoute: AppRoutes.bendaharaPC,
-        homeRoute: AppRoutes.bendaharaPC,
       ),
     );
   }

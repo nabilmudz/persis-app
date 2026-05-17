@@ -360,9 +360,15 @@ class PjTransactionItemController extends ChangeNotifier {
         : <String, dynamic>{};
     final year = (meta['year'] as num?)?.toInt();
     final regionId = meta['region_id']?.toString();
+    final month = (meta['month'] as num?)?.toInt();
     if (year != null) {
-      await _snapshotCacheBox.put(_snapshotKey(year, regionId), snapshot);
-      await _snapshotCacheBox.put(_snapshotKey(year, null), snapshot);
+      await _snapshotCacheBox.put(
+        _snapshotKey(year, regionId, month),
+        snapshot,
+      );
+      await _snapshotCacheBox.put(_snapshotKey(year, regionId, null), snapshot);
+      await _snapshotCacheBox.put(_snapshotKey(year, null, month), snapshot);
+      await _snapshotCacheBox.put(_snapshotKey(year, null, null), snapshot);
     }
 
     final duesPeriods = snapshot['dues_periods'];
@@ -444,12 +450,16 @@ class PjTransactionItemController extends ChangeNotifier {
   static List<Map<String, dynamic>> cachedMembersFromSnapshot({
     required int year,
     String? regionId,
+    int? month,
   }) {
     if (!Hive.isBoxOpen(_snapshotCacheBoxName)) {
       return const <Map<String, dynamic>>[];
     }
 
-    final snapshot = _snapshotCacheBox.get(_snapshotKey(year, regionId));
+    final snapshot = _snapshotCacheBox.get(_snapshotKey(year, regionId, month))
+        ?? _snapshotCacheBox.get(_snapshotKey(year, regionId, null))
+        ?? _snapshotCacheBox.get(_snapshotKey(year, null, month))
+        ?? _snapshotCacheBox.get(_snapshotKey(year, null, null));
     if (snapshot is! Map) {
       return const <Map<String, dynamic>>[];
     }
@@ -473,12 +483,15 @@ class PjTransactionItemController extends ChangeNotifier {
 
   static String localPeriodKey(int month, int year) => _key(month, year);
 
-  static String _snapshotKey(int year, String? regionId) {
+  static String _snapshotKey(int year, String? regionId, int? month) {
     final normalizedRegionId = regionId?.trim();
+    final normalizedMonth = month?.toString().padLeft(2, '0');
     if (normalizedRegionId == null || normalizedRegionId.isEmpty) {
-      return '$year';
+      return normalizedMonth == null ? '$year' : '$year-$normalizedMonth';
     }
-    return '$year-$normalizedRegionId';
+    return normalizedMonth == null
+        ? '$year-$normalizedRegionId'
+        : '$year-$normalizedRegionId-$normalizedMonth';
   }
 
   static bool _looksLikeBackendId(String value) {

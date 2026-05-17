@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/theme/app_colors.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../../helpers/auth_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -216,6 +218,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isBendahara = _role.contains('BENDAHARA');
+    final homeRoute = _role.contains('BENDAHARA_PJ')
+      ? AppRoutes.bendaharaPJ
+      : _role.contains('BENDAHARA_PC')
+        ? AppRoutes.bendaharaPC
+        : AppRoutes.anggota;
     final fullname =
         (_userData?['fullname'] ?? _userData?['name'] ?? 'Pengguna InfaQu')
             .toString();
@@ -371,6 +378,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
+      bottomNavigationBar: RoleBottomNavigationBar(
+        currentRoute: AppRoutes.profile,
+        activeRoute: AppRoutes.profile,
+        homeRoute: homeRoute,
+      ),
     );
   }
 

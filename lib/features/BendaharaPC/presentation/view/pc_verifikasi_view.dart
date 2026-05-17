@@ -115,6 +115,11 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage> with SingleTickerPr
           ),
         ],
       ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPC,
+        activeRoute: AppRoutes.bendaharaPC,
+        homeRoute: AppRoutes.bendaharaPC,
+      ),
     );
   }
 

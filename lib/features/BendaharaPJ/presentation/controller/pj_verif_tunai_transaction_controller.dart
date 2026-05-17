@@ -224,14 +224,14 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
       final transaction = TransactionModel(
         id: transactionId,
         type: 'tunai',
-        creatorId: accById ?? memberId, // Creator adalah Bendahara (yang login)
-        paymentMethodId: _tunaiPaymentMethodId ?? 'tunai', 
+        creatorId: accById ?? memberId,
+        paymentMethodId: _tunaiPaymentMethodId ?? 'tunai',
         totalAmount: totalAmount,
-        status: 'completed', // Langsung completed karena ini pembayaran tunai langsung
-        accStatus: 'acc_pj', // Sesuai enum NestJS: 'pending' | 'acc_pj'
-        accBy: accById,       
-        accAt: nowIso,         
-        isSynced: false, // isSynced false dulu, lalu di-set true jika berhasil API
+        status: 'pending', // Pending dulu — belum terkirim ke backend
+        accStatus: 'acc_pj',
+        accBy: accById,
+        accAt: nowIso,
+        isSynced: false,
         createdAt: nowIso,
         items: items,
       );

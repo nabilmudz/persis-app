@@ -246,12 +246,12 @@ class PjHiveController extends ChangeNotifier {
         return item.copyWith(
           periodId: cachedPeriodId,
           duesPeriodId: cachedPeriodId,
-          status: 'completed',
+          status: 'pending',
         );
       }
     }
 
-    return item.copyWith(status: 'completed');
+    return item.copyWith(status: 'pending');
   }
 
   static bool _looksLikeBackendId(String value) {
