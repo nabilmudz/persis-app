@@ -31,15 +31,24 @@ class AuthHelper {
     return token;
   }
 
+  // ── Tambahan getter untuk regionId ────────────────────────────────────────
+  static Future<String?> getRegionId() async {
+    final regionId = await SecureStorageService.read('region_id');
+    debugPrint('AuthHelper: Reading Region ID -> $regionId');
+    return regionId;
+  }
+
   static Future<void> saveSession({
     required String accessToken,
     String? refreshToken,
     String? role,
     String? userId,
+    String? regionId, // ← parameter baru
   }) async {
     debugPrint('=== AUTH SESSION SAVING ===');
     debugPrint('Role: $role');
     debugPrint('User ID: $userId');
+    debugPrint('Region ID: $regionId');
     debugPrint('Token: ${accessToken.substring(0, 10)}...');
 
     await SecureStorageService.write(
@@ -62,6 +71,10 @@ class AuthHelper {
       await SecureStorageService.write('user_id', userId);
     } else {
       debugPrint('User ID is null, cannot fetch history');
+    }
+
+    if (regionId != null) {
+      await SecureStorageService.write('region_id', regionId);
     }
   }
 

@@ -70,8 +70,16 @@ class UserRemoteDataSource {
     final response = await http
         .get(Uri.parse(url))
         .timeout(const Duration(seconds: 10));
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      List data = json.decode(response.body);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final decoded = json.decode(response.body);
+      List data = [];
+      if (decoded is List) {
+        data = decoded;
+      } else if (decoded is Map && decoded['data'] is List) {
+        data = decoded['data'];
+      } else if (decoded is Map && decoded['users'] is List) {
+        data = decoded['users'];
+      }
       return data.map((e) => UserModel.fromJson(e)).toList();
     }
     throw Exception('Gagal mengambil data user');
@@ -93,8 +101,6 @@ class UserRemoteDataSource {
 
     // ignore: avoid_print
     print('[UserRemoteDataSource] with-status => HTTP ${response.statusCode}');
-    // ignore: avoid_print
-    print('[UserRemoteDataSource] body => ${response.body}');
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final responseBody = json.decode(response.body);
@@ -107,17 +113,31 @@ class UserRemoteDataSource {
         rawData = responseBody['users'];
       }
 
-      // Filter berdasarkan status_tag karena BE mengembalikan semua user
+      // Filter berdasarkan status_tag dan regionId karena BE mengembalikan semua user
       final filtered = rawData.where((e) {
         final tag = (e['status_tag'] ?? '').toString().toLowerCase();
-        return tag == statusTag.toLowerCase();
+        final matchesTag = tag == statusTag.toLowerCase();
+        
+        if (!matchesTag) return false;
+        if (regionId == null) return true;
+
+        // Cek kecocokan region_id
+        final userRegion = e['region_id'] ?? e['regionId'] ?? e['region'];
+        String? userRegionStr;
+        if (userRegion is Map) {
+          userRegionStr = (userRegion['_id'] ?? userRegion['id'])?.toString();
+        } else if (userRegion != null) {
+          userRegionStr = userRegion.toString();
+        }
+
+        return userRegionStr == regionId;
       }).toList();
 
       return filtered.map((e) => UserModel.fromJson(e)).toList();
     }
     throw Exception(
       'Gagal mengambil data user dengan status $statusTag '
-      '(HTTP ${response.statusCode}): ${response.body}',
+      '(HTTP ${response.statusCode})',
     );
   }
 
