@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../../controller/pj_verif_non_tunai_controller.dart';
 import '../../../../BendaharaPC/presentation/controller/pc_controller.dart';
 import '../../../../BendaharaPC/presentation/widgets/sweet_alert_dialog.dart';
@@ -246,6 +248,10 @@ class _PjVerifNonTunaiViewPageState extends State<PjVerifNonTunaiViewPage> {
             );
           },
         ),
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
       ),
     );
   }

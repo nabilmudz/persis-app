@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
+import 'package:persis_app/app/routes.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../controller/pc_bank_account_controller.dart';
 import '../../../BendaharaPC/data/models/bank_account_model.dart';
 import '../widgets/add_bank_account_dialog.dart';
@@ -713,6 +715,10 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
             );
           },
         ),
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPC,
+        homeRoute: AppRoutes.bendaharaPC,
       ),
     );
   }

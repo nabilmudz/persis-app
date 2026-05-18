@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/core/config/config.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:persis_app/features/anggota/data/datasources/payment_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/repositories/payment_repository.dart';
@@ -110,6 +112,10 @@ class PilihPembayaranView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.anggota,
+        homeRoute: AppRoutes.anggota,
       ),
     );
   }

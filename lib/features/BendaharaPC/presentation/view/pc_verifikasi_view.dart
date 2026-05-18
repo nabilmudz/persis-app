@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../controller/pc_controller.dart';
 import 'pc_detail_verifikasi_view.dart';
 
@@ -138,6 +140,11 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage>
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPC,
+        activeRoute: AppRoutes.bendaharaPC,
+        homeRoute: AppRoutes.bendaharaPC,
       ),
     );
   }

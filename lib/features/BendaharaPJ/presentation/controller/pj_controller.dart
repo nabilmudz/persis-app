@@ -235,12 +235,14 @@ class PjController extends ChangeNotifier {
   Future<void> loadPaymentStatusSnapshot({
     required int year,
     String? regionId,
+    int? month,
   }) async {
     try {
       final resolvedRegionId = regionId ?? await resolveRegionId();
       final snapshot = await _transactionDataSource.getMembersPaymentStatus(
         year: year,
         regionId: resolvedRegionId,
+        month: month,
       );
 
       if (snapshot == null) {
@@ -256,6 +258,7 @@ class PjController extends ChangeNotifier {
           PjTransactionItemController.cachedMembersFromSnapshot(
         year: year,
         regionId: resolvedRegionId,
+        month: month,
       );
       if (snapshotMembers.isNotEmpty) {
         _members

@@ -3,8 +3,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../../controller/pj_controller.dart';
 import '../../controller/pj_laporan_controller.dart';
 import '../../../data/models/transaction_model.dart';
@@ -76,6 +78,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       final result = await _laporanController.exportLaporan(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
+        status: 'lunas',
       );
 
       if (result != null && result['data'] != null) {
@@ -135,14 +138,15 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   List<TransactionModel> _filterTransactionsByMonth(
     List<TransactionModel> transactions,
   ) {
-    // Karena data dari _fetchMonthlyData SUDAH difilter berdasarkan bulan oleh server,
-    // kita hanya perlu memfilter berdasarkan status acc/completed saja jika perlu.
+    // Data laporan yang dipakai hanya transaksi yang sudah lunas.
     return transactions.where((transaction) {
-      final isApproved =
-          (transaction.accStatus == 'acc_pj' ||
-              transaction.accStatus == 'approved') ||
-          transaction.status == 'completed';
-      return isApproved;
+      final status = (transaction.status ?? '').trim().toLowerCase();
+      final accStatus = (transaction.accStatus ?? '').trim().toLowerCase();
+      return status == 'lunas' ||
+          status == 'paid' ||
+          status == 'completed' ||
+          accStatus == 'acc_pj' ||
+          accStatus == 'approved';
     }).toList();
   }
 
@@ -201,6 +205,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       final result = await _laporanController.exportLaporan(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
+        status: 'lunas',
       );
 
       // 2. Handle error dari controller
@@ -566,6 +571,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                 ),
               ),
             ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
+      ),
     );
   }
 
@@ -800,7 +809,8 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       String type = t.type ?? 'Tunai';
 
       // Specifically handle the requested payment method ID
-      if (t.paymentMethodId == '69ee266797af79f7ef06e559' || type.toLowerCase() == 'tunai') {
+      if (t.paymentMethodId == '69ee266797af79f7ef06e559' ||
+          type.toLowerCase() == 'tunai') {
         type = 'Rekap Tunai';
       }
 
