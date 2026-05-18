@@ -5,6 +5,7 @@ import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/theme/app_colors.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
+import 'package:persis_app/features/auth/forgot_password_screen.dart';
 import '../../helpers/auth_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -71,7 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ─── EDIT PROFIL ────────────────────────────────────────────────────────────
+  // ─── EDIT PROFIL ─────────────────────────────────────────────────────────
 
   void _showEditBottomSheet() {
     final emailCtrl = TextEditingController(
@@ -92,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         noHpCtrl: noHpCtrl,
         onSave: () async {
           if (!formKey.currentState!.validate()) return;
-          Navigator.pop(ctx); // tutup sheet dulu
+          Navigator.pop(ctx);
           await _updateProfile(
             email: emailCtrl.text.trim(),
             noHp: noHpCtrl.text.trim(),
@@ -130,7 +131,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       debugPrint('Update profile body: ${response.body}');
 
       if (response.statusCode == 200) {
-        // Perbarui data lokal tanpa perlu fetch ulang
         setState(() {
           _userData = {
             ...?_userData,
@@ -175,7 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─── LOGOUT ─────────────────────────────────────────────────────────────────
+  // ─── LOGOUT ──────────────────────────────────────────────────────────────
 
   void _handleLogout() {
     showDialog(
@@ -205,7 +205,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
             child: const Text(
               'Keluar',
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -213,7 +214,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─── BUILD ──────────────────────────────────────────────────────────────────
+  // ─── BUILD ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -248,12 +249,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: darkText),
-        // ── Tombol Edit di AppBar ──────────────────────────────────────────
         actions: [
           if (!_isLoading)
             TextButton.icon(
               onPressed: _showEditBottomSheet,
-              icon: const Icon(Icons.edit_outlined, size: 16, color: primaryGreen),
+              icon: const Icon(
+                  Icons.edit_outlined, size: 16, color: primaryGreen),
               label: const Text(
                 'Edit',
                 style: TextStyle(
@@ -266,7 +267,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: primaryGreen))
+          ? const Center(
+              child: CircularProgressIndicator(color: primaryGreen))
           : RefreshIndicator(
               color: primaryGreen,
               onRefresh: _loadProfileData,
@@ -284,11 +286,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: const CircleAvatar(
                         radius: 50,
                         backgroundColor: lightGreen,
-                        child: Icon(
-                          Icons.person,
-                          size: 50,
-                          color: primaryGreen,
-                        ),
+                        child: Icon(Icons.person,
+                            size: 50, color: primaryGreen),
                       ),
                     ),
                   ),
@@ -311,9 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
+                          horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
                         color: lightGreen,
                         borderRadius: BorderRadius.circular(20),
@@ -361,9 +358,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildInfoCard(
                     children: [
                       _buildMenuItem(
-                        Icons.privacy_tip_outlined,
-                        'Kebijakan Privasi',
-                        () {},
+                        Icons.lock_reset_outlined,
+                        'Reset Password',
+                        () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ForgotPasswordScreen(),
+                            ),
+                          );
+                        },
                       ),
                       _buildDivider(),
                       _buildMenuItem(
@@ -386,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─── HELPER WIDGETS ─────────────────────────────────────────────────────────
+  // ─── HELPER WIDGETS ──────────────────────────────────────────────────────
 
   Widget _buildSectionHeader(String title) => Text(
         title,
@@ -453,8 +457,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Text(
                       label,
-                      style:
-                          const TextStyle(fontSize: 11, color: greyText),
+                      style: const TextStyle(fontSize: 11, color: greyText),
                     ),
                     if (isReadonly) ...[
                       const SizedBox(width: 6),
@@ -467,8 +470,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: const Text(
                           'Tidak bisa diubah',
-                          style:
-                              TextStyle(fontSize: 9, color: greyText),
+                          style: TextStyle(fontSize: 9, color: greyText),
                         ),
                       ),
                     ],
@@ -536,9 +538,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
 // BOTTOM SHEET: Edit Profil
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
 
 class _EditProfileSheet extends StatefulWidget {
   final GlobalKey<FormState> formKey;
@@ -563,7 +565,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   Future<void> _handleSave() async {
     if (!widget.formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
-    // onSave akan menutup sheet; set _isSaving false sebagai fallback
     try {
       widget.onSave();
     } finally {
@@ -692,7 +693,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
             // Tombol Simpan & Batal
             Row(
               children: [
-                // Batal
                 Expanded(
                   child: OutlinedButton(
                     onPressed:
@@ -714,14 +714,14 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Simpan
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
                     onPressed: _isSaving ? null : _handleSave,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryGreen,
-                      disabledBackgroundColor: primaryGreen.withValues(alpha: 0.5),
+                      disabledBackgroundColor:
+                          primaryGreen.withValues(alpha: 0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
