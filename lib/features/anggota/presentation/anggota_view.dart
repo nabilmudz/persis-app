@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/presentation/view/pembayaran_view.dart';
 import 'package:persis_app/features/anggota/presentation/view/riwayat_view.dart';
@@ -28,16 +31,39 @@ class _AnggotaViewState extends State<AnggotaView> {
   }
 
   Future<void> _loadUserData() async {
-    final userId = '123';
-    final userName = 'Nashwa';
+    final authUserId = await AuthHelper.getUserId();
+    final token = await AuthHelper.getAccessToken();
 
-    setState(() {
-      _userName = userName;
-    });
+    if (authUserId != null && token != null) {
+      try {
+        final response = await http.get(
+          Uri.parse('${AppConfig.baseUrl}/users/$authUserId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+            'ngrok-skip-browser-warning': 'true',
+          },
+        );
 
-    if (userId.isNotEmpty) {
-      if (mounted) {
-        //context.read<AnggotaController>().fetchRiwayatTransaksi(userId: userId);
+        if (response.statusCode == 200) {
+          final body = jsonDecode(response.body);
+          final userData = body['data'] ?? body['user'] ?? body;
+          
+          final npa = (userData['npa'] ?? '').toString();
+          final fullname = (userData['fullname'] ?? userData['name'] ?? '').toString();
+
+          final userId = npa.isNotEmpty ? npa : authUserId;
+          final userName = fullname.isNotEmpty ? fullname : 'Pengguna';
+
+          if (mounted) {
+            setState(() {
+              _userName = userName;
+            });
+            context.read<AnggotaController>().fetchRiwayatTransaksi(userId: authUserId);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading user data: $e');
       }
     }
   }
