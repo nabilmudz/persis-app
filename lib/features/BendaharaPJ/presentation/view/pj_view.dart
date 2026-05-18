@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/laporan/pj_payment_data_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/anggota/riwayat_view.dart';
+import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
 import '../controller/pj_controller.dart';
 import 'anggota/pj_anggota_view.dart';
@@ -170,6 +172,10 @@ class _PjViewPageState extends State<PjViewPage> {
             ),
           );
         },
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
       ),
     );
   }

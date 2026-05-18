@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
@@ -167,6 +169,10 @@ class _PendingTransactionViewPageState
             );
           },
         ),
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
 // Import Absolute
 import 'package:persis_app/features/anggota/presentation/widgets/anggota_card.dart';
@@ -109,7 +111,10 @@ class _AnggotaViewState extends State<AnggotaView> {
                             child: Container(
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
                               ),
                               child: const CircleAvatar(
                                 radius: 25,
@@ -204,9 +209,13 @@ class _AnggotaViewState extends State<AnggotaView> {
                                             MaterialPageRoute(
                                               builder: (c) =>
                                                   ChangeNotifierProvider.value(
-                                                    value: context.read<AnggotaController>(),
+                                                    value: context
+                                                        .read<
+                                                          AnggotaController
+                                                        >(),
                                                     // Hapus const di sini
-                                                    child: PilihPembayaranView(),
+                                                    child:
+                                                        PilihPembayaranView(),
                                                   ),
                                             ),
                                           );
@@ -351,6 +360,10 @@ class _AnggotaViewState extends State<AnggotaView> {
             ),
           );
         },
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.anggota,
+        homeRoute: AppRoutes.anggota,
       ),
     );
   }

@@ -57,6 +57,7 @@ class _BendaharaSaldoCardState extends State<BendaharaSaldoCard> {
     final result = await _dataSource.fetchSummary(
       year: _selectedYear,
       month: _selectedMonth,
+      status: 'lunas',
     );
 
     if (!mounted) return;
@@ -91,8 +92,6 @@ class _BendaharaSaldoCardState extends State<BendaharaSaldoCard> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),

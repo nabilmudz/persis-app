@@ -19,6 +19,7 @@ class PjLaporanController extends ChangeNotifier {
     required int month,
     required int year,
     String? type,
+    String? status,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -29,6 +30,7 @@ class PjLaporanController extends ChangeNotifier {
         month,
         year,
         type: type,
+        status: status,
       );
 
       if (result != null && result['url'] != null) {

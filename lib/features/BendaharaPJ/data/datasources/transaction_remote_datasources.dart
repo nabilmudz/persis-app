@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:persis_app/core/network/api_client.dart';
+import 'package:persis_app/core/storage/secure_storage_service.dart';
 import '../models/transaction_item_detail_model.dart';
 import '../models/transaction_model.dart';
 
@@ -120,35 +121,122 @@ class TransactionRemoteDataSource {
     }
   }
 
-  /// Export transaksi berdasarkan bulan dan tahun.
-  /// Endpoint: GET /transaction/export?month={month}&year={year}&type={type}
-  Future<Map<String, dynamic>?> exportTransactions(int month, int year, {String? type}) async {
+  Future<String?> _resolveRegionId() async {
+    final storedRegion = await SecureStorageService.read('region_id');
+    if (storedRegion != null && storedRegion.trim().isNotEmpty) {
+      return storedRegion.trim();
+    }
+
+    final token = await SecureStorageService.read(SecureStorageService.accessTokenKey);
+    if (token == null || token.trim().isEmpty) return null;
+
+    final parts = token.split('.');
+    if (parts.length < 2) return null;
+
     try {
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final payload = jsonDecode(decoded);
+      if (payload is Map<String, dynamic>) {
+        final candidates = [payload['region_id'], payload['regionId'], payload['region']];
+        for (final c in candidates) {
+          if (c is String && c.trim().isNotEmpty) return c.trim();
+          if (c is Map) {
+            final id = c['_id'] ?? c['id'] ?? c['region_id'] ?? c['regionId'];
+            if (id is String && id.trim().isNotEmpty) return id.trim();
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Ambil data transaksi laporan berdasarkan bulan, tahun, dan region.
+  /// Endpoint: GET /transaction/export?month={month}&year={year}&region_id={regionId}
+  Future<Map<String, dynamic>?> exportTransactions(
+    int month,
+    int year, {
+    String? type,
+    String? status,
+  }) async {
+    try {
+      final regionId = await _resolveRegionId();
       String url = '/transaction/export?month=$month&year=$year';
-      if (type != null) url += '&type=$type';
+      if (regionId != null && regionId.isNotEmpty) {
+        url += '&region_id=$regionId';
+      }
+
+      debugPrint('📡 exportTransactions URL: $url');
 
       final response = await ApiClient.get(url);
       final decoded = json.decode(response.body);
-      
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return decoded is Map<String, dynamic> ? decoded : {'data': decoded};
+        final resultMap = decoded is Map<String, dynamic>
+            ? decoded
+            : Map<String, dynamic>.from(decoded as Map);
+
+        // Response sudah memiliki 'data' array dengan format yang tepat.
+        // Normalisasi setiap item agar cocok dengan TransactionModel.fromJson.
+        final rawData = resultMap['data'];
+        if (rawData is List) {
+          final List<Map<String, dynamic>> txList = rawData.map((item) {
+            if (item is! Map) return <String, dynamic>{};
+            final tx = Map<String, dynamic>.from(item);
+            final txStatus = tx['status']?.toString() ?? '';
+
+            return <String, dynamic>{
+              '_id': tx['_id']?.toString() ?? tx['transaction_id']?.toString(),
+              'type': tx['type']?.toString() ?? type ?? 'tunai',
+              'creator_id': tx['creator_id']?.toString(),
+              'total_amount': (tx['total_amount'] as num?)?.toInt() ?? 0,
+              'status': txStatus,
+              // Pastikan acc_status terisi agar lolos filter UI
+              'acc_status': tx['acc_status']?.toString() ??
+                  (txStatus == 'completed' ? 'acc_pj' : ''),
+              'member_name': tx['member_name']?.toString(),
+              'npa': tx['npa']?.toString(),
+              'created_at': tx['created_at']?.toString() ?? tx['createdAt']?.toString(),
+              // Bangun items dari field period_month/period_year di response
+              'items': [
+                {
+                  'anggota_id': tx['creator_id']?.toString(),
+                  'transaction_id': tx['transaction_id']?.toString() ?? tx['_id']?.toString(),
+                  'period_id':
+                      '${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
+                  'status': tx['item_status']?.toString() ?? tx['status']?.toString(),
+                  'amount': (tx['total_amount'] as num?)?.toInt() ?? 0,
+                  'description':
+                      'Iuran ${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
+                }
+              ],
+            };
+          }).where((e) => e.isNotEmpty).toList();
+
+          debugPrint('📊 exportTransactions: ${txList.length} transaksi untuk bulan=$month/$year');
+          resultMap['data'] = txList;
+        }
+
+        return resultMap;
       }
-      
+
       if (decoded is Map && decoded.containsKey('message')) {
-        return {'message': decoded['message']};
+        return {'message': decoded['message'].toString()};
       }
-      
-      debugPrint("Error API Export: ${response.statusCode} - ${response.body}");
+
+      debugPrint("Error API exportTransactions: ${response.statusCode} - ${response.body}");
       return null;
     } catch (e) {
-      debugPrint("Error API Export: $e");
+      debugPrint("Error API exportTransactions: $e");
       return null;
     }
   }
 
+
   Future<Map<String, dynamic>?> getMembersPaymentStatus({
     required int year,
     String? regionId,
+    int? month,
   }) async {
     try {
       var url = '/transaction/members-payment-status?year=$year';
@@ -156,13 +244,26 @@ class TransactionRemoteDataSource {
       if (normalizedRegionId != null && normalizedRegionId.isNotEmpty) {
         url += '&region_id=$normalizedRegionId';
       }
+      if (month != null) {
+        url += '&month=$month';
+      }
 
       final response = await ApiClient.get(url);
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = json.decode(response.body);
-        return decoded is Map<String, dynamic>
-            ? decoded
+        final result = decoded is Map<String, dynamic>
+            ? Map<String, dynamic>.from(decoded)
             : Map<String, dynamic>.from(decoded as Map);
+
+        if (month != null) {
+          final meta = result['meta'] is Map
+              ? Map<String, dynamic>.from(result['meta'] as Map)
+              : <String, dynamic>{};
+          meta['month'] = month;
+          result['meta'] = meta;
+        }
+
+        return result;
       }
 
       debugPrint(
@@ -178,11 +279,16 @@ class TransactionRemoteDataSource {
   Future<Map<String, dynamic>?> fetchSummary({
     required int year,
     int month = 0,
+    String? status,
   }) async {
     try {
-      final response = await ApiClient.get(
-        '/transaction/export?month=$month&year=$year',
-      );
+      var url = '/transaction/export?month=$month&year=$year';
+      final normalizedStatus = status?.trim();
+      if (normalizedStatus != null && normalizedStatus.isNotEmpty) {
+        url += '&status=$normalizedStatus';
+      }
+
+      final response = await ApiClient.get(url);
       final decoded = json.decode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {

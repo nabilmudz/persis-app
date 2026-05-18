@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
 import 'package:intl/intl.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../../../data/models/transaction_model.dart';
 import 'pj_transfer_detail_view.dart';
 
@@ -194,6 +196,10 @@ class PjRecapDetailViewPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
       ),
     );
   }

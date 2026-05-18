@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
+import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
@@ -213,11 +215,13 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         }
 
         UserModel completeMember = widget.member;
-        if ((completeMember.noHp == null || completeMember.noHp!.isEmpty) && 
+        if ((completeMember.noHp == null || completeMember.noHp!.isEmpty) &&
             completeMember.id != null) {
           try {
             final userRemote = UserRemoteDataSource(ApiClient.baseUrl);
-            final fetchedUser = await userRemote.getOneUsers(completeMember.id!);
+            final fetchedUser = await userRemote.getOneUsers(
+              completeMember.id!,
+            );
             if (fetchedUser.noHp != null && fetchedUser.noHp!.isNotEmpty) {
               completeMember = fetchedUser;
             }
@@ -426,12 +430,12 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                                   widget.controller
                                       .loadPaymentStatusSnapshot(year: value)
                                       .then((_) {
-                                    if (!mounted) return;
-                                    _itemController.loadByUser(
-                                      userId,
-                                      year: value,
-                                    );
-                                  });
+                                        if (!mounted) return;
+                                        _itemController.loadByUser(
+                                          userId,
+                                          year: value,
+                                        );
+                                      });
                                 }
                               },
                             ),
@@ -513,6 +517,10 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
             },
           );
         },
+      ),
+      bottomNavigationBar: const RoleBottomNavigationBar(
+        currentRoute: AppRoutes.bendaharaPJ,
+        homeRoute: AppRoutes.bendaharaPJ,
       ),
     );
   }
