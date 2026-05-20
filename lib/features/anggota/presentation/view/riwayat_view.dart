@@ -23,7 +23,6 @@ class _RiwayatViewState extends State<RiwayatView> {
   String? _userId;
   bool _loadingUser = true;
 
-  // Status yang dianggap lunas
   static const _statusLunas = {
     'paid',
     'lunas',
@@ -57,7 +56,6 @@ class _RiwayatViewState extends State<RiwayatView> {
     }
   }
 
-  /// Item milik user ini yang statusnya lunas
   List<TransactionItemDetailModel> _getLunasItems() {
     return _controller.items.where((tx) {
       final status = (tx.status ?? '').trim().toLowerCase();
@@ -66,7 +64,6 @@ class _RiwayatViewState extends State<RiwayatView> {
     }).toList();
   }
 
-  /// Filter lunas berdasarkan tahun yang dipilih
   List<TransactionItemDetailModel> _filterByYear(
     List<TransactionItemDetailModel> lunas,
   ) {
@@ -76,7 +73,6 @@ class _RiwayatViewState extends State<RiwayatView> {
     return lunas.where((tx) => tx.resolveYear() == year).toList();
   }
 
-  /// Daftar tahun unik dari data lunas, diurutkan descending
   List<String> _availableYears(List<TransactionItemDetailModel> lunas) {
     final years = <String>{};
     for (final tx in lunas) {
@@ -119,109 +115,97 @@ class _RiwayatViewState extends State<RiwayatView> {
       body: _loadingUser
           ? const Center(child: CircularProgressIndicator())
           : _userId == null
-              ? const _ErrorState(message: 'Gagal membaca data pengguna.')
-              : ListenableBuilder(
-                  listenable: _controller,
-                  builder: (context, _) {
-                    if (_controller.isLoading && _controller.items.isEmpty) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+          ? const _ErrorState(message: 'Gagal membaca data pengguna.')
+          : ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                if (_controller.isLoading && _controller.items.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                    if (_controller.errorMessage != null &&
-                        _controller.items.isEmpty) {
-                      return _ErrorState(
-                        message: _controller.errorMessage!,
-                        onRetry: () =>
-                            _controller.loadByUser(_userId!, forceRefresh: true),
-                      );
-                    }
+                if (_controller.errorMessage != null &&
+                    _controller.items.isEmpty) {
+                  return _ErrorState(
+                    message: _controller.errorMessage!,
+                    onRetry: () =>
+                        _controller.loadByUser(_userId!, forceRefresh: true),
+                  );
+                }
 
-                    final lunasAll = _getLunasItems();
-                    final years = _availableYears(lunasAll);
+                final lunasAll = _getLunasItems();
+                final years = _availableYears(lunasAll);
 
-                    // Reset filter jika tahun yang dipilih tidak ada lagi
-                    if (_selectedYear != 'Semua' &&
-                        !years.contains(_selectedYear)) {
-                      SchedulerBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) setState(() => _selectedYear = 'Semua');
-                      });
-                    }
+                if (_selectedYear != 'Semua' &&
+                    !years.contains(_selectedYear)) {
+                  SchedulerBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() => _selectedYear = 'Semua');
+                  });
+                }
 
-                    final filterOptions = ['Semua', ...years];
-                    final transactions = _filterByYear(lunasAll);
-                    final totalAmount = _hitungTotal(transactions);
+                final filterOptions = ['Semua', ...years];
+                final transactions = _filterByYear(lunasAll);
+                final totalAmount = _hitungTotal(transactions);
 
-                    return RefreshIndicator(
-                      color: const Color(0xFF189D4A),
-                      onRefresh: () =>
-                          _controller.loadByUser(_userId!, forceRefresh: true),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 16),
+                return RefreshIndicator(
+                  color: const Color(0xFF189D4A),
+                  onRefresh: () =>
+                      _controller.loadByUser(_userId!, forceRefresh: true),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 16),
 
-                          // ── Filter chips ──────────────────────────────
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 24),
-                            child: Row(
-                              children: filterOptions
-                                  .map(
-                                    (label) => Padding(
-                                      padding: const EdgeInsets.only(right: 8),
-                                      child: _FilterChip(
-                                        label: label == 'Semua'
-                                            ? 'Semua'
-                                            : 'Tahun $label',
-                                        isSelected: _selectedYear == label,
-                                        onTap: () => setState(
-                                          () => _selectedYear = label,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // ── Kartu total ───────────────────────────────
-                          if (transactions.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                              ),
-                              child: _TotalCard(totalAmount: totalAmount),
-                            ),
-
-                          const SizedBox(height: 16),
-
-                          // ── Daftar transaksi ──────────────────────────
-                          Expanded(
-                            child: transactions.isEmpty
-                                ? const _EmptyState()
-                                : ListView.builder(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                    ),
-                                    itemCount: transactions.length,
-                                    itemBuilder: (context, index) =>
-                                        _RiwayatCard(
-                                      item: transactions[index],
-                                    ),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Row(
+                          children: filterOptions
+                              .map(
+                                (label) => Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: _FilterChip(
+                                    label: label == 'Semua'
+                                        ? 'Semua'
+                                        : 'Tahun $label',
+                                    isSelected: _selectedYear == label,
+                                    onTap: () =>
+                                        setState(() => _selectedYear = label),
                                   ),
-                          ),
-                        ],
+                                ),
+                              )
+                              .toList(),
+                        ),
                       ),
-                    );
-                  },
-                ),
+
+                      const SizedBox(height: 20),
+
+                      if (transactions.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: _TotalCard(totalAmount: totalAmount),
+                        ),
+
+                      const SizedBox(height: 16),
+
+                      Expanded(
+                        child: transactions.isEmpty
+                            ? const _EmptyState()
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                itemCount: transactions.length,
+                                itemBuilder: (context, index) =>
+                                    _RiwayatCard(item: transactions[index]),
+                              ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 }
-
-// ── Sub-widgets ─────────────────────────────────────────────────────────────
 
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
@@ -320,8 +304,18 @@ class _RiwayatCard extends StatelessWidget {
   final TransactionItemDetailModel item;
 
   static const _monthNames = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
 
   @override
@@ -332,7 +326,6 @@ class _RiwayatCard extends StatelessWidget {
       decimalDigits: 0,
     ).format(item.amount ?? 0);
 
-    // Bangun label bulan-tahun yang terbaca
     String label = item.description ?? 'Iuran';
     final month = item.resolveMonth();
     final year = item.resolveYear();
@@ -356,7 +349,6 @@ class _RiwayatCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Icon lunas
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -371,7 +363,6 @@ class _RiwayatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          // Deskripsi
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -398,7 +389,6 @@ class _RiwayatCard extends StatelessWidget {
               ],
             ),
           ),
-          // Status & nominal
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -438,7 +428,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.receipt_long_outlined, size: 48, color: Colors.grey.shade300),
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 48,
+            color: Colors.grey.shade300,
+          ),
           const SizedBox(height: 12),
           const Text(
             'Tidak ada riwayat pembayaran lunas.',

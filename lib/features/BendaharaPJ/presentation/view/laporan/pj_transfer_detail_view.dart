@@ -55,7 +55,6 @@ class TransferDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Status Banner ──
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -90,10 +89,7 @@ class TransferDetailPage extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // ── Info Transaksi ──
             _SectionCard(
               title: 'Informasi Transaksi',
               child: Column(
@@ -134,10 +130,7 @@ class TransferDetailPage extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 12),
-
-            // ── Info Bank ──
             if (transaction.bankName != null ||
                 transaction.bankAccountName != null)
               _SectionCard(
@@ -156,7 +149,6 @@ class TransferDetailPage extends StatelessWidget {
               ),
 
             const SizedBox(height: 12),
-            // ── Rincian Item ──
             if (transaction.items != null && transaction.items!.isNotEmpty)
               _SectionCard(
                 title: 'Rincian Item',
@@ -171,8 +163,6 @@ class TransferDetailPage extends StatelessWidget {
               ),
 
             const SizedBox(height: 12),
-
-            // ── Distribusi Breakdown ──
             _SectionCard(
               title: 'Distribusi Iuran',
               child: Column(
@@ -249,7 +239,6 @@ class TransferDetailPage extends StatelessWidget {
   }
 }
 
-// ── Section Card ──
 class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
@@ -287,7 +276,6 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-// ── Info Row ──
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
@@ -327,7 +315,6 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ── Distribution Bar ──
 class _DistributionBar extends StatelessWidget {
   final String label;
   final int percentage;

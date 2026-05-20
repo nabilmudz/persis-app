@@ -56,7 +56,6 @@ class PjRecapDetailViewPage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Distribution Summary Section
             Padding(
               padding: const EdgeInsets.all(16),
               child: Container(

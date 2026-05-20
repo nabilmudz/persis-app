@@ -34,7 +34,6 @@ class PjLaporanController extends ChangeNotifier {
       );
 
       if (result != null && result['url'] != null) {
-        // Jika API return URL untuk download file (server-side generated)
         debugPrint('📥 Export result: URL returned');
         String urlString = result['url'];
         if (!urlString.startsWith('http')) {
@@ -51,8 +50,6 @@ class PjLaporanController extends ChangeNotifier {
           _errorMessage = 'Tidak dapat membuka tautan unduhan: $urlString';
         }
       } else if (result != null && result['data'] != null) {
-        // Jika API return raw data (untuk client-side formatting)
-        // Data sudah terfilter by month/year dari server
         final dataCount = (result['data'] as List?)?.length ?? 0;
         debugPrint('📥 Export result: $dataCount items data returned');
         return result;

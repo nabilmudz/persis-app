@@ -8,7 +8,6 @@ class UserRemoteDataSource {
   final String baseUrl;
   UserRemoteDataSource(this.baseUrl);
 
-  // Login User
   Future<Map<String, dynamic>> login(String emailOrNpa, String password) async {
     final identifier = emailOrNpa.trim();
     final credentialKey = identifier.contains('@') ? 'email' : 'npa';
@@ -42,7 +41,6 @@ class UserRemoteDataSource {
     }
   }
 
-  // Aktivasi Akun
   Future<bool> activate(String id) async {
     final response = await http
         .patch(Uri.parse('$baseUrl/users/$id/activate'))
@@ -50,7 +48,6 @@ class UserRemoteDataSource {
     return response.statusCode == 200;
   }
 
-  // Get One User
   Future<UserModel> getOneUsers(String id) async {
     final response = await http
         .get(Uri.parse('$baseUrl/users/$id'))
@@ -62,7 +59,6 @@ class UserRemoteDataSource {
     throw Exception('Gagal mengambil data user');
   }
 
-  // Get All Users
   Future<List<UserModel>> getAllUsers({String? regionId}) async {
     final url = regionId != null
         ? '$baseUrl/users/region/$regionId'
@@ -85,22 +81,18 @@ class UserRemoteDataSource {
     throw Exception('Gagal mengambil data user');
   }
 
-  // Get Users With Status (GET dengan query param ?status_tag=lunas|tunggakan)
-  Future<List<UserModel>> getUsersWithStatus(String statusTag, {String? regionId}) async {
+  Future<List<UserModel>> getUsersWithStatus(
+    String statusTag, {
+    String? regionId,
+  }) async {
     var urlStr = '$baseUrl/users/with-status?status_tag=$statusTag';
     if (regionId != null) {
       urlStr += '&region_id=$regionId';
     }
 
-    // ignore: avoid_print
-    print('[UserRemoteDataSource] GET $urlStr');
-
     final response = await http
         .get(Uri.parse(urlStr))
         .timeout(const Duration(seconds: 15));
-
-    // ignore: avoid_print
-    print('[UserRemoteDataSource] with-status => HTTP ${response.statusCode}');
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final responseBody = json.decode(response.body);
@@ -113,15 +105,13 @@ class UserRemoteDataSource {
         rawData = responseBody['users'];
       }
 
-      // Filter berdasarkan status_tag dan regionId karena BE mengembalikan semua user
       final filtered = rawData.where((e) {
         final tag = (e['status_tag'] ?? '').toString().toLowerCase();
         final matchesTag = tag == statusTag.toLowerCase();
-        
+
         if (!matchesTag) return false;
         if (regionId == null) return true;
 
-        // Cek kecocokan region_id
         final userRegion = e['region_id'] ?? e['regionId'] ?? e['region'];
         String? userRegionStr;
         if (userRegion is Map) {
@@ -141,13 +131,15 @@ class UserRemoteDataSource {
     );
   }
 
-  // Get Riwayat Iuran dari API
-  Future<List<TransactionItemModel>> getRiwayatIuran(String userId, {int? year}) async {
+  Future<List<TransactionItemModel>> getRiwayatIuran(
+    String userId, {
+    int? year,
+  }) async {
     var urlStr = '$baseUrl/transaction-item/user/$userId';
     if (year != null) {
       urlStr += '?year=$year';
     }
-    
+
     final url = Uri.parse(urlStr);
     final response = await http.get(url).timeout(const Duration(seconds: 10));
 
@@ -157,7 +149,6 @@ class UserRemoteDataSource {
     }
     throw Exception('Gagal mengambil data riwayat iuran');
   }
-
 
   Future<Map<String, dynamic>> checkNpa(String npa) async {
     final response = await http

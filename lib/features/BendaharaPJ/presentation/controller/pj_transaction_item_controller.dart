@@ -6,9 +6,6 @@ import 'package:persis_app/features/BendaharaPJ/data/models/transaction_item_det
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'pj_verif_tunai_controller.dart';
 
-///   - [PjMonthStatus.paid]
-///   - [PjMonthStatus.tunggakan]
-///   - [PjMonthStatus.pending]
 class PjTransactionItemController extends ChangeNotifier {
   PjTransactionItemController({TransactionRemoteDataSource? dataSource})
     : _dataSource = dataSource ?? TransactionRemoteDataSource();
@@ -39,13 +36,8 @@ class PjTransactionItemController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  /// Map dari key "$year-$month" → [PjMonthStatus]
   final Map<String, PjMonthStatus> _monthStatusMap = {};
-
-  /// Map dari key "$year-$month" → nominal iuran
   final Map<String, int> _monthAmountMap = {};
-
-  /// Map dari key "$year-$month" → periodId (Mongo ID)
   final Map<String, String?> _monthPeriodIdMap = {};
 
   List<TransactionItemDetailModel> _items = [];
@@ -152,13 +144,11 @@ class PjTransactionItemController extends ChangeNotifier {
         _ => PjMonthStatus.pending,
       };
 
-      // Jika entry sebelumnya sudah paid, jangan overwrite
       final existing = _monthStatusMap[key];
       if (existing == PjMonthStatus.paid) continue;
 
       _monthStatusMap[key] = newStatus;
 
-      // Ambil nominal dari item, fallback ke info dues_period jika ada, default ke 20000
       final nominal = (item.amount != null && item.amount! > 0)
           ? item.amount!
           : (item.duesPeriod?.amount?.round() ?? 20000);
@@ -167,7 +157,6 @@ class PjTransactionItemController extends ChangeNotifier {
         _monthAmountMap[key] = nominal;
       }
 
-      // Simpan periodId untuk digunakan saat create transaction
       final periodId =
           item.periodId ?? item.duesPeriodId ?? item.duesPeriod?.id;
       if (periodId != null) {
@@ -176,10 +165,7 @@ class PjTransactionItemController extends ChangeNotifier {
     }
   }
 
-  /// Status warna kartu bulan tertentu.
   PjMonthStatus getMonthStatus(int month, int year) {
-    // ✅ FIX: jika bulan tidak ada di map sama sekali → pending
-    // (bukan tunggakan — bisa jadi period belum dibuat di backend)
     final cachedStatus = _monthStatusMap[_key(month, year)];
     if (cachedStatus != null) {
       return cachedStatus;
@@ -191,12 +177,10 @@ class PjTransactionItemController extends ChangeNotifier {
     return isPastPeriod ? PjMonthStatus.tunggakan : PjMonthStatus.pending;
   }
 
-  /// Nominal iuran bulan tertentu (0 jika tidak ada data).
   int getMonthAmount(int month, int year) {
     return _monthAmountMap[_key(month, year)] ?? 0;
   }
 
-  /// Mendapatkan periodId (Mongo ID) untuk bulan/tahun tertentu.
   String? getMonthPeriodId(int month, int year) {
     return _monthPeriodIdMap[_key(month, year)] ??
         getCachedPeriodId(month: month, year: year);
@@ -260,7 +244,6 @@ class PjTransactionItemController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Total tunggakan dalam rupiah.
   int get totalTunggakan {
     int total = 0;
     for (final entry in _monthStatusMap.entries) {
@@ -271,7 +254,6 @@ class PjTransactionItemController extends ChangeNotifier {
     return total;
   }
 
-  /// Jumlah bulan tunggakan.
   int get tunggakanCount =>
       _monthStatusMap.values.where((s) => s == PjMonthStatus.tunggakan).length;
 
@@ -317,7 +299,8 @@ class PjTransactionItemController extends ChangeNotifier {
     for (final item in items) {
       final month = item.resolveMonth();
       final year = item.resolveYear();
-      final periodId = item.periodId ?? item.duesPeriodId ?? item.duesPeriod?.id;
+      final periodId =
+          item.periodId ?? item.duesPeriodId ?? item.duesPeriod?.id;
       if (month != null && year != null) {
         await cachePeriodId(month: month, year: year, periodId: periodId);
       }
@@ -456,10 +439,11 @@ class PjTransactionItemController extends ChangeNotifier {
       return const <Map<String, dynamic>>[];
     }
 
-    final snapshot = _snapshotCacheBox.get(_snapshotKey(year, regionId, month))
-        ?? _snapshotCacheBox.get(_snapshotKey(year, regionId, null))
-        ?? _snapshotCacheBox.get(_snapshotKey(year, null, month))
-        ?? _snapshotCacheBox.get(_snapshotKey(year, null, null));
+    final snapshot =
+        _snapshotCacheBox.get(_snapshotKey(year, regionId, month)) ??
+        _snapshotCacheBox.get(_snapshotKey(year, regionId, null)) ??
+        _snapshotCacheBox.get(_snapshotKey(year, null, month)) ??
+        _snapshotCacheBox.get(_snapshotKey(year, null, null));
     if (snapshot is! Map) {
       return const <Map<String, dynamic>>[];
     }

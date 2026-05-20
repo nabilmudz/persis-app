@@ -73,8 +73,6 @@ class _PjVerifNonTunaiViewPageState extends State<PjVerifNonTunaiViewPage> {
         message: 'Pembayaran ${item.name} berhasil di-ACC.',
       );
     } else {
-      // SweetAlertDialog tidak memiliki showError, gunakan showSuccess dengan pesan error
-      // atau gunakan SnackBar standar
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Data transaksi gagal diperbarui. Coba lagi.'),
@@ -236,9 +234,7 @@ class _PjVerifNonTunaiViewPageState extends State<PjVerifNonTunaiViewPage> {
                             paymentMethod: item.paymentMethod,
                             price: item.price,
                             onAccPressed: () async => _handleAccPressed(item),
-                            onLihatBuktiPressed: () {
-                              // Fitur lihat bukti
-                            },
+                            onLihatBuktiPressed: () {},
                           ),
                         );
                       }),

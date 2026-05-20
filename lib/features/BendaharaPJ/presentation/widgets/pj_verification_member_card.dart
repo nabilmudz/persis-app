@@ -34,14 +34,12 @@ class PjVerificationMemberCard extends StatelessWidget {
       status = PjMonthStatus.paid;
     }
 
-    // Force tunggakan to be treated as pending visually (no red card, no alert)
     if (status == PjMonthStatus.tunggakan) {
       return PjMonthStatus.pending;
     }
-    
+
     return status;
   }
-
 
   String _statusLabel(PjMonthStatus status) {
     switch (status) {

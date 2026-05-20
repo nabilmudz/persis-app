@@ -61,7 +61,6 @@ class _QrisViewState extends State<QrisView> {
     BuildContext context,
     PembayaranController controller,
   ) async {
-    // FIX: Hardcode userId biar gak error Member Not Found
     final userId = '123';
 
     await controller.submitQris(anggotaId: userId);
@@ -217,7 +216,6 @@ class _QrisViewState extends State<QrisView> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // UI ASLI KAMU
                       Text(
                         controller.labelPeriode,
                         style: const TextStyle(

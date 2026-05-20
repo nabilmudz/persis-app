@@ -60,11 +60,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: () {
-                  // Bypass UI supaya tombolnya berfungsi dan tidak eror
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Password berhasil direset!')),
                   );
-                  Navigator.pop(context); // Kembali ke halaman sebelumnya
+                  Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),

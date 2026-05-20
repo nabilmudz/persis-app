@@ -36,7 +36,6 @@ class _LoginScreenState extends State<LoginScreen>
     _loadSavedCredentials();
   }
 
-  // ─── Load saved credentials jika rememberMe aktif ────────────────────────
   Future<void> _loadSavedCredentials() async {
     final savedEmail = await SecureStorageService.read('saved_email');
     final savedPassword = await SecureStorageService.read('saved_password');
@@ -131,7 +130,10 @@ class _LoginScreenState extends State<LoginScreen>
                   const Text(
                     'Pembayaran dan rekapitulasi iuran anggota. Pantau aliran dana dengan akurat dan terpercaya.',
                     style: TextStyle(
-                        fontSize: 14, color: greyText, height: 1.6),
+                      fontSize: 14,
+                      color: greyText,
+                      height: 1.6,
+                    ),
                   ),
                 ],
               ),
@@ -143,10 +145,10 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _circle(double size, Color color) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      );
+    width: size,
+    height: size,
+    decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+  );
 
   Widget _buildLoginForm() {
     return SingleChildScrollView(
@@ -162,8 +164,11 @@ class _LoginScreenState extends State<LoginScreen>
               color: lightGreen,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.shield_rounded,
-                color: primaryGreen, size: 36),
+            child: const Icon(
+              Icons.shield_rounded,
+              color: primaryGreen,
+              size: 36,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -203,9 +208,13 @@ class _LoginScreenState extends State<LoginScreen>
               labelColor: darkText,
               unselectedLabelColor: greyText,
               labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 14),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
               unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500, fontSize: 14),
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
               dividerColor: Colors.transparent,
               tabs: const [
                 Tab(text: 'Masuk'),
@@ -243,8 +252,7 @@ class _LoginScreenState extends State<LoginScreen>
         _passwordField(
           controller: _passwordController,
           obscure: _obscurePassword,
-          onToggle: () =>
-              setState(() => _obscurePassword = !_obscurePassword),
+          onToggle: () => setState(() => _obscurePassword = !_obscurePassword),
         ),
         const SizedBox(height: 14),
         Row(
@@ -266,8 +274,10 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text('Ingat Saya',
-                    style: TextStyle(fontSize: 13, color: greyText)),
+                const Text(
+                  'Ingat Saya',
+                  style: TextStyle(fontSize: 13, color: greyText),
+                ),
               ],
             ),
             TextButton(
@@ -275,7 +285,8 @@ class _LoginScreenState extends State<LoginScreen>
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => const ForgotPasswordScreen()),
+                    builder: (_) => const ForgotPasswordScreen(),
+                  ),
                 );
               },
               style: TextButton.styleFrom(
@@ -302,7 +313,8 @@ class _LoginScreenState extends State<LoginScreen>
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
             elevation: 0,
           ),
           child: _isCheckingNpa
@@ -310,11 +322,14 @@ class _LoginScreenState extends State<LoginScreen>
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2),
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
                 )
-              : const Text('Masuk',
-                  style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600)),
+              : const Text(
+                  'Masuk',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
         ),
       ],
     );
@@ -352,8 +367,11 @@ class _LoginScreenState extends State<LoginScreen>
               children: [
                 Row(
                   children: [
-                    Icon(Icons.error_outline_rounded,
-                        color: Colors.red.shade600, size: 16),
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: Colors.red.shade600,
+                      size: 16,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'NPA Tidak Terdaftar',
@@ -369,9 +387,10 @@ class _LoginScreenState extends State<LoginScreen>
                 Text(
                   'NPA tidak ditemukan di database. Silakan hubungi admin.',
                   style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.red.shade500,
-                      height: 1.4),
+                    fontSize: 12,
+                    color: Colors.red.shade500,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 GestureDetector(
@@ -386,15 +405,19 @@ class _LoginScreenState extends State<LoginScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.headset_mic_rounded,
-                            color: Colors.white, size: 16),
+                        Icon(
+                          Icons.headset_mic_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
                         SizedBox(width: 6),
                         Text(
                           'Hubungi Admin',
                           style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600),
+                            fontSize: 13,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -412,7 +435,8 @@ class _LoginScreenState extends State<LoginScreen>
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
             elevation: 0,
           ),
           child: _isCheckingNpa
@@ -420,23 +444,27 @@ class _LoginScreenState extends State<LoginScreen>
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2),
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
                 )
-              : const Text('Daftar',
-                  style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600)),
+              : const Text(
+                  'Daftar',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
         ),
       ],
     );
   }
 
   Widget _label(String text) => Text(
-        text,
-        style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: darkText),
-      );
+    text,
+    style: const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: darkText,
+    ),
+  );
 
   Widget _textField({
     required TextEditingController controller,
@@ -451,18 +479,18 @@ class _LoginScreenState extends State<LoginScreen>
       keyboardType: keyboardType,
       readOnly: readOnly,
       onChanged: onChanged,
-      style: TextStyle(
-          fontSize: 14, color: readOnly ? greyText : darkText),
+      style: TextStyle(fontSize: 14, color: readOnly ? greyText : darkText),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: greyText, fontSize: 14),
         prefixIcon: Icon(icon, color: greyText, size: 20),
         suffixIcon: readOnly
-            ? const Icon(Icons.lock_outline_rounded,
-                color: greyText, size: 16)
+            ? const Icon(Icons.lock_outline_rounded, color: greyText, size: 16)
             : null,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(
@@ -496,20 +524,23 @@ class _LoginScreenState extends State<LoginScreen>
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: greyText, fontSize: 14),
-        prefixIcon: const Icon(Icons.lock_outline_rounded,
-            color: greyText, size: 20),
+        prefixIcon: const Icon(
+          Icons.lock_outline_rounded,
+          color: greyText,
+          size: 20,
+        ),
         suffixIcon: IconButton(
           icon: Icon(
-            obscure
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
+            obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
             color: greyText,
             size: 20,
           ),
           onPressed: onToggle,
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: inputBorder, width: 1.5),
@@ -566,7 +597,6 @@ class _LoginScreenState extends State<LoginScreen>
         log('role: $role');
         log('userId: $userId');
 
-        // Simpan atau hapus credentials berdasarkan rememberMe
         if (_rememberMe) {
           await SecureStorageService.write('saved_email', input);
           await SecureStorageService.write('saved_password', password);
@@ -577,7 +607,6 @@ class _LoginScreenState extends State<LoginScreen>
           await SecureStorageService.write('remember_me', 'false');
         }
 
-        // Selalu simpan session token
         await AuthHelper.saveSession(
           accessToken: token ?? '',
           refreshToken: refreshToken,
@@ -603,13 +632,12 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  String? _extractString(
-      Map<String, dynamic> body, List<String> keys) {
+  String? _extractString(Map<String, dynamic> body, List<String> keys) {
     final data = body['data'] is Map<String, dynamic>
         ? Map<String, dynamic>.from(body['data'])
         : body['data'] is Map
-            ? Map<String, dynamic>.from(body['data'] as Map)
-            : null;
+        ? Map<String, dynamic>.from(body['data'] as Map)
+        : null;
 
     for (final key in keys) {
       final value = body[key] ?? data?[key];
@@ -667,17 +695,18 @@ class _LoginScreenState extends State<LoginScreen>
       final body = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final userId = body['id']?.toString() ?? '';
         if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) => IsiDataScreen(npa: npa)),
+            builder: (_) => IsiDataScreen(npa: npa, id: userId),
+          ),
         );
       } else {
         final msg = body['message'] ?? 'NPA tidak ditemukan';
         if (msg.toLowerCase().contains('sudah')) {
-          _snackbar('NPA sudah aktif. Silakan login langsung.',
-              isError: true);
+          _snackbar('NPA sudah aktif. Silakan login langsung.', isError: true);
           _tabController.animateTo(0);
         } else {
           setState(() => _npaNotFound = true);
@@ -693,8 +722,7 @@ class _LoginScreenState extends State<LoginScreen>
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Hubungi Admin',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -702,18 +730,15 @@ class _LoginScreenState extends State<LoginScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _contactRow(
-                Icons.email_outlined, 'Email', 'admin@persis.id'),
+            _contactRow(Icons.email_outlined, 'Email', 'admin@persis.id'),
             const SizedBox(height: 12),
-            _contactRow(Icons.phone_outlined, 'WhatsApp',
-                '+62 812-3456-7890'),
+            _contactRow(Icons.phone_outlined, 'WhatsApp', '+62 812-3456-7890'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup',
-                style: TextStyle(color: primaryGreen)),
+            child: const Text('Tutup', style: TextStyle(color: primaryGreen)),
           ),
         ],
       ),
@@ -727,22 +752,23 @@ class _LoginScreenState extends State<LoginScreen>
           width: 36,
           height: 36,
           decoration: const BoxDecoration(
-              color: lightGreen, shape: BoxShape.circle),
+            color: lightGreen,
+            shape: BoxShape.circle,
+          ),
           child: Icon(icon, color: primaryGreen, size: 18),
         ),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label,
-                style:
-                    const TextStyle(fontSize: 11, color: greyText)),
+            Text(label, style: const TextStyle(fontSize: 11, color: greyText)),
             Text(
               value,
               style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: darkText),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: darkText,
+              ),
             ),
           ],
         ),
@@ -756,8 +782,7 @@ class _LoginScreenState extends State<LoginScreen>
         content: Text(msg),
         backgroundColor: isError ? Colors.redAccent : primaryGreen,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(16),
       ),
     );

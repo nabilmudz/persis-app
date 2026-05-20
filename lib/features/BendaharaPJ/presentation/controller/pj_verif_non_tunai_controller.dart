@@ -36,9 +36,8 @@ class PjVerifNonTunaiController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Load Payment Methods to identify Tunai (untuk exclude)
       final methods = await _paymentMethodDataSource.getAllPaymentMethods();
-      _tunaiMethodId = null; // Reset
+      _tunaiMethodId = null;
 
       for (final method in methods) {
         final code = method.code?.toLowerCase() ?? '';
@@ -48,7 +47,6 @@ class PjVerifNonTunaiController extends ChangeNotifier {
           print("Checking Payment Method: ID=$id, Code=$code");
         }
 
-        // Cari ID payment method Tunai (untuk exclude)
         if (code == 'tunai') {
           _tunaiMethodId = id;
           if (kDebugMode) {
@@ -57,14 +55,9 @@ class PjVerifNonTunaiController extends ChangeNotifier {
         }
       }
 
-      // 2. Load Transactions
       final allTransactions = await _transactionDataSource.getHistory();
-
-      // 3. Filter: Tampilkan transaksi yang BUKAN Tunai
-      // Inverse filter: exclude transaksi dengan payment_method_id = Tunai
       _transactions = allTransactions.where((tx) {
         final methodId = tx.paymentMethodId;
-        // Tampilkan transaksi yang payment_method_id-nya tidak sama dengan Tunai
         return methodId != _tunaiMethodId;
       }).toList();
 
@@ -92,9 +85,6 @@ class PjVerifNonTunaiController extends ChangeNotifier {
     required String query,
   }) {
     final filtered = _transactions.where((tx) {
-      // Perbaiki logika status:
-      // Muncul di "Belum Diverifikasi" jika status adalah 'draft', 'pending', 'unpaid', atau null
-      // Muncul di "Sudah Diverifikasi" jika status adalah 'completed', 'paid', atau 'verified'
       final status = (tx.status ?? '').toLowerCase().trim();
       final isVerified =
           status == 'completed' || status == 'paid' || status == 'verified';
@@ -105,7 +95,6 @@ class PjVerifNonTunaiController extends ChangeNotifier {
         if (!isVerified) return false;
       }
 
-      // Filter by search query
       if (query.isNotEmpty) {
         final lowerQuery = query.toLowerCase();
         final label = _getTransactionLabel(tx).toLowerCase();
@@ -123,7 +112,6 @@ class PjVerifNonTunaiController extends ChangeNotifier {
   }
 
   PcVerifikasiItem _mapToPcItem(TransactionModel tx) {
-    // Helper to format date
     String dateStr = '-';
     if (tx.createdAt != null) {
       try {
@@ -132,10 +120,8 @@ class PjVerifNonTunaiController extends ChangeNotifier {
       } catch (_) {}
     }
 
-    // Ambil nominal dari total_amount
     final price = (tx.totalAmount ?? 0).toString();
 
-    // Tentukan kategori
     final status = (tx.status ?? '').toLowerCase();
     final category = (status == 'completed' || status == 'paid')
         ? 'Sudah Diverifikasi'
@@ -165,12 +151,10 @@ class PjVerifNonTunaiController extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      // Pastikan transaction memiliki ID
       if (transaction.id == null || transaction.id!.isEmpty) {
         return PcAccResult.notFound;
       }
 
-      // Update status: transaksi -> completed, item -> paid
       final updatedItems = transaction.items?.map((item) {
         return TransactionItemModel(
           anggotaId: item.anggotaId,
@@ -195,14 +179,12 @@ class PjVerifNonTunaiController extends ChangeNotifier {
         items: updatedItems,
       );
 
-      // Kirim update ke API menggunakan PATCH
       final success = await _transactionDataSource.updateTransaction(
         transaction.id!,
         updatedTx,
       );
 
       if (success) {
-        // Refresh local data
         await loadInitialData();
         return PcAccResult.success;
       }

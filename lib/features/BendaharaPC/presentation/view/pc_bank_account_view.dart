@@ -200,8 +200,6 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
       return;
     }
 
-    print('===== _HANDLE SAVE QRIS =====');
-    // Di dalam _handleSaveQris
     final paymentMethodId = await _controller.resolveQrisPaymentMethodId();
 
     if (paymentMethodId == null || paymentMethodId.isEmpty) {
@@ -212,7 +210,7 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
           ),
         ),
       );
-      return; // Hentikan proses agar tidak terjadi error 400
+      return;
     }
 
     setState(() {
@@ -357,7 +355,6 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
               return const Center(child: CircularProgressIndicator());
             }
 
-            // Show error if any
             if (_controller.errorMessage != null) {
               return Center(
                 child: Padding(
@@ -399,7 +396,6 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Section: Daftar Rekening
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -437,7 +433,6 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // Bank Accounts List
                     if (accounts.isEmpty)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -481,7 +476,6 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
                         );
                       }),
                     const SizedBox(height: 24),
-                    // Section: Gambar QRIS
                     const Text(
                       'Gambar QRIS',
                       style: TextStyle(

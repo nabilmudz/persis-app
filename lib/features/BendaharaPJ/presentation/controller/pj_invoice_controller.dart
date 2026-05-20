@@ -152,7 +152,6 @@ class PjInvoiceData {
       final desc = item.description ?? '';
       int month = 0;
 
-      // Extract month from description if possible
       for (var i = 0; i < _monthNames.length; i++) {
         if (desc.contains(_monthNames[i])) {
           month = i + 1;
@@ -188,8 +187,7 @@ class PjInvoiceData {
       months: months,
       year: year,
       totalAmount: transaction.totalAmount ?? 0,
-      syncedToBackend:
-          true, // If it's a TransactionModel from history, it's synced
+      syncedToBackend: true,
       generatedAt: createdAt,
     );
   }
@@ -219,9 +217,6 @@ class PjInvoiceData {
   }
 
   String get memberPhone => member.noHp?.trim() ?? '';
-
-  /// Format: {NPA}-{MM}-{YY}
-  /// Contoh: 12345-05-26 (untuk iuran Mei, tahun 2026)
   String get invoiceNumber {
     final npa = memberCode != '-' ? memberCode : 'NA';
     final month = months.isNotEmpty
@@ -247,7 +242,6 @@ class PjInvoiceData {
       return '-';
     }
 
-    // Tampilkan dalam waktu WIB (UTC+7)
     final dt = generatedAt.isUtc ? generatedAt.toLocal() : generatedAt;
     final day = dt.day.toString().padLeft(2, '0');
     final monthName = _monthNames[dt.month - 1];
@@ -307,7 +301,6 @@ class PjInvoiceController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Capture Screenshot
       final boundary =
           boundaryKey.currentContext?.findRenderObject()
               as RenderRepaintBoundary?;
@@ -325,13 +318,11 @@ class PjInvoiceController extends ChangeNotifier {
 
       final bytes = byteData.buffer.asUint8List();
 
-      // 2. Save to Temp File
       final tempDir = await getTemporaryDirectory();
       final fileName = 'Invoice_${invoiceData.invoiceNumber}.png';
       final file = await File('${tempDir.path}/$fileName').create();
       await file.writeAsBytes(bytes);
 
-      // 3. Share via Share Sheet (Most reliable for images)
       final xFile = XFile(file.path);
       final message = invoiceData.buildWhatsappMessage();
 
@@ -361,7 +352,6 @@ class PjInvoiceController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Capture Screenshot
       final boundary =
           boundaryKey.currentContext?.findRenderObject()
               as RenderRepaintBoundary?;
@@ -379,7 +369,6 @@ class PjInvoiceController extends ChangeNotifier {
 
       final bytes = byteData.buffer.asUint8List();
 
-      // 2. Permission Check
       final hasAccess = await Gal.hasAccess();
       if (!hasAccess) {
         final granted = await Gal.requestAccess();
@@ -389,7 +378,6 @@ class PjInvoiceController extends ChangeNotifier {
         }
       }
 
-      // 3. Save to Gallery
       final tempDir = await getTemporaryDirectory();
       final filePath =
           '${tempDir.path}/Invoice_${invoiceData.invoiceNumber}.png';

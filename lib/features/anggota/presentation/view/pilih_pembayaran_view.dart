@@ -73,7 +73,6 @@ class PilihPembayaranView extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => ChangeNotifierProvider(
                           create: (_) => PembayaranController(
-                            // --- FIX: Pakai PaymentRemoteDataSource ---
                             repository: PaymentRepository(
                               PaymentRemoteDataSource(_baseUrl),
                             ),
@@ -97,7 +96,6 @@ class PilihPembayaranView extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => ChangeNotifierProvider(
                           create: (_) => PembayaranController(
-                            // --- FIX: Pakai PaymentRemoteDataSource ---
                             repository: PaymentRepository(
                               PaymentRemoteDataSource(_baseUrl),
                             ),

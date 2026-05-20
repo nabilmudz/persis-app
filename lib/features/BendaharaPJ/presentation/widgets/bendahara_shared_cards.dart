@@ -113,7 +113,6 @@ class _BendaharaSaldoCardState extends State<BendaharaSaldoCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Row: Badge + Dropdown ──────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -139,7 +138,6 @@ class _BendaharaSaldoCardState extends State<BendaharaSaldoCard> {
                 ),
               ),
 
-              // ── Dropdown kecil ─────────────────────────────────────────
               GestureDetector(
                 onTap: () async {
                   await showModalBottomSheet(
@@ -209,8 +207,6 @@ class _BendaharaSaldoCardState extends State<BendaharaSaldoCard> {
             ),
           ),
           const SizedBox(height: 4),
-
-          // ── Amount ────────────────────────────────────────────────────
           _isLoading
               ? const SizedBox(
                   height: 44,
@@ -234,8 +230,6 @@ class _BendaharaSaldoCardState extends State<BendaharaSaldoCard> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-
-          // ── Subtitle: anggota lunas (hanya per bulan) ─────────────────
           if (!_isLoading && _totalMembersPaid != null) ...[
             const SizedBox(height: 4),
             Text(
@@ -254,7 +248,6 @@ class _BendaharaSaldoCardState extends State<BendaharaSaldoCard> {
   }
 }
 
-// ── Bottom sheet filter ────────────────────────────────────────────────────────
 class _FilterSheet extends StatelessWidget {
   final int selectedMonth;
   final int selectedYear;
@@ -271,7 +264,7 @@ class _FilterSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final years = [now.year - 1, now.year]; // tahun lalu + tahun ini
+    final years = [now.year - 1, now.year];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -289,8 +282,6 @@ class _FilterSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-
-          // ── Full year options ──────────────────────────────────────────
           ...years.map(
             (year) => _SheetTile(
               label: 'Tahun $year',

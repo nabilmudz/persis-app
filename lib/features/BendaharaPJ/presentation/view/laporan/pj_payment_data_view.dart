@@ -35,7 +35,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     _laporanController = PjLaporanController();
     _laporanController.addListener(_onLaporanChanged);
 
-    // Fetch data awal untuk bulan berjalan
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchMonthlyData();
     });
@@ -50,8 +49,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   }
 
   void _onControllerChanged() {
-    // Jika data global berubah, kita mungkin perlu fetch ulang jika bulan yang sama
-    // Tapi untuk sekarang kita biarkan manual atau lewat _fetchMonthlyData
     if (mounted) setState(() {});
   }
 
@@ -100,8 +97,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       debugPrint('⚠ API Error: $e. Using local fallback.');
     }
 
-    // FALLBACK: Jika API gagal atau return null (seperti ClientException di ngrok)
-    // Gunakan data transaksi lokal dari controller sebagai cadangan.
     if (mounted) {
       final localTransactions = widget.controller.transactions.where((t) {
         if (t.createdAt == null) return false;
@@ -119,7 +114,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         _isInitialLoading = false;
       });
 
-      // Tampilkan peringatan jika ini adalah fallback karena error API
       if (_laporanController.errorMessage != null ||
           _monthlyTransactions.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -138,7 +132,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   List<TransactionModel> _filterTransactionsByMonth(
     List<TransactionModel> transactions,
   ) {
-    // Data laporan yang dipakai hanya transaksi yang sudah lunas.
     return transactions.where((transaction) {
       final status = (transaction.status ?? '').trim().toLowerCase();
       final accStatus = (transaction.accStatus ?? '').trim().toLowerCase();
@@ -156,7 +149,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       initialDate: _selectedMonth,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      // Gunakan helpText agar lebih jelas
       helpText: 'PILIH BULAN LAPORAN',
     );
 
@@ -179,12 +171,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   }
 
   String _getMemberName(TransactionModel transaction) {
-    // 1. Coba ambil langsung dari field memberName (member_name) hasil API
     if (transaction.memberName != null && transaction.memberName!.isNotEmpty) {
       return transaction.memberName!;
     }
 
-    // 2. Fallback: Cari dari list members controller jika data item ada
     if (transaction.items == null || transaction.items!.isEmpty) return '-';
     final anggotaId = transaction.items!.first.anggotaId;
     if (anggotaId == null) return '-';
@@ -201,14 +191,12 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
 
   void _exportExcel() async {
     try {
-      // 1. Ambil data dari API Export berdasarkan bulan dan tahun yang dipilih
       final result = await _laporanController.exportLaporan(
         month: _selectedMonth.month,
         year: _selectedMonth.year,
         status: 'lunas',
       );
 
-      // 2. Handle error dari controller
       if (_laporanController.errorMessage != null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -222,7 +210,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         return;
       }
 
-      // 3. Parsing data dari API response
       List<TransactionModel> exportData = [];
       if (result != null && result['data'] != null) {
         final List rawData = result['data'];
@@ -233,8 +220,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
           '✓ API Export: ${exportData.length} transaksi diterima dari server',
         );
       } else {
-        // Fallback ke data lokal jika API tidak return data array
-        // Ambil SEMUA transaksi bulan itu (tidak filter status) jika API gagal
         final allTransactionsMonth = widget.controller.transactions.where((
           transaction,
         ) {
@@ -267,12 +252,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         return;
       }
 
-      // 2. Inisialisasi Excel
       final excel = Excel.createExcel();
       final sheet = excel['Transaksi pada Bulan'];
       excel.delete('Sheet1');
 
-      // Header sesuai template
       final headers = [
         'Hari, Tanggal',
         'Nama Anggota',
@@ -288,14 +271,12 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       ];
       sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
 
-      // 3. Tambah Data
       final monthLabel = DateFormat('MMMM', 'id_ID').format(_selectedMonth);
 
       for (int i = 0; i < exportData.length; i++) {
         final t = exportData[i];
         final amount = t.totalAmount ?? 0;
 
-        // Format: "Hari, dd MMM yyyy"
         final dateFormatted = t.createdAt != null
             ? DateFormat(
                 'EEEE, dd MMM yyyy',
@@ -303,16 +284,10 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
               ).format(DateTime.parse(t.createdAt!))
             : '-';
 
-        // Ambil member name
         final memberName = t.memberName ?? _getMemberName(t);
-
-        // Dari Bulan dan Hingga Bulan (sama dengan bulan yang dipilih untuk sekarang)
         final dariHingga = monthLabel;
-
-        // Di ACC oleh
         final diAccOleh = t.verifiedBy ?? '-';
 
-        // Hitung pembagian
         final pj = (amount * 30) ~/ 100;
         final pc = (amount * 20) ~/ 100;
         final pw = (amount * 15) ~/ 100;
@@ -338,7 +313,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         '✓ Excel: ${exportData.length} baris data berhasil ditambahkan',
       );
 
-      // 4. Simpan ke file .xlsx
       final bytes = excel.encode();
       if (bytes == null) return;
 
@@ -350,7 +324,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
       final file = File('${directory.path}/Laporan_PJ_$monthLabelFile.xlsx');
       await file.writeAsBytes(bytes);
 
-      // 5. Share file
       if (mounted) {
         await Share.shareXFiles(
           [XFile(file.path)],
@@ -394,7 +367,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    // Overview Card Section
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                       child: _buildOverviewCard(filteredTransactions),
@@ -404,7 +376,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                       child: _buildDistributionCard(filteredTransactions),
                     ),
-                    // Filter and Export Bar
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -460,9 +431,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                             icon: const Icon(Icons.table_chart),
                             label: const Text('Excel (.xlsx)'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(
-                                0xFF1E6F42,
-                              ), // Excel color
+                              backgroundColor: const Color(0xFF1E6F42),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -487,7 +456,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                         ],
                       ),
                     ),
-                    // Transactions List
                     if (filteredTransactions.isEmpty)
                       _buildEmptyState()
                     else
@@ -523,13 +491,11 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                               final type = groupedData.keys.elementAt(index);
                               final transactions = groupedData[type]!;
 
-                              // Create a synthetic recap transaction
                               final totalAmount = transactions.fold<int>(
                                 0,
                                 (sum, t) => sum + (t.totalAmount ?? 0),
                               );
-                              final latestTransaction = transactions
-                                  .first; // Use first one for metadata
+                              final latestTransaction = transactions.first;
 
                               final recapTransaction = TransactionModel(
                                 type: type,
@@ -808,7 +774,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     for (final t in transactions) {
       String type = t.type ?? 'Tunai';
 
-      // Specifically handle the requested payment method ID
       if (t.paymentMethodId == '69ee266797af79f7ef06e559' ||
           type.toLowerCase() == 'tunai') {
         type = 'Rekap Tunai';
@@ -992,22 +957,21 @@ class _PaymentDataCard extends StatelessWidget {
   Color _getStatusColor(dynamic status) {
     if (isRecap) return const Color(0xFF10B367);
     if (status == 'acc_pj' || status == true || status == 'approved') {
-      return const Color(0xFF10B367); // approved (green)
+      return const Color(0xFF10B367);
     } else if (status == false || status == 'rejected') {
-      return const Color(0xFFEF4444); // rejected (red)
+      return const Color(0xFFEF4444);
     } else {
-      return const Color(0xFFFFA500); // pending (orange)
+      return const Color(0xFFFFA500);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Prefer API-provided member name when available
     final displayMemberName = (memberName.isNotEmpty && memberName != '-')
         ? memberName
         : (transaction.memberName ?? '-');
     return GestureDetector(
-      onTap: onTap, // gunakan onTap di sini
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -1025,7 +989,6 @@ class _PaymentDataCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Row with Type and Status
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1091,7 +1054,6 @@ class _PaymentDataCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            // Amount
             Text(
               _formatCurrency(transaction.totalAmount),
               style: const TextStyle(
@@ -1102,7 +1064,6 @@ class _PaymentDataCard extends StatelessWidget {
             ),
             if (!isRecap) ...[
               const SizedBox(height: 12),
-              // Date and Details Row
               Row(
                 children: [
                   Expanded(
@@ -1161,7 +1122,6 @@ class _PaymentDataCard extends StatelessWidget {
               ),
             ] else
               const SizedBox(height: 8),
-            // Bank Info (if non-tunai)
             if (transaction.type?.toLowerCase() != 'tunai' &&
                 (transaction.bankName != null ||
                     transaction.bankAccountName != null))
@@ -1202,7 +1162,6 @@ class _PaymentDataCard extends StatelessWidget {
                   ),
                 ],
               ),
-            // Di bagian bawah build(), setelah bank info:
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0xFFE5E5E5)),
             const SizedBox(height: 10),

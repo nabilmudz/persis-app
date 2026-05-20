@@ -29,12 +29,10 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         PaymentMethodRemoteDataSource(ApiClient.baseUrl);
   }
 
-  // Getters
   List<TransactionModel> get transactions => _transactions;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Load transaksi berdasarkan user ID
   Future<void> loadTransactions(String userId) async {
     _isLoading = true;
     _errorMessage = null;
@@ -42,7 +40,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
 
     try {
       final results = await _dataSource.getHistory();
-      // Filter hanya transaksi untuk user ini
       _transactions = results
           .where(
             (tx) => tx.items?.any((item) => item.anggotaId == userId) == true,
@@ -57,7 +54,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
     }
   }
 
-  // Get tunggakan (belum bayar)
   List<TransactionModel> get uncompleted {
     return _transactions.where((tx) {
       final status = (tx.status ?? '').trim().toLowerCase();
@@ -65,7 +61,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
     }).toList();
   }
 
-  // Get completed (sudah bayar)
   List<TransactionModel> get completed {
     return _transactions.where((tx) {
       final status = (tx.status ?? '').trim().toLowerCase();
@@ -73,7 +68,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
     }).toList();
   }
 
-  // Get tunggakan (outstanding)
   List<TransactionModel> get tunggakan {
     return _transactions.where((tx) {
       final status = (tx.status ?? '').trim().toLowerCase();
@@ -81,14 +75,12 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
     }).toList();
   }
 
-  // Get periode label dari transaction
   String getPeriodLabel(TransactionModel transaction) {
     final item = transaction.items?.isNotEmpty == true
         ? transaction.items!.first
         : null;
     if (item == null) return 'Periode tidak tersedia';
 
-    // Try to parse dari period_id atau dues_period_id
     final periodId = item.periodId ?? item.duesPeriodId ?? '';
     final parts = periodId.split(RegExp(r'[-/_]'));
 
@@ -104,10 +96,9 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
     return 'Periode tidak tersedia';
   }
 
-  // Load payment method "tunai"
   Future<void> _loadTunaiPaymentMethod() async {
     if (_tunaiPaymentMethodId != null) {
-      return; // Already loaded
+      return;
     }
 
     try {
@@ -123,7 +114,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
           return;
         }
       }
-      // Fallback: cari payment method yang mengandung kata tunai/cash secara eksplisit
       for (final method in methods) {
         final code = method.code?.toLowerCase().trim() ?? '';
         final label = method.label?.toLowerCase().trim() ?? '';
@@ -142,11 +132,8 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
     }
   }
 
-  // Confirm recording transaksi
   Future<bool> confirmRecording(List<int> selectedIndices) async {
     try {
-      // Logic untuk konfirmasi pencatatan
-      // Bisa di-implement sesuai dengan API yang ada
       return true;
     } catch (e) {
       _errorMessage = 'Gagal konfirmasi pencatatan: ${e.toString()}';
@@ -155,7 +142,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
     }
   }
 
-  // Buat transaksi baru untuk bulan-bulan yang dipilih
   Future<PjTransactionCreationResult?> createTransactionForSelectedMonths({
     required String anggotaId,
     required String memberId,
@@ -177,20 +163,15 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
       notifyListeners();
 
       final orderedMonths = selectedMonths.toList()..sort();
-
-      // Buat item-item transaksi untuk setiap bulan yang dipilih
       final items = <TransactionItemModel>[];
       int totalAmount = 0;
-
-      // Generate ObjectId valid untuk Transaction ini dari frontend
       final transactionId = ObjectIdHelper.generateMongoObjectId();
 
       for (final month in orderedMonths) {
         final amount = getNominal(month, year).round();
         totalAmount += amount;
 
-        final duesObjectId =
-            getPeriodId(month, year)?.trim().isNotEmpty == true
+        final duesObjectId = getPeriodId(month, year)?.trim().isNotEmpty == true
             ? getPeriodId(month, year)!.trim()
             : PjTransactionItemController.localPeriodKey(month, year);
 
@@ -213,21 +194,19 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         );
       }
 
-      // Load payment method tunai jika ada
       try {
         await _loadTunaiPaymentMethod();
       } catch (_) {}
 
       final nowIso = DateTime.now().toIso8601String();
-      
-      // Buat transaksi dengan payment_method_id yang benar
+
       final transaction = TransactionModel(
         id: transactionId,
         type: 'tunai',
         creatorId: accById ?? memberId,
         paymentMethodId: _tunaiPaymentMethodId ?? 'tunai',
         totalAmount: totalAmount,
-        status: 'pending', // Pending dulu — belum terkirim ke backend
+        status: 'pending',
         accStatus: 'acc_pj',
         accBy: accById,
         accAt: nowIso,
@@ -236,26 +215,19 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         items: items,
       );
 
-
-
-      // Simpan ke Hive secara lokal terlebih dahulu (disable autoSync karena kita handle manual di bawah)
       final hiveController = PjHiveController();
       final key = await hiveController.saveTransactionLocally(
         transaction.toJson(),
         autoSync: false,
       );
 
-
-      final generatedAt = DateTime.tryParse(transaction.createdAt ?? '') ??
-          DateTime.now();
+      final generatedAt =
+          DateTime.tryParse(transaction.createdAt ?? '') ?? DateTime.now();
 
       if (!await NetworkStatus.hasInternetConnection()) {
         _errorMessage = null;
         return PjTransactionCreationResult(
-          transaction: transaction.copyWith(
-            status: 'pending',
-            isSynced: false,
-          ),
+          transaction: transaction.copyWith(status: 'pending', isSynced: false),
           selectedMonths: orderedMonths,
           year: year,
           totalAmount: totalAmount,
@@ -264,7 +236,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         );
       }
 
-      // Mencoba mengirim ke API
       try {
         final transactionSync = transaction.copyWith(status: 'completed');
         final isCreated = await _dataSource.createTransaction(transactionSync);
@@ -274,7 +245,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
         );
 
         if (isCreated) {
-          // Jika berhasil masuk backend (MongoDB), hapus dari Hive
           await hiveController.removeSyncedTransaction(key);
           _errorMessage = null;
           return PjTransactionCreationResult(
@@ -286,7 +256,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
             generatedAt: generatedAt,
           );
         } else {
-          // Gagal dari backend tetapi masih tersimpan di Hive
           _errorMessage = null;
           return PjTransactionCreationResult(
             transaction: syncedTransaction,
@@ -298,13 +267,9 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
           );
         }
       } catch (e) {
-        // Gagal karena jaringan atau lainnya, tetap tersimpan di Hive
         _errorMessage = null;
         return PjTransactionCreationResult(
-          transaction: transaction.copyWith(
-            status: 'pending',
-            isSynced: false,
-          ),
+          transaction: transaction.copyWith(status: 'pending', isSynced: false),
           selectedMonths: orderedMonths,
           year: year,
           totalAmount: totalAmount,
@@ -321,7 +286,6 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
     }
   }
 
-  // Helper: Dapatkan nama bulan
   String _getMonthName(int month) {
     const monthNames = [
       'Januari',

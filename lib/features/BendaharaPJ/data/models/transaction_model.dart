@@ -1,24 +1,24 @@
 class TransactionModel {
-  final String? id; // MongoDB _id
-  final String? code; // Ditambahkan agar sesuai copyWith
-  final String? type; // Ditambahkan agar sesuai copyWith
+  final String? id;
+  final String? code;
+  final String? type;
   final String? creatorId;
   final String? paymentMethodId;
-  final String? proofUrl; // Ditambahkan agar sesuai copyWith
-  final String? bankName; // Ditambahkan agar sesuai copyWith
-  final String? bankAccountName; // Ditambahkan agar sesuai copyWith
-  final String? verifiedBy; // Ditambahkan agar sesuai copyWith
+  final String? proofUrl;
+  final String? bankName;
+  final String? bankAccountName;
+  final String? verifiedBy;
   final int? totalAmount;
   final String? status;
   final String? accStatus;
   final bool? isSynced;
   final String? createdAt;
-  final String? updatedAt; // Ditambahkan agar sesuai copyWith
+  final String? updatedAt;
   final String? accBy;
   final String? accAt;
   final String? syncedAt;
-  final String? memberName; // Dari API: member_name
-  final String? npa; // Dari API: npa
+  final String? memberName;
+  final String? npa;
   final List<TransactionItemModel>? items;
 
   TransactionModel({
@@ -45,7 +45,6 @@ class TransactionModel {
     this.items,
   });
 
-
   factory TransactionModel.fromJson(Map<dynamic, dynamic> json) {
     final map = Map<String, dynamic>.from(json);
     return TransactionModel(
@@ -70,34 +69,38 @@ class TransactionModel {
       memberName: map['member_name'] ?? map['memberName'],
       npa: map['npa'],
       items: (map['items'] as List?)
-          ?.map((x) => TransactionItemModel.fromJson(Map<String, dynamic>.from(x as Map)))
+          ?.map(
+            (x) => TransactionItemModel.fromJson(
+              Map<String, dynamic>.from(x as Map),
+            ),
+          )
           .toList(),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        "_id": id,
-        "code": code,
-        "type": type,
-        "creator_id": creatorId,
-        "payment_method_id": paymentMethodId,
-        "proof_url": proofUrl,
-        "bank_name": bankName,
-        "bank_account_name": bankAccountName,
-        "verified_by": verifiedBy,
-        "total_amount": totalAmount,
-        "status": status,
-        "acc_status": accStatus,
-        "is_synced": isSynced,
-        "created_at": createdAt,
-        "updated_at": updatedAt,
-        "acc_by": accBy,
-        "acc_at": accAt,
-        "synced_at": syncedAt,
-        "member_name": memberName,
-        "npa": npa,
-        "items": items?.map((x) => x.toJson()).toList(),
-      };
+    "_id": id,
+    "code": code,
+    "type": type,
+    "creator_id": creatorId,
+    "payment_method_id": paymentMethodId,
+    "proof_url": proofUrl,
+    "bank_name": bankName,
+    "bank_account_name": bankAccountName,
+    "verified_by": verifiedBy,
+    "total_amount": totalAmount,
+    "status": status,
+    "acc_status": accStatus,
+    "is_synced": isSynced,
+    "created_at": createdAt,
+    "updated_at": updatedAt,
+    "acc_by": accBy,
+    "acc_at": accAt,
+    "synced_at": syncedAt,
+    "member_name": memberName,
+    "npa": npa,
+    "items": items?.map((x) => x.toJson()).toList(),
+  };
 
   TransactionModel copyWith({
     String? id,
@@ -146,10 +149,10 @@ class TransactionModel {
 
 class TransactionItemModel {
   final String? anggotaId;
-  final String? transactionId; // Baru
-  final String? periodId; // Baru
-  final String? status; // Baru
-  final String? duesPeriodId; // Baru
+  final String? transactionId;
+  final String? periodId;
+  final String? status;
+  final String? duesPeriodId;
   final int? amount;
   final String? description;
 
@@ -206,7 +209,7 @@ class TransactionItemModel {
 }
 
 class DuesPeriodModel {
-  final String? id; // MongoDB _id
+  final String? id;
   final int? year;
   final int? month;
   final double? amount;
@@ -216,7 +219,7 @@ class DuesPeriodModel {
 
   factory DuesPeriodModel.fromJson(Map<String, dynamic> json) =>
       DuesPeriodModel(
-        id: json['_id'] ?? json['id'], // Use _id from MongoDB
+        id: json['_id'] ?? json['id'],
         year: json['year'],
         month: json['month'],
         amount: (json['amount'] as num?)?.toDouble(),

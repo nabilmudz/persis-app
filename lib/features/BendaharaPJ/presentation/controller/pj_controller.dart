@@ -34,10 +34,7 @@ class PjController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Tambah transaksi ke state lokal (biasanya setelah berhasil di BE)
-  /// agar UI langsung update tanpa menunggu fetch ulang.
   void addTransaction(TransactionModel tx) {
-    // Hindari duplikat
     if (_transactions.any((t) => t.id == tx.id && tx.id != null)) {
       return;
     }
@@ -45,7 +42,6 @@ class PjController extends ChangeNotifier {
     _verifController.updateData(transactions: _transactions);
     notifyListeners();
   }
-
 
   static const String _cacheBoxName = 'pj_data_cache';
 
@@ -89,10 +85,7 @@ class PjController extends ChangeNotifier {
       final currentYear = DateTime.now().year;
       final regionId = await resolveRegionId();
 
-      // 1. Load dari Cache dulu agar UI responsif (Offline-first)
       await _loadFromCache(year: currentYear, regionId: regionId);
-
-      // 2. Coba fetch data terbaru dari Network
       final isOnline = await NetworkStatus.hasInternetConnection();
       if (isOnline) {
         await loadPaymentStatusSnapshot(year: currentYear, regionId: regionId);
@@ -171,7 +164,6 @@ class PjController extends ChangeNotifier {
           .where((u) => u.id != null && u.id!.trim().isNotEmpty)
           .toList();
 
-      // Update State
       _members
         ..clear()
         ..addAll(filteredUsers);
@@ -180,7 +172,6 @@ class PjController extends ChangeNotifier {
         ..addAll(transactions);
       _verifController.updateData(transactions: _transactions);
 
-      // Save ke Cache
       await _cacheBox.put(
         'members',
         filteredUsers.map((e) => e.toJson()).toList(),
@@ -196,7 +187,6 @@ class PjController extends ChangeNotifier {
       debugPrint('[PjController] Data berhasil di-cache untuk offline.');
     } catch (e) {
       debugPrint('[PjController] Gagal fetch data network: $e');
-      // Tetap gunakan data cache jika network gagal
     }
   }
 
@@ -207,14 +197,17 @@ class PjController extends ChangeNotifier {
 
     try {
       final regionId = await resolveRegionId();
-      
+
       List<UserModel> users;
       if (statusTag.toLowerCase() == 'semua') {
         await loadInitialData();
         return;
       } else {
-        users = await _userDataSource.getUsersWithStatus(statusTag.toLowerCase(), regionId: regionId);
-        
+        users = await _userDataSource.getUsersWithStatus(
+          statusTag.toLowerCase(),
+          regionId: regionId,
+        );
+
         final filteredUsers = users
             .where((u) => u.id != null && u.id!.trim().isNotEmpty)
             .toList();
@@ -256,10 +249,10 @@ class PjController extends ChangeNotifier {
 
       final snapshotMembers =
           PjTransactionItemController.cachedMembersFromSnapshot(
-        year: year,
-        regionId: resolvedRegionId,
-        month: month,
-      );
+            year: year,
+            regionId: resolvedRegionId,
+            month: month,
+          );
       if (snapshotMembers.isNotEmpty) {
         _members
           ..clear()
@@ -274,20 +267,14 @@ class PjController extends ChangeNotifier {
         ..clear()
         ..addAll(_transactionsFromPaymentSnapshot(snapshot));
 
-      // ── Enrich transactions with created_at from history endpoint ──────────
-      // Payment snapshot tidak menyertakan created_at, sedangkan getHistory()
-      // mengembalikan created_at yang lengkap. Kita gunakan history untuk
-      // mengisi tanggal agar invoice menampilkan tanggal transaksi yang benar.
       try {
         final historyTxs = await _transactionDataSource.getHistory();
         if (historyTxs.isNotEmpty) {
-          // Index history by ID untuk lookup O(1)
           final historyById = <String, TransactionModel>{
             for (final tx in historyTxs)
               if (tx.id != null && tx.id!.isNotEmpty) tx.id!: tx,
           };
 
-          // Ganti _transactions dengan versi yang diperkaya created_at
           final enriched = _transactions.map((tx) {
             if (tx.createdAt != null) return tx;
             final hist = historyById[tx.id];
@@ -299,7 +286,6 @@ class PjController extends ChangeNotifier {
             ..clear()
             ..addAll(enriched);
 
-          // Simpan juga transaksi dari history yang belum ada di snapshot
           for (final histTx in historyTxs) {
             if (histTx.id != null &&
                 !_transactions.any((t) => t.id == histTx.id)) {
@@ -312,10 +298,8 @@ class PjController extends ChangeNotifier {
           );
         }
       } catch (historyError) {
-        // Jika history gagal, tetap lanjut dengan transaksi dari snapshot
         debugPrint('[PjController] Gagal enrich dari history: $historyError');
       }
-      // ──────────────────────────────────────────────────────────────────────
 
       await _cacheBox.put(
         'transactions',
@@ -323,23 +307,24 @@ class PjController extends ChangeNotifier {
       );
 
       _verifController.updateData(transactions: _transactions);
-      debugPrint('[PjController] Snapshot status pembayaran berhasil di-cache.');
+      debugPrint(
+        '[PjController] Snapshot status pembayaran berhasil di-cache.',
+      );
     } catch (e) {
       debugPrint('[PjController] Gagal load snapshot status pembayaran: $e');
       await _fetchAndCacheData();
     }
   }
 
-
   Future<String?> resolveRegionId() async {
-    // 1. Coba baca dari secure storage (hasil login) terlebih dahulu
     final storedRegion = await SecureStorageService.read('region_id');
     if (storedRegion != null && storedRegion.trim().isNotEmpty) {
-      debugPrint('[PjController] resolveRegionId: Found in SecureStorage -> $storedRegion');
+      debugPrint(
+        '[PjController] resolveRegionId: Found in SecureStorage -> $storedRegion',
+      );
       return storedRegion.trim();
     }
 
-    // 2. Fallback baca dari JWT Token
     final token = await SecureStorageService.read(
       SecureStorageService.accessTokenKey,
     );
@@ -357,7 +342,9 @@ class PjController extends ChangeNotifier {
     try {
       final payload = _decodeJwtPayload(parts[1]);
       final extracted = _extractRegionId(payload);
-      debugPrint('[PjController] resolveRegionId: Extracted from JWT -> $extracted');
+      debugPrint(
+        '[PjController] resolveRegionId: Extracted from JWT -> $extracted',
+      );
       return extracted;
     } catch (_) {
       return null;
@@ -472,8 +459,8 @@ class PjController extends ChangeNotifier {
             status: status == 'paid' ? 'completed' : status,
             memberName: member['fullname']?.toString(),
             npa: member['npa']?.toString(),
-            // Ambil tanggal transaksi dari berbagai kemungkinan field backend
-            createdAt: payment['created_at']?.toString() ??
+            createdAt:
+                payment['created_at']?.toString() ??
                 payment['createdAt']?.toString() ??
                 payment['paid_at']?.toString(),
             items: [
@@ -593,27 +580,23 @@ class PjController extends ChangeNotifier {
     );
   }
 
-  /// Ambil transaksi terakhir milik anggota (dari history yang sudah di-load)
   TransactionModel? lastTransactionForMember(String anggotaId) {
     if (anggotaId.isEmpty) return null;
-    
-    // Cari transaksi yang melibatkan anggota ini
-    final memberTxs = _transactions.where((tx) {
-      // 1. Cek apakah ada item yang ditujukan untuk anggota ini
-      final hasItemForMember = tx.items?.any((item) => 
-        (item.anggotaId?.toString() ?? '') == anggotaId
-      ) ?? false;
-      if (hasItemForMember) return true;
 
-      // 2. Cek apakah anggota ini adalah pembuat transaksi (fallback)
+    final memberTxs = _transactions.where((tx) {
+      final hasItemForMember =
+          tx.items?.any(
+            (item) => (item.anggotaId?.toString() ?? '') == anggotaId,
+          ) ??
+          false;
+      if (hasItemForMember) return true;
       if ((tx.creatorId?.toString() ?? '') == anggotaId) return true;
-      
+
       return false;
     }).toList();
 
     if (memberTxs.isEmpty) return null;
 
-    // Sort by date descending (latest first)
     memberTxs.sort((a, b) {
       final aDate = DateTime.tryParse(a.createdAt ?? '') ?? DateTime(1900);
       final bDate = DateTime.tryParse(b.createdAt ?? '') ?? DateTime(1900);

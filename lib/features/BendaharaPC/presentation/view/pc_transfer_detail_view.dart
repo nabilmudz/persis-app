@@ -6,11 +6,19 @@ class PcTransferDetailPage extends StatelessWidget {
   final TransactionModel transaction;
   final String memberName;
 
-  const PcTransferDetailPage({super.key, required this.transaction, required this.memberName});
+  const PcTransferDetailPage({
+    super.key,
+    required this.transaction,
+    required this.memberName,
+  });
 
   String _formatCurrency(int? amount) {
     if (amount == null) return 'Rp 0';
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(amount);
   }
 
   String _formatDate(String? dateString) {
@@ -48,7 +56,6 @@ class PcTransferDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Status Banner ──
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -65,11 +72,18 @@ class PcTransferDetailPage extends StatelessWidget {
                     children: [
                       const Text(
                         'Pembayaran Disetujui',
-                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       Text(
                         transaction.accStatus ?? 'approved',
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -79,25 +93,37 @@ class PcTransferDetailPage extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // ── Info Transaksi ──
             _SectionCard(
               title: 'Informasi Transaksi',
               child: Column(
                 children: [
                   _InfoRow(
                     label: 'Kode',
-                    value: (transaction.code != null && transaction.code!.isNotEmpty)
+                    value:
+                        (transaction.code != null &&
+                            transaction.code!.isNotEmpty)
                         ? transaction.code!
                         : (transaction.id != null && transaction.id!.isNotEmpty
-                            ? (transaction.id!.length > 8
-                                ? transaction.id!.substring(transaction.id!.length - 8).toUpperCase()
-                                : transaction.id!.toUpperCase())
-                            : '-'),
+                              ? (transaction.id!.length > 8
+                                    ? transaction.id!
+                                          .substring(transaction.id!.length - 8)
+                                          .toUpperCase()
+                                    : transaction.id!.toUpperCase())
+                              : '-'),
                   ),
                   _InfoRow(label: 'Nama Member', value: memberName),
-                  _InfoRow(label: 'Jenis', value: transaction.type ?? 'Pembayaran'),
-                  _InfoRow(label: 'Tanggal', value: _formatDate(transaction.createdAt)),
-                  _InfoRow(label: 'Diverifikasi Oleh', value: transaction.verifiedBy ?? '-'),
+                  _InfoRow(
+                    label: 'Jenis',
+                    value: transaction.type ?? 'Pembayaran',
+                  ),
+                  _InfoRow(
+                    label: 'Tanggal',
+                    value: _formatDate(transaction.createdAt),
+                  ),
+                  _InfoRow(
+                    label: 'Diverifikasi Oleh',
+                    value: transaction.verifiedBy ?? '-',
+                  ),
                   _InfoRow(
                     label: 'Total',
                     value: _formatCurrency(transaction.totalAmount),
@@ -113,8 +139,8 @@ class PcTransferDetailPage extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // ── Info Bank (jika ada) ──
-            if (transaction.bankName != null || transaction.bankAccountName != null)
+            if (transaction.bankName != null ||
+                transaction.bankAccountName != null)
               _SectionCard(
                 title: 'Info Rekening',
                 child: Column(
@@ -122,15 +148,18 @@ class PcTransferDetailPage extends StatelessWidget {
                     if (transaction.bankName != null)
                       _InfoRow(label: 'Bank', value: transaction.bankName!),
                     if (transaction.bankAccountName != null)
-                      _InfoRow(label: 'Atas Nama', value: transaction.bankAccountName!),
+                      _InfoRow(
+                        label: 'Atas Nama',
+                        value: transaction.bankAccountName!,
+                      ),
                   ],
                 ),
               ),
 
-            if (transaction.bankName != null || transaction.bankAccountName != null)
+            if (transaction.bankName != null ||
+                transaction.bankAccountName != null)
               const SizedBox(height: 12),
 
-            // ── Rincian Item ──
             if (transaction.items != null && transaction.items!.isNotEmpty)
               _SectionCard(
                 title: 'Rincian Item',
@@ -147,31 +176,63 @@ class PcTransferDetailPage extends StatelessWidget {
             if (transaction.items != null && transaction.items!.isNotEmpty)
               const SizedBox(height: 12),
 
-            // ── Distribusi Lengkap ──
             _SectionCard(
               title: 'Distribusi Iuran',
               child: Column(
                 children: [
-                  _DistributionBar(label: 'PJ', percentage: 30, amount: _formatCurrency(pj), color: const Color(0xFF10B367)),
+                  _DistributionBar(
+                    label: 'PJ',
+                    percentage: 30,
+                    amount: _formatCurrency(pj),
+                    color: const Color(0xFF10B367),
+                  ),
                   const SizedBox(height: 14),
-                  _DistributionBar(label: 'PC', percentage: 20, amount: _formatCurrency(pc), color: const Color(0xFF007AFF)),
+                  _DistributionBar(
+                    label: 'PC',
+                    percentage: 20,
+                    amount: _formatCurrency(pc),
+                    color: const Color(0xFF007AFF),
+                  ),
                   const SizedBox(height: 14),
-                  _DistributionBar(label: 'PD', percentage: 20, amount: _formatCurrency(pd), color: const Color(0xFFFFA500)),
+                  _DistributionBar(
+                    label: 'PD',
+                    percentage: 20,
+                    amount: _formatCurrency(pd),
+                    color: const Color(0xFFFFA500),
+                  ),
                   const SizedBox(height: 14),
-                  _DistributionBar(label: 'PW', percentage: 15, amount: _formatCurrency(pw), color: const Color(0xFF8B5CF6)),
+                  _DistributionBar(
+                    label: 'PW',
+                    percentage: 15,
+                    amount: _formatCurrency(pw),
+                    color: const Color(0xFF8B5CF6),
+                  ),
                   const SizedBox(height: 14),
-                  _DistributionBar(label: 'PP', percentage: 15, amount: _formatCurrency(pp), color: const Color(0xFFEC4899)),
+                  _DistributionBar(
+                    label: 'PP',
+                    percentage: 15,
+                    amount: _formatCurrency(pp),
+                    color: const Color(0xFFEC4899),
+                  ),
                   const Divider(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         'Total',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF073D4D)),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF073D4D),
+                        ),
                       ),
                       Text(
                         _formatCurrency(amount),
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF073D4D)),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF073D4D),
+                        ),
                       ),
                     ],
                   ),
@@ -187,7 +248,6 @@ class PcTransferDetailPage extends StatelessWidget {
   }
 }
 
-// ── Section Card ──
 class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
@@ -209,7 +269,11 @@ class _SectionCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF073D4D)),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF073D4D),
+            ),
           ),
           const SizedBox(height: 12),
           const Divider(height: 1, color: Color(0xFFE5E5E5)),
@@ -221,7 +285,6 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-// ── Info Row ──
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
@@ -237,13 +300,22 @@ class _InfoRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280))),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+          ),
           const SizedBox(width: 16),
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: valueStyle ?? const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF073D4D)),
+              style:
+                  valueStyle ??
+                  const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF073D4D),
+                  ),
             ),
           ),
         ],
@@ -252,7 +324,6 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-// ── Distribution Bar ──
 class _DistributionBar extends StatelessWidget {
   final String label;
   final int percentage;
@@ -279,18 +350,29 @@ class _DistributionBar extends StatelessWidget {
                 Container(
                   width: 10,
                   height: 10,
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   '$label ($percentage%)',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF374151)),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF374151),
+                  ),
                 ),
               ],
             ),
             Text(
               amount,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF073D4D)),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF073D4D),
+              ),
             ),
           ],
         ),

@@ -7,9 +7,9 @@ class UserModel {
   final String? role;
   final String? roleId;
   final String? status;
-  final String? noHp; // ← tambah
-  final bool? isActive; // ← tambah, ganti dari status String
-  final DateTime? createdAt; // ← ganti dari String
+  final String? noHp;
+  final bool? isActive;
+  final DateTime? createdAt;
 
   String? get code => npa;
 
@@ -36,14 +36,10 @@ class UserModel {
     role: json['role'],
     roleId: json['role_id'],
     status: json['status_tag'] ?? json['status'],
-    noHp:
-        json['no_hp'] ??
-        json['no_telp'] ??
-        json['phone'], // ← common key variants
+    noHp: json['no_hp'] ?? json['no_telp'] ?? json['phone'],
     isActive:
         json['is_active'] ??
-        (json['status'] == 'active' ||
-            json['status'] == 'aktif'), // ← fallback dari status
+        (json['status'] == 'active' || json['status'] == 'aktif'),
     createdAt: json['created_at'] != null
         ? DateTime.tryParse(json['created_at'])
         : null,

@@ -15,12 +15,13 @@ class PcDetailVerifikasiPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final isVerified = controller.isVerified(item.transaction);
 
-    // Kode transaksi: 8 karakter terakhir dari transaction ID (bukan creatorId)
     final txId = item.transaction.id != null && item.transaction.id!.isNotEmpty
         ? item.transaction.id!
               .substring(
-                (item.transaction.id!.length - 8)
-                    .clamp(0, item.transaction.id!.length),
+                (item.transaction.id!.length - 8).clamp(
+                  0,
+                  item.transaction.id!.length,
+                ),
               )
               .toUpperCase()
         : item.txCode;
@@ -49,7 +50,6 @@ class PcDetailVerifikasiPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Banner peringatan jika belum diverifikasi
             if (!isVerified)
               Container(
                 padding: const EdgeInsets.all(16),
@@ -61,7 +61,11 @@ class PcDetailVerifikasiPage extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
-                    Icon(Icons.error_outline, color: Color(0xFFD35400), size: 20),
+                    Icon(
+                      Icons.error_outline,
+                      color: Color(0xFFD35400),
+                      size: 20,
+                    ),
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -119,15 +123,12 @@ class PcDetailVerifikasiPage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  // Kode transaksi (8 karakter, bukan full ObjectID)
                   _buildDetailRow('Kode Transaksi', '#$txId'),
                   const Divider(height: 32, color: Color(0xFFEEEEEE)),
                   _buildDetailRow('Jenis', 'Setoran Kas PJ', isBold: true),
                   const Divider(height: 32, color: Color(0xFFEEEEEE)),
-                  // Nama member (bukan creatorId)
                   _buildDetailRow('Dari', item.name, isBold: true),
                   const Divider(height: 32, color: Color(0xFFEEEEEE)),
-                  // NPA jika ada
                   if (item.idNumber != '-') ...[
                     _buildDetailRow('NPA', item.idNumber, isBold: true),
                     const Divider(height: 32, color: Color(0xFFEEEEEE)),
@@ -172,8 +173,9 @@ class PcDetailVerifikasiPage extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    final result =
-                        await controller.accTransaction(item.transaction);
+                    final result = await controller.accTransaction(
+                      item.transaction,
+                    );
                     if (result == PcAccResult.success && context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Berhasil Diverifikasi')),

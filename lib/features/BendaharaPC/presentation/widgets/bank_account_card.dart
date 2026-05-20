@@ -28,7 +28,7 @@ class BankAccountCard extends StatelessWidget {
             blurRadius: 10,
             offset: Offset(0, 2),
             spreadRadius: 0,
-          )
+          ),
         ],
       ),
       child: Padding(
@@ -36,7 +36,6 @@ class BankAccountCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Bank Name
             Text(
               bankName,
               style: const TextStyle(
@@ -47,7 +46,6 @@ class BankAccountCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Account Number with Copy Icon
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -80,7 +78,6 @@ class BankAccountCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            // Account Holder
             Text(
               accountHolder,
               style: const TextStyle(
@@ -91,7 +88,6 @@ class BankAccountCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            // Action Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [

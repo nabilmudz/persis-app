@@ -6,7 +6,6 @@ class PaymentMethodRemoteDataSource {
   final String baseUrl;
   PaymentMethodRemoteDataSource(this.baseUrl);
 
-  // Ambil semua metode pembayaran
   Future<List<PaymentMethodModel>> getAllPaymentMethods() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/payment-method'));
@@ -20,7 +19,6 @@ class PaymentMethodRemoteDataSource {
     }
   }
 
-  // Ambil satu metode pembayaran berdasarkan ID
   Future<PaymentMethodModel> getOne(String id) async {
     final response = await http.get(Uri.parse('$baseUrl/payment-method/$id'));
     if (response.statusCode == 200) {
@@ -29,7 +27,6 @@ class PaymentMethodRemoteDataSource {
     throw Exception('Gagal mengambil metode pembayaran');
   }
 
-  // Tambah metode pembayaran baru
   Future<void> create(PaymentMethodModel paymentMethod) async {
     final response = await http.post(
       Uri.parse('$baseUrl/payment-method'),
@@ -41,7 +38,6 @@ class PaymentMethodRemoteDataSource {
     }
   }
 
-  // Update metode pembayaran berdasarkan ID
   Future<void> update(String id, PaymentMethodModel paymentMethod) async {
     final response = await http.patch(
       Uri.parse('$baseUrl/payment-method/$id'),
@@ -53,7 +49,6 @@ class PaymentMethodRemoteDataSource {
     }
   }
 
-  // Hapus metode pembayaran berdasarkan ID
   Future<void> delete(String id) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/payment-method/$id'),

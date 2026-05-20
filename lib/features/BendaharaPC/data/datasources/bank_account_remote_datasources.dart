@@ -6,7 +6,6 @@ class BankAccountRemoteDataSource {
   final String baseUrl;
   BankAccountRemoteDataSource(this.baseUrl);
 
-  // Ambil semua rekening bank
   Future<List<BankAccountModel>> getAll() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/bank-account'));
@@ -26,7 +25,6 @@ class BankAccountRemoteDataSource {
     }
   }
 
-  // Ambil satu rekening bank berdasarkan ID
   Future<BankAccountModel> getOne(String id) async {
     final response = await http.get(Uri.parse('$baseUrl/bank-account/$id'));
     if (response.statusCode == 200) {
@@ -35,7 +33,6 @@ class BankAccountRemoteDataSource {
     throw Exception('Gagal mengambil rekening bank');
   }
 
-  // Tambah rekening bank baru
   Future<void> create(BankAccountModel bankAccount) async {
     print('===== CREATE BANK ACCOUNT =====');
     print(
@@ -112,7 +109,6 @@ class BankAccountRemoteDataSource {
     }
   }
 
-  // Update rekening bank berdasarkan ID
   Future<void> update(String id, BankAccountModel bankAccount) async {
     if (bankAccount.paymentMethodId == null ||
         bankAccount.paymentMethodId!.trim().isEmpty) {
@@ -160,7 +156,6 @@ class BankAccountRemoteDataSource {
     }
   }
 
-  // Hapus rekening bank berdasarkan ID
   Future<void> delete(String id) async {
     final response = await http.delete(Uri.parse('$baseUrl/bank-account/$id'));
     if (response.statusCode != 200) {

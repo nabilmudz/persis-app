@@ -119,7 +119,6 @@ class _BulanIuranBottomSheetState extends State<BulanIuranBottomSheet> {
               return GestureDetector(
                 onTap: () {
                   setState(() => selectedMonth = month);
-                  // Otomatis tutup bottom sheet & kirim data bulan + tahun
                   Navigator.pop(context, '$month $selectedYear');
                 },
                 child: Container(

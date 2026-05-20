@@ -4,8 +4,6 @@ import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'package:persis_app/helpers/auth_helper.dart';
 import 'package:persis_app/app/routes.dart';
 
-// ─── Result Models ────────────────────────────────────────────────────────────
-
 enum NpaStatus { valid, alreadyActive, notFound, empty, error }
 
 class CekNpaResult {
@@ -25,8 +23,6 @@ class LoginResult {
   });
 }
 
-// ─── Controller ───────────────────────────────────────────────────────────────
-
 class LoginController extends ChangeNotifier {
   final UserRemoteDataSource remoteDataSource;
   LoginController({required this.remoteDataSource});
@@ -41,7 +37,6 @@ class LoginController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   UserModel? get user => _user;
 
-  // ─── Login ────────────────────────────────────────────────────────────────
   Future<LoginResult> login(
     String emailOrNpa,
     String password, {
@@ -68,7 +63,6 @@ class LoginController extends ChangeNotifier {
     try {
       final response = await remoteDataSource.login(identifier, pwd);
 
-      // ── Parse user map ───────────────────────────────────────────────────
       Map<String, dynamic>? dataMap;
       try {
         dataMap = response['data'] is Map<String, dynamic>
@@ -93,7 +87,6 @@ class LoginController extends ChangeNotifier {
       } catch (_) {}
       _user = parsedUser;
 
-      // ── Parse token ──────────────────────────────────────────────────────
       String? token;
       for (final key in ['access_token', 'accessToken', 'token', 'jwt']) {
         final v = response[key] ?? dataMap?[key];
@@ -112,14 +105,16 @@ class LoginController extends ChangeNotifier {
         }
       }
 
-      // ── Parse role ───────────────────────────────────────────────────────
       String? role = response['role'] is String ? response['role'] : null;
       role ??= dataMap?['role'] is String ? dataMap!['role'] : null;
       role ??= userMap?['role'] is String ? userMap!['role'] : null;
       role ??= parsedUser?.role;
 
-      final regionMap = userMap?['region_id'] ?? userMap?['regionId'] ?? userMap?['region'];
-      final regionId = regionMap is Map ? (regionMap['_id']?.toString() ?? regionMap['id']?.toString()) : regionMap?.toString();
+      final regionMap =
+          userMap?['region_id'] ?? userMap?['regionId'] ?? userMap?['region'];
+      final regionId = regionMap is Map
+          ? (regionMap['_id']?.toString() ?? regionMap['id']?.toString())
+          : regionMap?.toString();
 
       if (token != null) {
         await AuthHelper.saveSession(
@@ -219,17 +214,14 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── Role Routing (Disempurnakan) ──────────────────────────────────────────
   String _routeForRole(String? roleValue) {
     final role = roleValue?.trim().toUpperCase() ?? '';
 
-    // Sesuai dengan nama role di Database Backend
     if (role == 'BENDAHARA_PJ') return AppRoutes.bendaharaPJ;
     if (role == 'BENDAHARA_PC') return AppRoutes.bendaharaPC;
     if (role == 'BENDAHARA_PD') return AppRoutes.dashboard;
     if (role == 'ANGGOTA') return AppRoutes.anggota;
 
-    // Fallback keamanan
     final roleLower = role.toLowerCase();
     if (roleLower.contains('pj')) return AppRoutes.bendaharaPJ;
     if (roleLower.contains('pc')) return AppRoutes.bendaharaPC;

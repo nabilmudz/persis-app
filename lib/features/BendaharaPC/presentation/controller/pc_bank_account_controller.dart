@@ -65,7 +65,6 @@ class PcBankAccountController extends ChangeNotifier {
     await _ensurePaymentMethodsLoaded();
 
     try {
-      // Mencari item pertama yang memenuhi kriteria QRIS
       final qrisMethod = _paymentMethods.firstWhere(
         (method) => _isQrisMethod(method),
       );
@@ -152,7 +151,7 @@ class PcBankAccountController extends ChangeNotifier {
         'Received account with paymentMethodId: "${account.paymentMethodId}"',
       );
       await _dataSource.create(account);
-      await loadBankAccounts(); // Reload data setelah menambah
+      await loadBankAccounts();
       return true;
     } catch (e) {
       _errorMessage = 'Error adding bank account: $e';
@@ -164,7 +163,7 @@ class PcBankAccountController extends ChangeNotifier {
   Future<bool> updateBankAccount(String id, BankAccountModel account) async {
     try {
       await _dataSource.update(id, account);
-      await loadBankAccounts(); // Reload data setelah update
+      await loadBankAccounts();
       return true;
     } catch (e) {
       _errorMessage = 'Error updating bank account: $e';
@@ -176,7 +175,7 @@ class PcBankAccountController extends ChangeNotifier {
   Future<bool> deleteBankAccount(String id) async {
     try {
       await _dataSource.delete(id);
-      await loadBankAccounts(); // Reload data setelah delete
+      await loadBankAccounts();
       return true;
     } catch (e) {
       _errorMessage = 'Error deleting bank account: $e';
@@ -209,13 +208,6 @@ class PcBankAccountController extends ChangeNotifier {
     List<String> exactLabels = const [],
     List<String> fallbackCodes = const [],
   }) async {
-    print('===== _RESOLVE PAYMENT METHOD ID BY LABEL =====');
-    print('exactCodes: $exactCodes');
-    print('exactLabels: $exactLabels');
-    print('Payment methods to search: ${_paymentMethods.length}');
-
-    // Check exactCodes first
-    print('Checking exactCodes...');
     for (final method in _paymentMethods) {
       final normalizedCode = _normalize(method.code);
       print('  Comparing normalized code: "$normalizedCode" with exactCodes');
@@ -225,7 +217,6 @@ class PcBankAccountController extends ChangeNotifier {
       }
     }
 
-    print('No exactCodes match. Checking exactLabels...');
     for (final method in _paymentMethods) {
       final normalizedLabel = _normalize(method.label);
       print(
@@ -237,7 +228,6 @@ class PcBankAccountController extends ChangeNotifier {
       }
     }
 
-    print('No exactLabels match. Checking labels...');
     for (final method in _paymentMethods) {
       final normalizedLabel = _normalize(method.label);
       if (labels.any((label) => normalizedLabel == _normalize(label))) {

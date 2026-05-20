@@ -18,7 +18,6 @@ class PjViewPage extends StatefulWidget {
 }
 
 class _PjViewPageState extends State<PjViewPage> {
-  // 1. Inisialisasi controller
   late final PjController _controller;
 
   @override
@@ -30,7 +29,6 @@ class _PjViewPageState extends State<PjViewPage> {
 
   @override
   void dispose() {
-    // 2. Wajib membuang controller saat pindah/menutup halaman agar tidak bocor memori (memory leak)
     _controller.dispose();
     super.dispose();
   }
@@ -54,7 +52,6 @@ class _PjViewPageState extends State<PjViewPage> {
               );
             },
           ),
-          // === TAMBAHAN TOMBOL PROFIL DI SINI ===
           IconButton(
             icon: const Icon(
               Icons.account_circle,

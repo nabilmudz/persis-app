@@ -6,18 +6,22 @@ import 'package:persis_app/core/theme/app_colors.dart';
 
 String get _baseUrl => AppConfig.baseUrl;
 
-// ==========================================
-// SCREEN 1: INPUT EMAIL / NPA
-// ==========================================
 class ForgotPasswordScreen extends StatefulWidget {
-  const ForgotPasswordScreen({super.key});
+  final String? initialIdentifier;
+  const ForgotPasswordScreen({super.key, this.initialIdentifier});
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _inputController = TextEditingController();
+  late final TextEditingController _inputController;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _inputController = TextEditingController(text: widget.initialIdentifier);
+  }
 
   @override
   void dispose() {
@@ -28,19 +32,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _kirimOtp() async {
     final input = _inputController.text.trim();
     if (input.isEmpty) {
-      _snackbar('Email/NPA tidak boleh kosong', isError: true);
+      _snackbar('Email tidak boleh kosong', isError: true);
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/users/forgot-password'),
+        Uri.parse('$_baseUrl/users/activate'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: jsonEncode({'identifier': input}),
+        body: jsonEncode({
+          'npa': input,
+          'email': input,
+          'no_hp': '0123',
+          'cabang': 1,
+        }),
       );
 
       setState(() => _isLoading = false);
@@ -104,7 +113,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Masukkan Email atau NPA untuk menerima kode OTP reset password.',
+              'Masukkan Email untuk menerima kode OTP reset password.',
               style: TextStyle(color: greyText, height: 1.5, fontSize: 13),
             ),
             const SizedBox(height: 24),
@@ -112,7 +121,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               controller: _inputController,
               style: const TextStyle(fontSize: 14, color: darkText),
               decoration: InputDecoration(
-                hintText: 'Email / NPA',
+                hintText: 'Email',
                 hintStyle: const TextStyle(color: greyText, fontSize: 14),
                 prefixIcon: const Icon(
                   Icons.person_outline,
@@ -186,9 +195,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 }
 
-// ==========================================
-// SCREEN 2: VERIFIKASI OTP (tampilan sama seperti aktivasi)
-// ==========================================
 class ForgotPasswordOtpScreen extends StatefulWidget {
   final String identifier;
   const ForgotPasswordOtpScreen({super.key, required this.identifier});
@@ -305,7 +311,6 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 4 kotak OTP
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
@@ -339,7 +344,6 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Kirim ulang
             Center(
               child: _canResend
                   ? TextButton(
@@ -359,7 +363,6 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Tombol verifikasi
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -396,7 +399,6 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
             ),
             const SizedBox(height: 32),
 
-            // Numpad custom
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -469,12 +471,12 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/users/verify-reset-otp'),
+        Uri.parse('$_baseUrl/users/verify-otp'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: jsonEncode({'identifier': widget.identifier, 'otp': _otpString}),
+        body: jsonEncode({'npa': widget.identifier, 'otp': _otpString}),
       );
 
       setState(() => _isVerifying = false);
@@ -515,12 +517,17 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
     _startResendTimer();
     try {
       await http.post(
-        Uri.parse('$_baseUrl/users/forgot-password'),
+        Uri.parse('$_baseUrl/users/activate'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: jsonEncode({'identifier': widget.identifier}),
+        body: jsonEncode({
+          'npa': widget.identifier,
+          'email': widget.identifier,
+          'no_hp': '0123',
+          'cabang': 1,
+        }),
       );
       _snackbar('Kode OTP telah dikirim ulang ke ${widget.identifier}');
     } catch (_) {
@@ -541,9 +548,6 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
   }
 }
 
-// ==========================================
-// SCREEN 3: BUAT PASSWORD BARU
-// ==========================================
 class ResetPasswordScreen extends StatefulWidget {
   final String identifier, otp;
   const ResetPasswordScreen({
@@ -582,15 +586,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/users/reset-password'),
+        Uri.parse('$_baseUrl/users/set-password'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode({
-          'identifier': widget.identifier,
-          'otp': widget.otp,
-          'new_password': _passController.text,
+          'npa': widget.identifier,
+          'password': _passController.text,
         }),
       );
 

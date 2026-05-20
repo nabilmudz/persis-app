@@ -307,8 +307,6 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                                         var invoiceData =
                                             _getLastInvoiceForMember(member);
                                         if (invoiceData == null) return;
-
-                                        // Fetch complete member if phone is missing
                                         if ((invoiceData.member.noHp == null ||
                                                 invoiceData
                                                     .member
@@ -350,7 +348,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                           }).toList(),
                         );
                       },
-                    ), // Builder
+                    ),
                   if (totalPages > 1)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),
@@ -387,20 +385,19 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                         ],
                       ),
                     ),
-                ], // children: ListView
-              ); // ListView
-            }, // LayoutBuilder builder
-          ); // LayoutBuilder
-        }, // ListenableBuilder builder
-      ), // ListenableBuilder (body)
+                ],
+              );
+            },
+          );
+        },
+      ),
       bottomNavigationBar: const RoleBottomNavigationBar(
         currentRoute: AppRoutes.bendaharaPJ,
         homeRoute: AppRoutes.bendaharaPJ,
       ),
-    ); // Scaffold
+    );
   }
 
-  /// Ambil invoice terakhir milik anggota dari Hive (pending) atau Controller (history).
   PjInvoiceData? _getLastInvoiceForMember(UserModel member) {
     final memberId = member.id?.toString() ?? '';
     if (memberId.isEmpty) return null;
@@ -408,20 +405,16 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
     PjInvoiceData? hiveInvoice;
     PjInvoiceData? historyInvoice;
 
-    // 1. Cek dari Hive (Pending/Local)
     try {
       final hiveController = PjHiveController();
       final allPending = hiveController.getPendingTransactions();
 
       final memberPending = allPending.where((entry) {
         final data = entry['data'] as Map<String, dynamic>;
-
-        // Cocokkan creatorId
         final creatorId =
             (data['creatorId'] ?? data['creator_id'])?.toString() ?? '';
         if (creatorId == memberId) return true;
 
-        // Cocokkan items anggotaId
         final items = data['items'];
         if (items is List) {
           return items.any((item) {
@@ -437,7 +430,6 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
       }).toList();
 
       if (memberPending.isNotEmpty) {
-        // Sort by local_timestamp or createdAt
         memberPending.sort((a, b) {
           final aTs =
               (a['data'] as Map)['local_timestamp'] ??
@@ -458,7 +450,6 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
       debugPrint('Error check Hive invoice: $e');
     }
 
-    // 2. Cek dari Controller (History/Synced)
     try {
       final lastHistoryTx = widget.controller.lastTransactionForMember(
         memberId,
@@ -473,7 +464,6 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
       debugPrint('Error check History invoice: $e');
     }
 
-    // 3. Bandingkan mana yang lebih baru
     if (hiveInvoice != null && historyInvoice != null) {
       return hiveInvoice.generatedAt.isAfter(historyInvoice.generatedAt)
           ? hiveInvoice
@@ -487,7 +477,6 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
     UserModel member,
     Map<String, dynamic> data,
   ) {
-    // Helper logic same as above
     final transaction = _buildTransactionFromHive(data);
     final rawItems = data['items'] as List? ?? [];
     final invoiceItems = <PjInvoiceLineItem>[];

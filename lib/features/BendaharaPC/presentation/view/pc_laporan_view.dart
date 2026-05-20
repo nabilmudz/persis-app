@@ -80,7 +80,10 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         if (mounted) {
           setState(() {
             _monthlyTransactions = rawData
-                .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+                .map(
+                  (e) =>
+                      TransactionModel.fromJson(Map<String, dynamic>.from(e)),
+                )
                 .toList();
             _isInitialLoading = false;
           });
@@ -96,7 +99,8 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         if (t.createdAt == null) return false;
         try {
           final date = DateTime.parse(t.createdAt!);
-          return date.year == _selectedMonth.year && date.month == _selectedMonth.month;
+          return date.year == _selectedMonth.year &&
+              date.month == _selectedMonth.month;
         } catch (_) {
           return false;
         }
@@ -107,10 +111,13 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         _isInitialLoading = false;
       });
 
-      if (_laporanController.errorMessage != null || _monthlyTransactions.isEmpty) {
+      if (_laporanController.errorMessage != null ||
+          _monthlyTransactions.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Koneksi server terputus. Menampilkan data lokal (mungkin tidak lengkap).'),
+            content: Text(
+              'Koneksi server terputus. Menampilkan data lokal (mungkin tidak lengkap).',
+            ),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 3),
           ),
@@ -119,9 +126,13 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
     }
   }
 
-  List<TransactionModel> _filterTransactionsByMonth(List<TransactionModel> transactions) {
+  List<TransactionModel> _filterTransactionsByMonth(
+    List<TransactionModel> transactions,
+  ) {
     return transactions.where((transaction) {
-      final isApproved = (transaction.accStatus == 'acc_pj' || transaction.accStatus == 'approved') ||
+      final isApproved =
+          (transaction.accStatus == 'acc_pj' ||
+              transaction.accStatus == 'approved') ||
           transaction.status == 'completed';
       return isApproved;
     }).toList();
@@ -146,7 +157,11 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
 
   String _formatCurrency(int? amount) {
     if (amount == null) return 'Rp 0';
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(amount);
   }
 
   String _getMemberName(TransactionModel transaction) {
@@ -166,7 +181,10 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       if (_laporanController.errorMessage != null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(_laporanController.errorMessage!), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(_laporanController.errorMessage!),
+              backgroundColor: Colors.red,
+            ),
           );
         }
         return;
@@ -175,13 +193,16 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       List<TransactionModel> exportData = [];
       if (result != null && result['data'] != null) {
         final List rawData = result['data'];
-        exportData = rawData.map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e))).toList();
+        exportData = rawData
+            .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
       } else {
         exportData = widget.controller.allTransactions.where((transaction) {
           if (transaction.createdAt == null) return false;
           try {
             final date = DateTime.parse(transaction.createdAt!);
-            return date.year == _selectedMonth.year && date.month == _selectedMonth.month;
+            return date.year == _selectedMonth.year &&
+                date.month == _selectedMonth.month;
           } catch (e) {
             return false;
           }
@@ -191,7 +212,10 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       if (exportData.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak ada transaksi untuk periode ini'), duration: Duration(seconds: 2)),
+            const SnackBar(
+              content: Text('Tidak ada transaksi untuk periode ini'),
+              duration: Duration(seconds: 2),
+            ),
           );
         }
         return;
@@ -201,7 +225,19 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       final sheet = excel['Transaksi pada Bulan'];
       excel.delete('Sheet1');
 
-      final headers = ['Hari, Tanggal', 'Nama Anggota', 'Dari Bulan', 'Hingga Bulan', 'Total Bayar', 'Di ACC oleh', 'PJ', 'PC', 'PW', 'PD', 'PP'];
+      final headers = [
+        'Hari, Tanggal',
+        'Nama Anggota',
+        'Dari Bulan',
+        'Hingga Bulan',
+        'Total Bayar',
+        'Di ACC oleh',
+        'PJ',
+        'PC',
+        'PW',
+        'PD',
+        'PP',
+      ];
       sheet.appendRow(headers.map((h) => TextCellValue(h)).toList());
 
       final monthLabel = DateFormat('MMMM', 'id_ID').format(_selectedMonth);
@@ -210,7 +246,10 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         final t = exportData[i];
         final amount = t.totalAmount ?? 0;
         final dateFormatted = t.createdAt != null
-            ? DateFormat('EEEE, dd MMM yyyy', 'id_ID').format(DateTime.parse(t.createdAt!))
+            ? DateFormat(
+                'EEEE, dd MMM yyyy',
+                'id_ID',
+              ).format(DateTime.parse(t.createdAt!))
             : '-';
         final memberName = t.memberName ?? _getMemberName(t);
         final pj = (amount * 30) ~/ 100;
@@ -251,7 +290,10 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal membuat file Excel: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Gagal membuat file Excel: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -259,20 +301,28 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredTransactions = _filterTransactionsByMonth(_monthlyTransactions);
+    final filteredTransactions = _filterTransactionsByMonth(
+      _monthlyTransactions,
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Data Pembayaran',
-          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 18),
+          style: TextStyle(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
+          ),
         ),
         elevation: 0,
         backgroundColor: const Color(0xFF074D2C),
         foregroundColor: Colors.white,
       ),
       body: _isInitialLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF0C844C)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF0C844C)),
+            )
           : RefreshIndicator(
               onRefresh: _fetchMonthlyData,
               color: const Color(0xFF0C844C),
@@ -289,7 +339,10 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                       child: _buildDistributionCard(filteredTransactions),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       color: const Color(0xFFF5F5F5),
                       child: Row(
                         children: [
@@ -297,24 +350,37 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                             child: InkWell(
                               onTap: _selectMonth,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: const Color(0xFFD0D0D0)),
+                                  border: Border.all(
+                                    color: const Color(0xFFD0D0D0),
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
                                   color: Colors.white,
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth),
+                                      DateFormat(
+                                        'MMMM yyyy',
+                                        'id_ID',
+                                      ).format(_selectedMonth),
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
                                         color: Color(0xFF073D4D),
                                       ),
                                     ),
-                                    const Icon(Icons.calendar_today, size: 18, color: Color(0xFF073D4D)),
+                                    const Icon(
+                                      Icons.calendar_today,
+                                      size: 18,
+                                      color: Color(0xFF073D4D),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -328,7 +394,10 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF1E6F42),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                             ),
                           ),
                           if (_laporanController.isLoading)
@@ -339,7 +408,9 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C844C)),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF0C844C),
+                                  ),
                                 ),
                               ),
                             ),
@@ -369,14 +440,22 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                            itemCount: _groupTransactionsByType(filteredTransactions).keys.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemCount: _groupTransactionsByType(
+                              filteredTransactions,
+                            ).keys.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
-                              final groupedData = _groupTransactionsByType(filteredTransactions);
+                              final groupedData = _groupTransactionsByType(
+                                filteredTransactions,
+                              );
                               final type = groupedData.keys.elementAt(index);
                               final transactions = groupedData[type]!;
 
-                              final totalAmount = transactions.fold<int>(0, (sum, t) => sum + (t.totalAmount ?? 0));
+                              final totalAmount = transactions.fold<int>(
+                                0,
+                                (sum, t) => sum + (t.totalAmount ?? 0),
+                              );
                               final latestTransaction = transactions.first;
 
                               final recapTransaction = TransactionModel(
@@ -399,7 +478,10 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                                       builder: (_) => PcRecapDetailViewPage(
                                         title: type,
                                         transactions: transactions,
-                                        monthLabel: DateFormat('MMMM yyyy', 'id_ID').format(_selectedMonth),
+                                        monthLabel: DateFormat(
+                                          'MMMM yyyy',
+                                          'id_ID',
+                                        ).format(_selectedMonth),
                                         getMemberName: _getMemberName,
                                       ),
                                     ),
@@ -424,7 +506,11 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 64, color: const Color(0xFF073D4D).withValues(alpha: 0.3)),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 64,
+              color: const Color(0xFF073D4D).withValues(alpha: 0.3),
+            ),
             const SizedBox(height: 16),
             Text(
               'Tidak Ada Data Pembayaran',
@@ -449,9 +535,11 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
     );
   }
 
-  // ── Overview Card: gradient seperti PJ ──
   Widget _buildOverviewCard(List<TransactionModel> transactions) {
-    final totalAmount = transactions.fold<int>(0, (sum, t) => sum + (t.totalAmount ?? 0));
+    final totalAmount = transactions.fold<int>(
+      0,
+      (sum, t) => sum + (t.totalAmount ?? 0),
+    );
 
     return Container(
       width: double.infinity,
@@ -464,7 +552,11 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         ),
         borderRadius: BorderRadius.circular(15),
         boxShadow: const [
-          BoxShadow(color: Color(0x4C15803D), blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color(0x4C15803D),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -518,8 +610,22 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(color: Color(0xFF073D4D), fontSize: 11, fontWeight: FontWeight.w600)),
-            Text(formatAmount(amount), style: const TextStyle(color: Color(0xFF073D4D), fontSize: 11, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF073D4D),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              formatAmount(amount),
+              style: const TextStyle(
+                color: Color(0xFF073D4D),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -537,8 +643,15 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
   }
 
   Widget _buildDistributionCard(List<TransactionModel> transactions) {
-    final totalAmount = transactions.fold<int>(0, (sum, t) => sum + (t.totalAmount ?? 0));
-    String fmt(int amount) => NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+    final totalAmount = transactions.fold<int>(
+      0,
+      (sum, t) => sum + (t.totalAmount ?? 0),
+    );
+    String fmt(int amount) => NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(amount);
 
     return Container(
       width: double.infinity,
@@ -551,34 +664,74 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Distribusi Iuran (%)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF073D4D))),
+          const Text(
+            'Distribusi Iuran (%)',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF073D4D),
+            ),
+          ),
           const SizedBox(height: 14),
-          _buildDistributionItemWidget(label: 'PJ (30%)', percentage: 30, amount: (totalAmount * 30) ~/ 100, color: const Color(0xFF10B367), formatAmount: fmt),
+          _buildDistributionItemWidget(
+            label: 'PJ (30%)',
+            percentage: 30,
+            amount: (totalAmount * 30) ~/ 100,
+            color: const Color(0xFF10B367),
+            formatAmount: fmt,
+          ),
           const SizedBox(height: 10),
-          _buildDistributionItemWidget(label: 'PC (20%)', percentage: 20, amount: (totalAmount * 20) ~/ 100, color: const Color(0xFF007AFF), formatAmount: fmt),
+          _buildDistributionItemWidget(
+            label: 'PC (20%)',
+            percentage: 20,
+            amount: (totalAmount * 20) ~/ 100,
+            color: const Color(0xFF007AFF),
+            formatAmount: fmt,
+          ),
           const SizedBox(height: 10),
-          _buildDistributionItemWidget(label: 'PD (20%)', percentage: 20, amount: (totalAmount * 20) ~/ 100, color: const Color(0xFFFFA500), formatAmount: fmt),
+          _buildDistributionItemWidget(
+            label: 'PD (20%)',
+            percentage: 20,
+            amount: (totalAmount * 20) ~/ 100,
+            color: const Color(0xFFFFA500),
+            formatAmount: fmt,
+          ),
           const SizedBox(height: 10),
-          _buildDistributionItemWidget(label: 'PW (15%)', percentage: 15, amount: (totalAmount * 15) ~/ 100, color: const Color(0xFF8B5CF6), formatAmount: fmt),
+          _buildDistributionItemWidget(
+            label: 'PW (15%)',
+            percentage: 15,
+            amount: (totalAmount * 15) ~/ 100,
+            color: const Color(0xFF8B5CF6),
+            formatAmount: fmt,
+          ),
           const SizedBox(height: 10),
-          _buildDistributionItemWidget(label: 'PP (15%)', percentage: 15, amount: (totalAmount * 15) ~/ 100, color: const Color(0xFFEC4899), formatAmount: fmt),
+          _buildDistributionItemWidget(
+            label: 'PP (15%)',
+            percentage: 15,
+            amount: (totalAmount * 15) ~/ 100,
+            color: const Color(0xFFEC4899),
+            formatAmount: fmt,
+          ),
         ],
       ),
     );
   }
 
-  Map<String, List<TransactionModel>> _groupTransactionsByType(List<TransactionModel> transactions) {
+  Map<String, List<TransactionModel>> _groupTransactionsByType(
+    List<TransactionModel> transactions,
+  ) {
     final Map<String, List<TransactionModel>> grouped = {};
     for (final t in transactions) {
       String type = t.type ?? 'Tunai';
-      if (t.paymentMethodId == '69ee266797af79f7ef06e559' || type.toLowerCase() == 'tunai') type = 'Rekap Tunai';
+      if (t.paymentMethodId == '69ee266797af79f7ef06e559' ||
+          type.toLowerCase() == 'tunai')
+        type = 'Rekap Tunai';
       grouped.putIfAbsent(type, () => []).add(t);
     }
     return grouped;
   }
 }
 
-// ── Overview Stat Item ──
 class _OverviewStatItem extends StatelessWidget {
   final String label;
   final int amount;
@@ -596,11 +749,26 @@ class _OverviewStatItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 6),
           Text(
-            NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount),
-            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
+            NumberFormat.currency(
+              locale: 'id_ID',
+              symbol: 'Rp ',
+              decimalDigits: 0,
+            ).format(amount),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -608,7 +776,6 @@ class _OverviewStatItem extends StatelessWidget {
   }
 }
 
-// ── Payment Data Card: distribusi lengkap seperti PJ ──
 class _PaymentDataCard extends StatelessWidget {
   final TransactionModel transaction;
   final String memberName;
@@ -624,7 +791,11 @@ class _PaymentDataCard extends StatelessWidget {
 
   String _formatCurrency(int? amount) {
     if (amount == null) return 'Rp 0';
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(amount);
   }
 
   String _formatDate(String? dateString) {
@@ -655,7 +826,9 @@ class _PaymentDataCard extends StatelessWidget {
 
   Color _getStatusColor() {
     if (isRecap) return const Color(0xFF0C844C);
-    if (transaction.accStatus == 'acc_pj' || transaction.accStatus == 'acc_pc' || transaction.accStatus == 'approved') {
+    if (transaction.accStatus == 'acc_pj' ||
+        transaction.accStatus == 'acc_pc' ||
+        transaction.accStatus == 'approved') {
       return const Color(0xFF0C844C);
     } else if (transaction.accStatus == 'rejected') {
       return const Color(0xFFEF4444);
@@ -665,7 +838,11 @@ class _PaymentDataCard extends StatelessWidget {
 
   Widget _buildDistribution() {
     final amount = transaction.totalAmount ?? 0;
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final fmt = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -674,15 +851,27 @@ class _PaymentDataCard extends StatelessWidget {
           children: [
             const Text(
               'DISTRIBUSI',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF6B7280), letterSpacing: 0.5),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF6B7280),
+                letterSpacing: 0.5,
+              ),
             ),
             const SizedBox(width: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(4)),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.circular(4),
+              ),
               child: const Text(
                 'PC saja',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF1976D2)),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1976D2),
+                ),
               ),
             ),
           ],
@@ -698,20 +887,34 @@ class _PaymentDataCard extends StatelessWidget {
   }
 
   Widget _distRow(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF4B5563))),
-            Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF073D4D))),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF4B5563)),
         ),
-      );
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF073D4D),
+          ),
+        ),
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     final amount = transaction.totalAmount ?? 0;
-    final fmt = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final fmt = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
     final displayMemberName = (memberName.isNotEmpty && memberName != '-')
         ? memberName
         : (transaction.memberName ?? '-');
@@ -724,7 +927,11 @@ class _PaymentDataCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFFE5E5E5)),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         padding: const EdgeInsets.all(16),
@@ -740,32 +947,56 @@ class _PaymentDataCard extends StatelessWidget {
                     children: [
                       Text(
                         _getPaymentTypeLabel(transaction.type),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF073D4D)),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF073D4D),
+                        ),
                       ),
                       if (!isRecap) ...[
                         const SizedBox(height: 4),
                         Text(
                           'Nama: $displayMemberName',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF0C844C)),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0C844C),
+                          ),
                         ),
                       ],
                       const SizedBox(height: 4),
                       Text(
                         'Kode: ${(transaction.code != null && transaction.code!.isNotEmpty) ? transaction.code : (transaction.id != null && transaction.id!.isNotEmpty ? (transaction.id!.length > 8 ? transaction.id!.substring(transaction.id!.length - 8).toUpperCase() : transaction.id!.toUpperCase()) : '-')}',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _getStatusColor().withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    isRecap ? 'Group' : (transaction.accStatus == 'acc_pj' || transaction.accStatus == 'acc_pc' || transaction.accStatus == 'approved' ? 'approved' : 'pending'),
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _getStatusColor()),
+                    isRecap
+                        ? 'Group'
+                        : (transaction.accStatus == 'acc_pj' ||
+                                  transaction.accStatus == 'acc_pc' ||
+                                  transaction.accStatus == 'approved'
+                              ? 'approved'
+                              : 'pending'),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _getStatusColor(),
+                    ),
                   ),
                 ),
               ],
@@ -773,7 +1004,11 @@ class _PaymentDataCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               fmt.format(amount),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0C844C)),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0C844C),
+              ),
             ),
             if (!isRecap) ...[
               const SizedBox(height: 12),
@@ -783,9 +1018,24 @@ class _PaymentDataCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Tanggal', style: TextStyle(fontSize: 12, color: const Color(0xFF6B7280).withValues(alpha: 0.7))),
+                        Text(
+                          'Tanggal',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: const Color(
+                              0xFF6B7280,
+                            ).withValues(alpha: 0.7),
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text(_formatDate(transaction.createdAt), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF073D4D))),
+                        Text(
+                          _formatDate(transaction.createdAt),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF073D4D),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -793,11 +1043,23 @@ class _PaymentDataCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Diverifikasi Oleh', style: TextStyle(fontSize: 12, color: const Color(0xFF6B7280).withValues(alpha: 0.7))),
+                        Text(
+                          'Diverifikasi Oleh',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: const Color(
+                              0xFF6B7280,
+                            ).withValues(alpha: 0.7),
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           transaction.verifiedBy ?? '-',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF073D4D)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF073D4D),
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

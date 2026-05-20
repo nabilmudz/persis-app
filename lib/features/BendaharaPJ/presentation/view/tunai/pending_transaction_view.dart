@@ -10,9 +10,6 @@ import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_invoice.vie
 
 class PendingTransactionViewPage extends StatefulWidget {
   final PjController controller;
-
-  /// Invoice terakhir yang baru saja dibuat (saat offline).
-  /// Jika disediakan, tombol "Lihat Invoice" akan muncul.
   final PjInvoiceData? lastInvoiceData;
 
   const PendingTransactionViewPage({
@@ -30,7 +27,6 @@ class _PendingTransactionViewPageState
     extends State<PendingTransactionViewPage> {
   final PjHiveController _hiveController = PjHiveController();
 
-  /// Simpan invoice data di state agar tetap tersedia setelah rebuild.
   PjInvoiceData? _lastInvoiceData;
 
   @override
@@ -127,10 +123,7 @@ class _PendingTransactionViewPageState
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               children: [
-                // ── Banner Invoice Terakhir ──────────────────────────────
                 if (_lastInvoiceData != null) ..._buildInvoiceBanner(context),
-
-                // ── Daftar transaksi pending ─────────────────────────────
                 if (pendingTransactions.isEmpty)
                   const Padding(
                     padding: EdgeInsets.only(top: 80),
@@ -347,7 +340,6 @@ class _PendingTransactionCard extends StatelessWidget {
         ? '${createdAt.day}/${createdAt.month}/${createdAt.year}'
         : 'Tanggal tidak tersedia';
 
-    // Sesuaikan keys dengan yang Anda simpan sewaktu add() ke Hive
     final paymentMethod =
         transactionData['paymentMethodId'] ??
         transactionData['tipe'] ??

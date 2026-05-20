@@ -10,8 +10,6 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:persis_app/helpers/auth_helper.dart';
 
-// 4 Baris import yang merah tadi udah aku hapus dari sini.
-
 class AnggotaView extends StatefulWidget {
   const AnggotaView({super.key});
 
@@ -48,9 +46,10 @@ class _AnggotaViewState extends State<AnggotaView> {
         if (response.statusCode == 200) {
           final body = jsonDecode(response.body);
           final userData = body['data'] ?? body['user'] ?? body;
-          
+
           final npa = (userData['npa'] ?? '').toString();
-          final fullname = (userData['fullname'] ?? userData['name'] ?? '').toString();
+          final fullname = (userData['fullname'] ?? userData['name'] ?? '')
+              .toString();
 
           final userId = npa.isNotEmpty ? npa : authUserId;
           final userName = fullname.isNotEmpty ? fullname : 'Pengguna';
@@ -59,7 +58,9 @@ class _AnggotaViewState extends State<AnggotaView> {
             setState(() {
               _userName = userName;
             });
-            context.read<AnggotaController>().fetchRiwayatTransaksi(userId: authUserId);
+            context.read<AnggotaController>().fetchRiwayatTransaksi(
+              userId: authUserId,
+            );
           }
         }
       } catch (e) {
@@ -74,8 +75,8 @@ class _AnggotaViewState extends State<AnggotaView> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
-          "Keluar Akun", 
-          style: TextStyle(fontWeight: FontWeight.bold)
+          "Keluar Akun",
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: const Text("Apakah Anda yakin ingin keluar dari akun ini?"),
         actions: [
@@ -86,14 +87,18 @@ class _AnggotaViewState extends State<AnggotaView> {
           TextButton(
             onPressed: () async {
               await AuthHelper.clearSession();
-              
+
               if (context.mounted) {
-                Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
               }
             },
             child: const Text(
-              "Ya, Keluar", 
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)
+              "Ya, Keluar",
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -177,7 +182,6 @@ class _AnggotaViewState extends State<AnggotaView> {
                                 color: Color(0xFF074D2C),
                                 size: 30,
                               ),
-                              
                             ),
                           ),
                         ],
@@ -196,7 +200,7 @@ class _AnggotaViewState extends State<AnggotaView> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08), 
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 15,
                               offset: const Offset(0, 8),
                             ),
@@ -263,8 +267,11 @@ class _AnggotaViewState extends State<AnggotaView> {
                                               builder: (c) =>
                                                   ChangeNotifierProvider.value(
                                                     value: context
-                                                        .read<AnggotaController>(),
-                                                    child: const PilihPembayaranView(),
+                                                        .read<
+                                                          AnggotaController
+                                                        >(),
+                                                    child:
+                                                        const PilihPembayaranView(),
                                                   ),
                                             ),
                                           );

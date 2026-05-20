@@ -9,7 +9,8 @@ String get _baseUrl => AppConfig.baseUrl;
 
 class IsiDataScreen extends StatefulWidget {
   final String npa;
-  const IsiDataScreen({super.key, required this.npa});
+  final String id;
+  const IsiDataScreen({super.key, required this.npa, required this.id});
   @override
   State<IsiDataScreen> createState() => _IsiDataScreenState();
 }
@@ -172,6 +173,28 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
     setState(() => _isLoading = true);
 
     try {
+      if (widget.id.isNotEmpty) {
+        final updateResponse = await http.patch(
+          Uri.parse('$_baseUrl/users/${widget.id}'),
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+          },
+          body: jsonEncode({
+            'email': email,
+            'no_hp': noTelp,
+          }),
+        );
+
+        if (updateResponse.statusCode != 200 && updateResponse.statusCode != 201) {
+          final body = jsonDecode(updateResponse.body);
+          final msg = body['message'] ?? 'Gagal memperbarui data.';
+          setState(() => _isLoading = false);
+          _snackbar(msg, isError: true);
+          return;
+        }
+      }
+
       final response = await http.post(
         Uri.parse('$_baseUrl/users/activate'),
         headers: {

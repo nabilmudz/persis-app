@@ -28,9 +28,9 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage>
     await _controller.loadTransactions();
     if (!mounted) return;
     if (_controller.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_controller.errorMessage!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
     }
   }
 
@@ -170,10 +170,8 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage>
             final result = await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PcDetailVerifikasiPage(
-                  item: item,
-                  controller: _controller,
-                ),
+                builder: (context) =>
+                    PcDetailVerifikasiPage(item: item, controller: _controller),
               ),
             );
             if (result == true) _loadData();
@@ -196,7 +194,6 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage>
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Garis kiri warna status
                   Container(
                     width: 6,
                     decoration: BoxDecoration(
@@ -215,13 +212,12 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Baris atas: nama member + nominal
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
                                 child: Text(
-                                  item.name, // ✅ nama member, bukan ID
+                                  item.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
@@ -247,7 +243,6 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage>
                             ],
                           ),
                           const SizedBox(height: 4),
-                          // Kode transaksi (pendek) + tanggal
                           Text(
                             'Trx #${item.txCode} • ${item.date}',
                             style: const TextStyle(
@@ -257,7 +252,6 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage>
                             ),
                           ),
                           const SizedBox(height: 12),
-                          // Baris bawah: NPA/ID number + badge status
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -270,7 +264,7 @@ class _PcVerifikasiPageState extends State<PcVerifikasiPage>
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    item.idNumber, // NPA atau '-'
+                                    item.idNumber,
                                     style: const TextStyle(
                                       color: Color(0xFF7F8C8D),
                                       fontFamily: 'Poppins',

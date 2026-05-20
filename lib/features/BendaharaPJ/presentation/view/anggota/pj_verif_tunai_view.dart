@@ -80,7 +80,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
   void _handleMonthTap(int month) {
     final status = _itemController.getMonthStatus(month, _selectedYear);
     if (status == PjMonthStatus.paid) {
-      return; // Tidak bisa di-klik jika sudah lunas
+      return;
     }
 
     final anggotaId = widget.member.id;
@@ -239,7 +239,6 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
 
         if (!mounted) return;
 
-        // Jika offline → tetap di halaman pending, bukan langsung ke invoice
         if (!invoiceResult.syncedToBackend) {
           await Navigator.push(
             context,
@@ -251,7 +250,6 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
             ),
           );
         } else {
-          // Online → langsung ke halaman invoice
           await Navigator.push(
             context,
             MaterialPageRoute(
@@ -337,8 +335,6 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                       _itemController.isLoading) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
-                  // Total tunggakan dari /transaction-item/user/{userId}
                   final totalTunggakan = _itemController.totalTunggakan
                       .toDouble();
 
@@ -456,7 +452,6 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                           itemBuilder: (context, index) {
                             final month = index + 1;
                             final monthName = _monthNames[index];
-                            // Status dari /api/transaction-item/user/{userId}
                             final status = _itemController.getMonthStatus(
                               month,
                               _selectedYear,

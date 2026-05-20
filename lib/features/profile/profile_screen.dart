@@ -72,8 +72,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // ─── EDIT PROFIL ─────────────────────────────────────────────────────────
-
   void _showEditBottomSheet() {
     final emailCtrl = TextEditingController(
       text: (_userData?['email'] ?? '').toString(),
@@ -132,11 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (response.statusCode == 200) {
         setState(() {
-          _userData = {
-            ...?_userData,
-            'email': email,
-            'no_hp': noHp,
-          };
+          _userData = {...?_userData, 'email': email, 'no_hp': noHp};
         });
         _showSnackBar('Profil berhasil diperbarui!');
       } else {
@@ -175,8 +169,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─── LOGOUT ──────────────────────────────────────────────────────────────
-
   void _handleLogout() {
     showDialog(
       context: context,
@@ -205,8 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
             child: const Text(
               'Keluar',
-              style: TextStyle(
-                  color: Colors.red, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -214,14 +205,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─── BUILD ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final isBendahara = _role.contains('BENDAHARA');
     final homeRoute = _role.contains('BENDAHARA_PJ')
-      ? AppRoutes.bendaharaPJ
-      : _role.contains('BENDAHARA_PC')
+        ? AppRoutes.bendaharaPJ
+        : _role.contains('BENDAHARA_PC')
         ? AppRoutes.bendaharaPC
         : AppRoutes.anggota;
     final fullname =
@@ -229,8 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .toString();
     final npa = (_userData?['npa'] ?? '-').toString();
     final email = (_userData?['email'] ?? '-').toString();
-    final noHp =
-        (_userData?['no_hp'] ?? _userData?['phone'] ?? '-').toString();
+    final noHp = (_userData?['no_hp'] ?? _userData?['phone'] ?? '-').toString();
     final cabang = _userData?['region_id'] is Map
         ? (_userData?['region_id']?['name'] ?? '-').toString()
         : '-';
@@ -254,7 +242,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextButton.icon(
               onPressed: _showEditBottomSheet,
               icon: const Icon(
-                  Icons.edit_outlined, size: 16, color: primaryGreen),
+                Icons.edit_outlined,
+                size: 16,
+                color: primaryGreen,
+              ),
               label: const Text(
                 'Edit',
                 style: TextStyle(
@@ -267,15 +258,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: primaryGreen))
+          ? const Center(child: CircularProgressIndicator(color: primaryGreen))
           : RefreshIndicator(
               color: primaryGreen,
               onRefresh: _loadProfileData,
               child: ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
-                  // Avatar
                   Center(
                     child: Container(
                       padding: const EdgeInsets.all(4),
@@ -286,14 +275,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: const CircleAvatar(
                         radius: 50,
                         backgroundColor: lightGreen,
-                        child: Icon(Icons.person,
-                            size: 50, color: primaryGreen),
+                        child: Icon(
+                          Icons.person,
+                          size: 50,
+                          color: primaryGreen,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Nama
                   Center(
                     child: Text(
                       fullname,
@@ -305,12 +295,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-
-                  // Badge role
                   Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: lightGreen,
                         borderRadius: BorderRadius.circular(20),
@@ -326,19 +316,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-
-                  // Informasi Pribadi
                   _buildSectionHeader('Informasi Pribadi'),
                   const SizedBox(height: 12),
                   _buildInfoCard(
                     children: [
-                      _buildInfoRow(Icons.badge_outlined, 'NPA', npa,
-                          isReadonly: true),
+                      _buildInfoRow(
+                        Icons.badge_outlined,
+                        'NPA',
+                        npa,
+                        isReadonly: true,
+                      ),
                       _buildDivider(),
                       _buildInfoRow(Icons.email_outlined, 'Email', email),
                       _buildDivider(),
-                      _buildInfoRow(
-                          Icons.phone_outlined, 'No. Telepon', noHp),
+                      _buildInfoRow(Icons.phone_outlined, 'No. Telepon', noHp),
                       if (!isBendahara) ...[
                         _buildDivider(),
                         _buildInfoRow(
@@ -351,8 +342,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-
-                  // Menu Lainnya
                   _buildSectionHeader('Lainnya'),
                   const SizedBox(height: 12),
                   _buildInfoCard(
@@ -364,7 +353,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const ForgotPasswordScreen(),
+                              builder: (_) => ForgotPasswordScreen(
+                                initialIdentifier: email == '-' ? null : email,
+                              ),
                             ),
                           );
                         },
@@ -390,40 +381,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─── HELPER WIDGETS ──────────────────────────────────────────────────────
-
   Widget _buildSectionHeader(String title) => Text(
-        title,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w700,
-          color: greyText,
-          letterSpacing: 0.5,
-        ),
-      );
+    title,
+    style: const TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w700,
+      color: greyText,
+      letterSpacing: 0.5,
+    ),
+  );
 
   Widget _buildInfoCard({required List<Widget> children}) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFEEEEEE), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFEEEEEE), width: 1.5),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
         ),
-        child: Column(children: children),
-      );
+      ],
+    ),
+    child: Column(children: children),
+  );
 
   Widget _buildDivider() => const Divider(
-        height: 1,
-        thickness: 1,
-        color: Color(0xFFF5F5F5),
-        indent: 56,
-      );
+    height: 1,
+    thickness: 1,
+    color: Color(0xFFF5F5F5),
+    indent: 56,
+  );
 
   Widget _buildInfoRow(
     IconData icon,
@@ -463,7 +452,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1),
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF0F0F0),
                           borderRadius: BorderRadius.circular(4),
@@ -538,10 +529,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// BOTTOM SHEET: Edit Profil
-// ═════════════════════════════════════════════════════════════════════════════
-
 class _EditProfileSheet extends StatefulWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController emailCtrl;
@@ -588,7 +575,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle bar
             Center(
               child: Container(
                 margin: const EdgeInsets.symmetric(vertical: 12),
@@ -600,8 +586,6 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                 ),
               ),
             ),
-
-            // Header
             Row(
               children: [
                 Container(
@@ -637,10 +621,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
-
-            // Field: Email
             _buildLabel('Email'),
             const SizedBox(height: 6),
             TextFormField(
@@ -656,17 +637,15 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                   return 'Email tidak boleh kosong';
                 }
                 final emailRegex = RegExp(
-                    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                  r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                );
                 if (!emailRegex.hasMatch(val.trim())) {
                   return 'Format email tidak valid';
                 }
                 return null;
               },
             ),
-
             const SizedBox(height: 16),
-
-            // Field: No. Telepon
             _buildLabel('No. Telepon'),
             const SizedBox(height: 6),
             TextFormField(
@@ -687,16 +666,12 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                 return null;
               },
             ),
-
             const SizedBox(height: 28),
-
-            // Tombol Simpan & Batal
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed:
-                        _isSaving ? null : () => Navigator.pop(context),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Color(0xFFE0E0E0)),
                       shape: RoundedRectangleBorder(
@@ -720,8 +695,9 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                     onPressed: _isSaving ? null : _handleSave,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryGreen,
-                      disabledBackgroundColor:
-                          primaryGreen.withValues(alpha: 0.5),
+                      disabledBackgroundColor: primaryGreen.withValues(
+                        alpha: 0.5,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -740,8 +716,11 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                         : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.save_outlined,
-                                  color: Colors.white, size: 18),
+                              Icon(
+                                Icons.save_outlined,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                               SizedBox(width: 8),
                               Text(
                                 'Simpan',
@@ -764,13 +743,13 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   }
 
   Widget _buildLabel(String text) => Text(
-        text,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: darkText,
-        ),
-      );
+    text,
+    style: const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: darkText,
+    ),
+  );
 
   InputDecoration _inputDecoration({
     required String hint,
@@ -782,8 +761,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
       prefixIcon: Icon(icon, color: greyText, size: 18),
       filled: true,
       fillColor: const Color(0xFFF7F7F7),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Color(0xFFE0E0E0)),

@@ -6,9 +6,6 @@ import '../controller/pc_controller.dart';
 import '../../../BendaharaPJ/data/models/transaction_item_detail_model.dart';
 import '../../../BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
 
-/// Riwayat pembayaran untuk Bendahara PC.
-/// Menampilkan semua item lunas dari seluruh anggota (all_members),
-/// dengan filter per tahun.
 class PcRiwayatPembayaranViewPage extends StatefulWidget {
   final PcController controller;
 
@@ -111,14 +108,12 @@ class _PcRiwayatPembayaranViewPageState
       body: ListenableBuilder(
         listenable: _itemController,
         builder: (context, _) {
-          // Loading awal
           if (_itemController.isLoading && _itemController.items.isEmpty) {
             return const Center(
               child: CircularProgressIndicator(color: Color(0xFF189D4A)),
             );
           }
 
-          // Error state
           if (_itemController.errorMessage != null &&
               _itemController.items.isEmpty) {
             return _ErrorState(
@@ -130,7 +125,6 @@ class _PcRiwayatPembayaranViewPageState
           final lunasAll = _getLunasItems();
           final years = _availableYears(lunasAll);
 
-          // Reset filter jika tahun yang dipilih sudah tidak ada
           if (_selectedYear != 'Semua' && !years.contains(_selectedYear)) {
             SchedulerBinding.instance.addPostFrameCallback((_) {
               if (mounted) setState(() => _selectedYear = 'Semua');
@@ -148,7 +142,6 @@ class _PcRiwayatPembayaranViewPageState
               children: [
                 const SizedBox(height: 16),
 
-                // Filter chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -173,7 +166,6 @@ class _PcRiwayatPembayaranViewPageState
 
                 const SizedBox(height: 20),
 
-                // Kartu total
                 if (transactions.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -182,13 +174,11 @@ class _PcRiwayatPembayaranViewPageState
 
                 const SizedBox(height: 16),
 
-                // Daftar transaksi / empty state
                 Expanded(
                   child: transactions.isEmpty
                       ? const _EmptyState()
                       : ListView.builder(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 24),
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
                           itemCount: transactions.length,
                           itemBuilder: (context, index) =>
                               _RiwayatCard(item: transactions[index]),
@@ -202,8 +192,6 @@ class _PcRiwayatPembayaranViewPageState
     );
   }
 }
-
-// ── Sub-widgets ──────────────────────────────────────────────────────────────
 
 class _FilterChip extends StatelessWidget {
   const _FilterChip({
@@ -224,9 +212,7 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF189D4A)
-              : const Color(0xFFEDEDED),
+          color: isSelected ? const Color(0xFF189D4A) : const Color(0xFFEDEDED),
           borderRadius: BorderRadius.circular(30),
         ),
         child: Text(
@@ -296,8 +282,18 @@ class _RiwayatCard extends StatelessWidget {
   final TransactionItemDetailModel item;
 
   static const _monthNames = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
 
   @override
@@ -445,10 +441,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'Poppins',
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontFamily: 'Poppins', color: Colors.grey),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),

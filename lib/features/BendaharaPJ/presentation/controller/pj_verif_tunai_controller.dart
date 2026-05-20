@@ -215,8 +215,6 @@ class PjVerifTunaiController extends ChangeNotifier {
   }
 
   PjMonthStatus memberCardStatus(String anggotaId) {
-    // Untuk status kartu di list anggota, kita cek apakah ada tunggakan.
-    // Jika ada satu saja tunggakan, maka status kartu jadi tunggakan (merah).
     final states = periodStatesByMember(anggotaId).values.toList();
 
     if (states.any((state) => state.status == PjMonthStatus.tunggakan)) {

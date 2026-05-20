@@ -15,7 +15,6 @@ class PcController extends ChangeNotifier {
   final TransactionRemoteDataSource _dataSource;
   final List<TransactionModel> _allTransactions = <TransactionModel>[];
 
-  // Lookup map dari creatorId → nama & NPA
   final Map<String, String> _memberNames = {};
   final Map<String, String> _memberNpas = {};
 
@@ -33,7 +32,6 @@ class PcController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load dua API paralel
       final results = await Future.wait([
         _dataSource.getHistory(),
         _dataSource.getMembersPaymentStatus(year: DateTime.now().year),
@@ -42,7 +40,6 @@ class PcController extends ChangeNotifier {
       final transactions = results[0] as List<TransactionModel>;
       final membersData = results[1] as Map<String, dynamic>?;
 
-      // Build lookup map: member _id → fullname & npa
       _memberNames.clear();
       _memberNpas.clear();
       if (membersData != null) {
@@ -107,7 +104,6 @@ class PcController extends ChangeNotifier {
     );
   }
 
-  /// Resolve nama member: lookup map dulu, fallback ke field di model, lalu Unknown
   String _resolveMemberName(TransactionModel item) {
     final fromMap = _memberNames[item.creatorId] ?? '';
     if (fromMap.isNotEmpty) return fromMap;
@@ -118,14 +114,12 @@ class PcController extends ChangeNotifier {
     return 'Unknown';
   }
 
-  /// Resolve NPA: lookup map dulu, fallback ke field di model
   String _resolveMemberNpa(TransactionModel item) {
     final fromMap = _memberNpas[item.creatorId] ?? '';
     if (fromMap.isNotEmpty) return fromMap;
     return item.npa ?? '-';
   }
 
-  /// Kode tampilan transaksi: 8 karakter terakhir dari transaction ID
   String _resolveTransactionCode(TransactionModel item) {
     final id = item.id ?? item.creatorId ?? '';
     if (id.length >= 8) {
@@ -196,8 +190,18 @@ class PcController extends ChangeNotifier {
     if (parsed == null) return 'Invalid date';
 
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
     ];
 
     final day = parsed.day.toString().padLeft(2, '0');

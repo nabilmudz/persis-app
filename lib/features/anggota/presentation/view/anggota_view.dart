@@ -8,7 +8,6 @@ import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/helpers/auth_helper.dart';
-// Import Absolute
 import 'package:persis_app/features/anggota/presentation/widgets/anggota_card.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/presentation/view/riwayat_view.dart';
@@ -50,9 +49,10 @@ class _AnggotaViewState extends State<AnggotaView> {
         if (response.statusCode == 200) {
           final body = jsonDecode(response.body);
           final userData = body['data'] ?? body['user'] ?? body;
-          
+
           final npa = (userData['npa'] ?? '').toString();
-          final fullname = (userData['fullname'] ?? userData['name'] ?? '').toString();
+          final fullname = (userData['fullname'] ?? userData['name'] ?? '')
+              .toString();
 
           final userId = npa.isNotEmpty ? npa : authUserId;
           final userName = fullname.isNotEmpty ? fullname : 'Pengguna';
@@ -61,7 +61,9 @@ class _AnggotaViewState extends State<AnggotaView> {
             setState(() {
               _userName = userName;
             });
-            context.read<AnggotaController>().fetchRiwayatTransaksi(userId: authUserId);
+            context.read<AnggotaController>().fetchRiwayatTransaksi(
+              userId: authUserId,
+            );
           }
         }
       } catch (e) {
@@ -136,7 +138,6 @@ class _AnggotaViewState extends State<AnggotaView> {
                               ),
                             ],
                           ),
-                          // TOMBOL KE PROFILE
                           GestureDetector(
                             onTap: () {
                               Navigator.pushNamed(context, '/profile');
@@ -246,7 +247,6 @@ class _AnggotaViewState extends State<AnggotaView> {
                                                         .read<
                                                           AnggotaController
                                                         >(),
-                                                    // Hapus const di sini
                                                     child:
                                                         PilihPembayaranView(),
                                                   ),
@@ -293,7 +293,6 @@ class _AnggotaViewState extends State<AnggotaView> {
                           MaterialPageRoute(
                             builder: (c) => ChangeNotifierProvider.value(
                               value: context.read<AnggotaController>(),
-                              // Hapus const di sini
                               child: PilihPembayaranView(),
                             ),
                           ),

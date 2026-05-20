@@ -28,7 +28,6 @@ class PjHiveController extends ChangeNotifier {
     bool autoSync = true,
   }) async {
     transactionData['local_timestamp'] = DateTime.now().toIso8601String();
-    // Gunakan status dari data jika ada (agar 'completed' tidak tertimpa 'pending' jika sudah diset)
     transactionData['status'] = transactionData['status'] ?? 'pending';
     transactionData['isSynced'] = transactionData['isSynced'] ?? false;
 

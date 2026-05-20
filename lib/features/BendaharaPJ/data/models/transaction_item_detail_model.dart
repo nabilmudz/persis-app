@@ -40,7 +40,7 @@ class TransactionItemDetailModel {
       transactionId: source['transaction_id'],
       duesPeriodId: source['dues_period_id'],
       periodId: source['period_id'] ?? itemJson['period_id'],
-      status: json['status'] as String?, // ← eksplisit dari root
+      status: json['status'] as String?,
       amount: periodJson?['amount'] is num
           ? (periodJson!['amount'] as num).toInt()
           : source['amount'] is num
@@ -53,19 +53,15 @@ class TransactionItemDetailModel {
     );
   }
 
-  /// Resolve bulan dari data yang tersedia (nested dues_period, periodId, description).
   int? resolveMonth() {
     if (duesPeriod?.month != null) return duesPeriod!.month;
 
     final src = periodId ?? duesPeriodId ?? description ?? '';
-
-    // Format YYYY-MM
     final match = RegExp(r'(\d{4})[-_/](\d{1,2})').firstMatch(src);
     if (match != null) {
       return int.tryParse(match.group(2)!);
     }
 
-    // Format teks nama bulan, misal: "Iuran Maret 2026"
     final lowerSrc = src.toLowerCase();
     const months = [
       'januari',
@@ -83,7 +79,7 @@ class TransactionItemDetailModel {
     ];
     for (int i = 0; i < months.length; i++) {
       if (lowerSrc.contains(months[i])) {
-        return i + 1; // 1-12
+        return i + 1;
       }
     }
 
@@ -95,13 +91,11 @@ class TransactionItemDetailModel {
 
     final src = periodId ?? duesPeriodId ?? description ?? '';
 
-    // Format YYYY-MM
     final match = RegExp(r'(\d{4})[-_/](\d{1,2})').firstMatch(src);
     if (match != null) {
       return int.tryParse(match.group(1)!);
     }
 
-    // Coba cari tahun berdiri sendiri (4 digit)
     final yearMatch = RegExp(r'(19|20)\d{2}').firstMatch(src);
     return yearMatch != null ? int.tryParse(yearMatch.group(0)!) : null;
   }
@@ -137,7 +131,6 @@ class TransactionItemDetailModel {
   };
 }
 
-/// Info dues period yang mungkin di-embed oleh backend.
 class DuesPeriodInfo {
   final String? id;
   final int? month;

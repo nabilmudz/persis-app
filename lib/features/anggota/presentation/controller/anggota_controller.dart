@@ -13,10 +13,12 @@ class AnggotaController extends ChangeNotifier {
   List<TransactionItemModel> riwayatTransaksi = [];
   int totalTagihan = 0;
 
-  // Status yang dianggap "lunas" / sudah dibayar
   static const _statusLunas = {'lunas', 'paid', 'selesai', 'success'};
 
-  Future<void> fetchRiwayatTransaksi({required String userId, int? year}) async {
+  Future<void> fetchRiwayatTransaksi({
+    required String userId,
+    int? year,
+  }) async {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
@@ -40,9 +42,7 @@ class AnggotaController extends ChangeNotifier {
     totalTagihan = 0;
     for (final item in riwayatTransaksi) {
       final status = (item.status ?? '').toLowerCase();
-      if (status == 'pending' ||
-          status == 'tunggakan' ||
-          status == 'unpaid') {
+      if (status == 'pending' || status == 'tunggakan' || status == 'unpaid') {
         final amount = item.amount ?? item.jumlah ?? 0;
         totalTagihan += (amount is String
             ? int.tryParse(amount) ?? 0
@@ -51,7 +51,6 @@ class AnggotaController extends ChangeNotifier {
     }
   }
 
-  /// Hanya transaksi yang sudah lunas/dibayar
   List<TransactionItemModel> get riwayatLunas {
     return riwayatTransaksi.where((tx) {
       final status = (tx.status ?? '').toLowerCase();
@@ -59,8 +58,6 @@ class AnggotaController extends ChangeNotifier {
     }).toList();
   }
 
-  /// Filter riwayat lunas berdasarkan tahun (string seperti "2025")
-  /// Gunakan "Semua" untuk mengembalikan semua data lunas.
   List<TransactionItemModel> filterLunasByTahun(String tahun) {
     final lunas = riwayatLunas;
     if (tahun == 'Semua') return lunas;
@@ -72,7 +69,6 @@ class AnggotaController extends ChangeNotifier {
     }).toList();
   }
 
-  /// Total nominal dari daftar transaksi yang diberikan
   double hitungTotalNominal(List<TransactionItemModel> transactions) {
     return transactions.fold(0.0, (sum, tx) {
       final amount = tx.amount ?? tx.jumlah ?? 0;

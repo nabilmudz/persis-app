@@ -36,7 +36,6 @@ class PilihPembayaranView extends StatelessWidget {
   }
 
   void _navigateTo(BuildContext context, Widget child) {
-    // Inject PembayaranController ke halaman tujuan
     final repository = context.read<PaymentRepository>();
     final ctrl = _buildPembayaranController(context, repository);
 

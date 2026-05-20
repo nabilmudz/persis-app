@@ -5,8 +5,8 @@ import '../../../BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_bank_account_view.dart';
 import 'pc_verifikasi_view.dart';
-import 'pc_laporan_view.dart'; 
-import 'pc_riwayat_pembayaran_view.dart'; // IMPORT VIEW RIWAYAT BARU
+import 'pc_laporan_view.dart';
+import 'pc_riwayat_pembayaran_view.dart';
 
 class PcViewPage extends StatefulWidget {
   const PcViewPage({super.key});
@@ -22,7 +22,6 @@ class _PcViewPageState extends State<PcViewPage> {
   void initState() {
     super.initState();
     _controller = PcController();
-    // Otomatis load data transaksi pas masuk aplikasi biar data Riwayat & Verifikasi ter-update
     _controller.loadTransactions();
   }
 
@@ -51,7 +50,11 @@ class _PcViewPageState extends State<PcViewPage> {
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.account_circle, size: 30, color: Color(0xFF363636)),
+            icon: const Icon(
+              Icons.account_circle,
+              size: 30,
+              color: Color(0xFF363636),
+            ),
             onPressed: () {
               Navigator.pushNamed(context, '/profile');
             },
@@ -74,7 +77,7 @@ class _PcViewPageState extends State<PcViewPage> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             BendaharaSaldoCard(
               role: 'pc',
               badgeText: 'Porsi PC (20%)',
@@ -88,9 +91,8 @@ class _PcViewPageState extends State<PcViewPage> {
               crossAxisCount: 2,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
-              childAspectRatio: 1.25, 
+              childAspectRatio: 1.25,
               children: [
-                // 1. Verifikasi Setoran (Kiri Atas - Kuning)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -104,17 +106,18 @@ class _PcViewPageState extends State<PcViewPage> {
                     context,
                     'Verifikasi Setoran',
                     Icons.assignment_outlined,
-                    const Color(0xFFFFFBEA), 
-                    const Color(0xFFF57F17), 
+                    const Color(0xFFFFFBEA),
+                    const Color(0xFFF57F17),
                   ),
                 ),
-                // 2. Riwayat Pembayaran (Kanan Atas - Kuning)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PcRiwayatPembayaranViewPage(controller: _controller),
+                        builder: (context) => PcRiwayatPembayaranViewPage(
+                          controller: _controller,
+                        ),
                       ),
                     );
                   },
@@ -122,11 +125,10 @@ class _PcViewPageState extends State<PcViewPage> {
                     context,
                     'Riwayat Pembayaran',
                     Icons.history,
-                    const Color(0xFFFFFBEA), 
-                    const Color(0xFFF57F17), 
+                    const Color(0xFFFFFBEA),
+                    const Color(0xFFF57F17),
                   ),
                 ),
-                // 3. Kelola Rekening (Kiri Bawah - Hijau)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -140,17 +142,17 @@ class _PcViewPageState extends State<PcViewPage> {
                     context,
                     'Kelola Rekening',
                     Icons.account_balance_wallet_outlined,
-                    const Color(0xFFE8F5E9), 
-                    const Color(0xFF0C844C), 
+                    const Color(0xFFE8F5E9),
+                    const Color(0xFF0C844C),
                   ),
                 ),
-                // 4. Laporan Keuangan (Kanan Bawah - Hijau)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PcLaporanViewPage(controller: _controller),
+                        builder: (context) =>
+                            PcLaporanViewPage(controller: _controller),
                       ),
                     );
                   },
@@ -158,8 +160,8 @@ class _PcViewPageState extends State<PcViewPage> {
                     context,
                     'Laporan Keuangan',
                     Icons.bar_chart,
-                    const Color(0xFFE8F5E9), 
-                    const Color(0xFF0C844C), 
+                    const Color(0xFFE8F5E9),
+                    const Color(0xFF0C844C),
                   ),
                 ),
               ],
@@ -175,12 +177,24 @@ class _PcViewPageState extends State<PcViewPage> {
     );
   }
 
-  Widget _buildMenuCard(BuildContext context, String title, IconData icon, Color bgColor, Color iconColor) {
+  Widget _buildMenuCard(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color bgColor,
+    Color iconColor,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 4))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Center(
         child: Column(
@@ -188,13 +202,21 @@ class _PcViewPageState extends State<PcViewPage> {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Icon(icon, color: iconColor, size: 28),
             ),
             const SizedBox(height: 12),
             Text(
-              title, 
-              style: const TextStyle(color: Color(0xFF073D4D), fontFamily: 'Poppins', fontSize: 13, fontWeight: FontWeight.w600),
+              title,
+              style: const TextStyle(
+                color: Color(0xFF073D4D),
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
               textAlign: TextAlign.center,
             ),
           ],

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class CustomCard extends StatelessWidget {
-  // 1. Siapkan parameter untuk data yang akan berubah-ubah
   final String duration;
   final String name;
   final String idNumber;
@@ -52,7 +51,7 @@ class CustomCard extends StatelessWidget {
             left: 273,
             top: 36,
             child: Text(
-              duration, // Menggunakan parameter
+              duration,
               style: const TextStyle(
                 color: Color(0xFFB31012),
                 fontSize: 10,
@@ -68,7 +67,7 @@ class CustomCard extends StatelessWidget {
               width: 224,
               height: 21,
               child: Text(
-                name, // Menggunakan parameter
+                name,
                 style: const TextStyle(
                   color: Color(0xFF494949),
                   fontSize: 14,
@@ -82,7 +81,7 @@ class CustomCard extends StatelessWidget {
             left: 57,
             top: 36,
             child: Text(
-              idNumber, // Menggunakan parameter
+              idNumber,
               style: const TextStyle(
                 color: Color(0xFF6A6A6A),
                 fontSize: 10,
@@ -95,7 +94,7 @@ class CustomCard extends StatelessWidget {
             left: 108,
             top: 36,
             child: Text(
-              location, // Menggunakan parameter
+              location,
               style: const TextStyle(
                 color: Color(0xFF6A6A6A),
                 fontSize: 10,
@@ -108,7 +107,7 @@ class CustomCard extends StatelessWidget {
             left: 235,
             top: 14,
             child: Text(
-              price, // Menggunakan parameter
+              price,
               style: const TextStyle(
                 color: Color(0xFFB31012),
                 fontSize: 14,
@@ -120,10 +119,7 @@ class CustomCard extends StatelessWidget {
           Positioned(
             left: 151,
             top: 23,
-            child: SizedBox(
-              width: 24,
-              height: 24,
-            ), // Ini sepertinya tempat untuk icon/gambar
+            child: SizedBox(width: 24, height: 24),
           ),
         ],
       ),
