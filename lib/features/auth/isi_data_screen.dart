@@ -10,7 +10,13 @@ String get _baseUrl => AppConfig.baseUrl;
 class IsiDataScreen extends StatefulWidget {
   final String npa;
   final String id;
-  const IsiDataScreen({super.key, required this.npa, required this.id});
+  final String regionName;
+  const IsiDataScreen({
+    super.key,
+    required this.npa,
+    required this.id,
+    required this.regionName,
+  });
   @override
   State<IsiDataScreen> createState() => _IsiDataScreenState();
 }
@@ -75,7 +81,7 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
             const SizedBox(height: 16),
             _label('Cabang'),
             const SizedBox(height: 8),
-            _readonlyField('1', Icons.location_city_outlined),
+            _readonlyField(widget.regionName, Icons.location_city_outlined),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -205,7 +211,7 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
           'npa': widget.npa,
           'email': email,
           'no_hp': noTelp,
-          'cabang': 1,
+          'cabang': widget.regionName,
         }),
       );
 

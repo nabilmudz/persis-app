@@ -6,6 +6,18 @@ import 'package:persis_app/core/theme/app_colors.dart';
 
 String get _baseUrl => AppConfig.baseUrl;
 
+bool _isEmailIdentifier(String value) => value.contains('@');
+
+Map<String, dynamic> _identifierPayload(String identifier) {
+  final trimmed = identifier.trim();
+  return _isEmailIdentifier(trimmed) ? {'email': trimmed} : {'npa': trimmed};
+}
+
+String? _readString(Map<String, dynamic> data, String key) {
+  final text = data[key]?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}
+
 class ForgotPasswordScreen extends StatefulWidget {
   final String? initialIdentifier;
   const ForgotPasswordScreen({super.key, this.initialIdentifier});
@@ -32,7 +44,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _kirimOtp() async {
     final input = _inputController.text.trim();
     if (input.isEmpty) {
-      _snackbar('Email tidak boleh kosong', isError: true);
+      _snackbar('Email atau NPA tidak boleh kosong', isError: true);
       return;
     }
 
@@ -44,27 +56,24 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: jsonEncode({
-          'npa': input,
-          'email': input,
-          'no_hp': '0123',
-          'cabang': 1,
-        }),
+        body: jsonEncode(_identifierPayload(input)),
       );
 
       setState(() => _isLoading = false);
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final otpEmail = _readString(body, 'email') ?? input;
         if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ForgotPasswordOtpScreen(identifier: input),
+            builder: (_) =>
+                ForgotPasswordOtpScreen(identifier: input, otpEmail: otpEmail),
           ),
         );
       } else {
-        final msg =
-            jsonDecode(response.body)['message'] ?? 'Pengguna tidak ditemukan';
+        final msg = body['message'] ?? 'Pengguna tidak ditemukan';
         _snackbar(msg, isError: true);
       }
     } catch (e) {
@@ -113,7 +122,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Masukkan Email untuk menerima kode OTP reset password.',
+              'Masukkan Email atau NPA untuk menerima kode OTP reset password.',
               style: TextStyle(color: greyText, height: 1.5, fontSize: 13),
             ),
             const SizedBox(height: 24),
@@ -121,7 +130,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               controller: _inputController,
               style: const TextStyle(fontSize: 14, color: darkText),
               decoration: InputDecoration(
-                hintText: 'Email',
+                hintText: 'Email atau NPA',
                 hintStyle: const TextStyle(color: greyText, fontSize: 14),
                 prefixIcon: const Icon(
                   Icons.person_outline,
@@ -197,7 +206,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
 class ForgotPasswordOtpScreen extends StatefulWidget {
   final String identifier;
-  const ForgotPasswordOtpScreen({super.key, required this.identifier});
+  final String otpEmail;
+  const ForgotPasswordOtpScreen({
+    super.key,
+    required this.identifier,
+    required this.otpEmail,
+  });
   @override
   State<ForgotPasswordOtpScreen> createState() =>
       _ForgotPasswordOtpScreenState();
@@ -205,6 +219,7 @@ class ForgotPasswordOtpScreen extends StatefulWidget {
 
 class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
   final List<String> _otp = ['', '', '', ''];
+  late String _otpEmail;
   int _resendSeconds = 30;
   bool _canResend = false;
   bool _isVerifying = false;
@@ -212,6 +227,7 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
   @override
   void initState() {
     super.initState();
+    _otpEmail = widget.otpEmail;
     _startResendTimer();
   }
 
@@ -223,14 +239,17 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return false;
+      var shouldContinue = false;
       setState(() {
-        if (_resendSeconds > 0) {
+        if (_resendSeconds > 1) {
           _resendSeconds--;
+          shouldContinue = true;
         } else {
+          _resendSeconds = 0;
           _canResend = true;
         }
       });
-      return _resendSeconds > 0;
+      return shouldContinue;
     });
   }
 
@@ -300,7 +319,7 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
                 children: [
                   const TextSpan(text: 'Masukkan kode OTP yang dikirimkan ke '),
                   TextSpan(
-                    text: widget.identifier,
+                    text: _otpEmail,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: darkText,
@@ -476,7 +495,10 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: jsonEncode({'npa': widget.identifier, 'otp': _otpString}),
+        body: jsonEncode({
+          ..._identifierPayload(widget.identifier),
+          'otp': _otpString,
+        }),
       );
 
       setState(() => _isVerifying = false);
@@ -516,20 +538,24 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
   Future<void> _handleResend() async {
     _startResendTimer();
     try {
-      await http.post(
+      final response = await http.post(
         Uri.parse('$_baseUrl/users/activate'),
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: jsonEncode({
-          'npa': widget.identifier,
-          'email': widget.identifier,
-          'no_hp': '0123',
-          'cabang': 1,
-        }),
+        body: jsonEncode(_identifierPayload(widget.identifier)),
       );
-      _snackbar('Kode OTP telah dikirim ulang ke ${widget.identifier}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final email = _readString(body, 'email');
+        if (email != null && mounted) {
+          setState(() => _otpEmail = email);
+        }
+        _snackbar('Kode OTP telah dikirim ulang ke ${email ?? _otpEmail}');
+      } else {
+        _snackbar('Gagal kirim ulang OTP', isError: true);
+      }
     } catch (_) {
       _snackbar('Gagal kirim ulang OTP', isError: true);
     }
@@ -592,7 +618,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           'ngrok-skip-browser-warning': 'true',
         },
         body: jsonEncode({
-          'npa': widget.identifier,
+          ..._identifierPayload(widget.identifier),
           'password': _passController.text,
         }),
       );

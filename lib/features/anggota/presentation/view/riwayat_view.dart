@@ -1,9 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:persis_app/app/routes.dart';
-import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
-import 'package:persis_app/features/anggota/presentation/widgets/anggota_card.dart';
-import 'package:provider/provider.dart';
-import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
 import 'package:persis_app/helpers/auth_helper.dart';
@@ -245,14 +240,7 @@ class _FilterChip extends StatelessWidget {
 
 class _TotalCard extends StatelessWidget {
   const _TotalCard({required this.totalAmount});
-
   final double totalAmount;
-
-  String _formatRupiah(double amount) {
-    return amount
-        .toStringAsFixed(0)
-        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => '.');
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +329,7 @@ class _RiwayatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.08),
+            color: Colors.grey.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

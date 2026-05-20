@@ -489,8 +489,9 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
         if (desc.contains(monthNames[i])) {
           month = i + 1;
           final yearMatch = RegExp(r'(20\d{2})').firstMatch(desc);
-          if (yearMatch != null)
+          if (yearMatch != null) {
             year = int.tryParse(yearMatch.group(0)!) ?? year;
+          }
           break;
         }
       }

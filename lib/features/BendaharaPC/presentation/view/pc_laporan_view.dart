@@ -443,7 +443,7 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                             itemCount: _groupTransactionsByType(
                               filteredTransactions,
                             ).keys.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final groupedData = _groupTransactionsByType(
@@ -724,8 +724,9 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
     for (final t in transactions) {
       String type = t.type ?? 'Tunai';
       if (t.paymentMethodId == '69ee266797af79f7ef06e559' ||
-          type.toLowerCase() == 'tunai')
+          type.toLowerCase() == 'tunai') {
         type = 'Rekap Tunai';
+      }
       grouped.putIfAbsent(type, () => []).add(t);
     }
     return grouped;
@@ -788,15 +789,6 @@ class _PaymentDataCard extends StatelessWidget {
     this.onTap,
     this.isRecap = false,
   });
-
-  String _formatCurrency(int? amount) {
-    if (amount == null) return 'Rp 0';
-    return NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    ).format(amount);
-  }
 
   String _formatDate(String? dateString) {
     if (dateString == null) return '-';

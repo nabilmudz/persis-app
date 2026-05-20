@@ -285,7 +285,11 @@ class _LoginScreenState extends State<LoginScreen>
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const ForgotPasswordScreen(),
+                    builder: (_) => ForgotPasswordScreen(
+                      initialIdentifier: _emailController.text.trim().isEmpty
+                          ? null
+                          : _emailController.text.trim(),
+                    ),
                   ),
                 );
               },
@@ -696,11 +700,15 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final userId = body['id']?.toString() ?? '';
+        final regionName =
+            (body['region_name'] ?? body['regionName'])?.toString().trim() ??
+            '';
         if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => IsiDataScreen(npa: npa, id: userId),
+            builder: (_) =>
+                IsiDataScreen(npa: npa, id: userId, regionName: regionName),
           ),
         );
       } else {

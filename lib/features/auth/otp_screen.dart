@@ -35,14 +35,17 @@ class _OtpScreenState extends State<OtpScreen> {
     Future.doWhile(() async {
       await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return false;
+      var shouldContinue = false;
       setState(() {
-        if (_resendSeconds > 0) {
+        if (_resendSeconds > 1) {
           _resendSeconds--;
+          shouldContinue = true;
         } else {
+          _resendSeconds = 0;
           _canResend = true;
         }
       });
-      return _resendSeconds > 0;
+      return shouldContinue;
     });
   }
 
@@ -327,12 +330,7 @@ class _OtpScreenState extends State<OtpScreen> {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'true',
         },
-        body: jsonEncode({
-          'npa': widget.npa,
-          'email': widget.email,
-          'no_hp': '',
-          'cabang': 1,
-        }),
+        body: jsonEncode({'npa': widget.npa, 'email': widget.email}),
       );
       _snackbar('Kode OTP telah dikirim ulang ke ${widget.email}');
     } catch (_) {

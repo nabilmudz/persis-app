@@ -13,7 +13,13 @@ class AnggotaController extends ChangeNotifier {
   List<TransactionItemModel> riwayatTransaksi = [];
   int totalTagihan = 0;
 
-  static const _statusLunas = {'lunas', 'paid', 'selesai', 'success'};
+  static const _statusLunas = {
+    'lunas',
+    'paid',
+    'selesai',
+    'success',
+    'completed',
+  };
 
   Future<void> fetchRiwayatTransaksi({
     required String userId,
@@ -80,5 +86,58 @@ class AnggotaController extends ChangeNotifier {
   }
 
   List<TransactionItemModel> get riwayatTerakhir =>
-      riwayatLunas.take(3).toList();
+      (List<TransactionItemModel>.from(riwayatLunas)
+            ..sort((a, b) => _sortValue(b).compareTo(_sortValue(a))))
+          .take(3)
+          .toList();
+
+  int _sortValue(TransactionItemModel tx) {
+    final createdAt = DateTime.tryParse(tx.createdAt ?? '');
+    if (createdAt != null) return createdAt.millisecondsSinceEpoch;
+
+    final periodDate = _resolvePeriodDate(tx);
+    if (periodDate != null) return periodDate.millisecondsSinceEpoch;
+
+    return 0;
+  }
+
+  DateTime? _resolvePeriodDate(TransactionItemModel tx) {
+    final source = '${tx.periodId ?? ''} ${tx.description ?? ''}';
+
+    final numericMatch = RegExp(r'(\d{4})[-_/](\d{1,2})').firstMatch(source);
+    if (numericMatch != null) {
+      final year = int.tryParse(numericMatch.group(1)!);
+      final month = int.tryParse(numericMatch.group(2)!);
+      if (year != null && month != null && month >= 1 && month <= 12) {
+        return DateTime(year, month);
+      }
+    }
+
+    final yearMatch = RegExp(r'(19|20)\d{2}').firstMatch(source);
+    final year = yearMatch == null ? null : int.tryParse(yearMatch.group(0)!);
+    if (year == null) return null;
+
+    const months = [
+      'januari',
+      'februari',
+      'maret',
+      'april',
+      'mei',
+      'juni',
+      'juli',
+      'agustus',
+      'september',
+      'oktober',
+      'november',
+      'desember',
+    ];
+    final lowerSource = source.toLowerCase();
+    for (var i = 0; i < months.length; i++) {
+      if (lowerSource.contains(months[i])) {
+        return DateTime(year, i + 1);
+      }
+    }
+
+    return DateTime(year);
+  }
 }

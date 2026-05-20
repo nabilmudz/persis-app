@@ -444,7 +444,7 @@ class _InvoiceLineItemTile extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFF0C844C).withOpacity(0.12),
+              color: const Color(0xFF0C844C).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(

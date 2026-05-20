@@ -156,7 +156,7 @@ class PjVerificationMemberCard extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: aggregateColor.withOpacity(0.14),
+                              color: aggregateColor.withValues(alpha: 0.14),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: aggregateColor),
                             ),
@@ -302,7 +302,7 @@ class PjVerificationMemberCard extends StatelessWidget {
                               color: chipBackground,
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: chipColor.withOpacity(0.35),
+                                color: chipColor.withValues(alpha: 0.35),
                               ),
                             ),
                             child: Row(

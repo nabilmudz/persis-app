@@ -1034,7 +1034,7 @@ class _PaymentDataCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: _getStatusColor(
                       transaction.accStatus,
-                    ).withOpacity(0.1),
+                    ).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(

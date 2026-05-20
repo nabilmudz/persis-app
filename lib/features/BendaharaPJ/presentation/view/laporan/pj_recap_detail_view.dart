@@ -159,7 +159,7 @@ class PjRecapDetailViewPage extends StatelessWidget {
                       'Periode: $monthLabel $year',
                       style: TextStyle(
                         fontSize: 12,
-                        color: const Color(0xFF6B7280).withOpacity(0.8),
+                        color: const Color(0xFF6B7280).withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -314,7 +314,7 @@ class _DetailedTransactionCard extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE5E5E5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -348,7 +348,7 @@ class _DetailedTransactionCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B367).withOpacity(0.1),
+                    color: const Color(0xFF10B367).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

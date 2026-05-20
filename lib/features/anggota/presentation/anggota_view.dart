@@ -32,7 +32,15 @@ class _AnggotaViewState extends State<AnggotaView> {
     final authUserId = await AuthHelper.getUserId();
     final token = await AuthHelper.getAccessToken();
 
-    if (authUserId != null && token != null) {
+    if (authUserId != null && authUserId.isNotEmpty) {
+      if (mounted) {
+        context.read<AnggotaController>().fetchRiwayatTransaksi(
+          userId: authUserId,
+        );
+      }
+
+      if (token == null || token.isEmpty) return;
+
       try {
         final response = await http.get(
           Uri.parse('${AppConfig.baseUrl}/users/$authUserId'),
@@ -46,21 +54,15 @@ class _AnggotaViewState extends State<AnggotaView> {
         if (response.statusCode == 200) {
           final body = jsonDecode(response.body);
           final userData = body['data'] ?? body['user'] ?? body;
-
-          final npa = (userData['npa'] ?? '').toString();
           final fullname = (userData['fullname'] ?? userData['name'] ?? '')
               .toString();
 
-          final userId = npa.isNotEmpty ? npa : authUserId;
           final userName = fullname.isNotEmpty ? fullname : 'Pengguna';
 
           if (mounted) {
             setState(() {
               _userName = userName;
             });
-            context.read<AnggotaController>().fetchRiwayatTransaksi(
-              userId: authUserId,
-            );
           }
         }
       } catch (e) {
