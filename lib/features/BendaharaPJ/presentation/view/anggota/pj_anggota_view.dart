@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_item_detail_model.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
@@ -400,15 +401,23 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
     ); // Scaffold
   }
 
-  /// Ambil invoice terakhir milik anggota dari Hive (pending) atau Controller (history).
+  /// Ambil invoice terakhir milik anggota.
+  /// Prioritas: (1) cache controller [post-payment], (2) Hive [pending], (3) history API.
   PjInvoiceData? _getLastInvoiceForMember(UserModel member) {
     final memberId = member.id?.toString() ?? '';
     if (memberId.isEmpty) return null;
 
+    // ── 1. Cache controller: hasil PjInvoiceData.fromCreationResult setelah bayar ──
+    final controllerCache = widget.controller.getLastInvoiceCache(memberId);
+    // Jika ada cache dan isinya benar-benar punya items (bukan kosong), pakai langsung.
+    if (controllerCache != null && controllerCache.items.isNotEmpty) {
+      return controllerCache;
+    }
+
     PjInvoiceData? hiveInvoice;
     PjInvoiceData? historyInvoice;
 
-    // 1. Cek dari Hive (Pending/Local)
+    // ── 2. Cek dari Hive (Pending/Local) ─────────────────────────────────────────
     try {
       final hiveController = PjHiveController();
       final allPending = hiveController.getPendingTransactions();
@@ -458,7 +467,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
       debugPrint('Error check Hive invoice: $e');
     }
 
-    // 2. Cek dari Controller (History/Synced)
+    // ── 3. Cek dari Controller (History/Synced) ───────────────────────────────────
     try {
       final lastHistoryTx = widget.controller.lastTransactionForMember(
         memberId,
@@ -473,7 +482,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
       debugPrint('Error check History invoice: $e');
     }
 
-    // 3. Bandingkan mana yang lebih baru
+    // ── 4. Bandingkan Hive vs History: pakai yang lebih baru ─────────────────────
     if (hiveInvoice != null && historyInvoice != null) {
       return hiveInvoice.generatedAt.isAfter(historyInvoice.generatedAt)
           ? hiveInvoice
@@ -511,24 +520,26 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
 
     for (final rawItem in rawItems) {
       if (rawItem is! Map) continue;
-      final desc = rawItem['description']?.toString() ?? '';
-      int month = 0;
-      for (var i = 0; i < monthNames.length; i++) {
-        if (desc.contains(monthNames[i])) {
-          month = i + 1;
-          final yearMatch = RegExp(r'(20\d{2})').firstMatch(desc);
-          if (yearMatch != null)
-            year = int.tryParse(yearMatch.group(0)!) ?? year;
-          break;
-        }
+      final detail = TransactionItemDetailModel.fromJson(
+        Map<String, dynamic>.from(rawItem),
+      );
+      final desc = detail.description?.trim() ?? '';
+      final resolvedMonth = detail.resolveMonth() ?? 0;
+      final resolvedYear = detail.resolveYear() ?? year;
+
+      if (resolvedMonth > 0 && !months.contains(resolvedMonth)) {
+        months.add(resolvedMonth);
       }
-      if (month > 0) months.add(month);
+
+      year = resolvedYear;
       invoiceItems.add(
         PjInvoiceLineItem(
-          month: month,
+          month: resolvedMonth,
           year: year,
-          label: desc,
-          amount: (rawItem['amount'] as num?)?.toInt() ?? 0,
+          label: desc.isNotEmpty
+              ? desc
+              : (resolvedMonth > 0 ? '${monthNames[resolvedMonth - 1]} $year' : 'Iuran'),
+          amount: detail.amount ?? (rawItem['amount'] as num?)?.toInt() ?? 0,
         ),
       );
     }
@@ -544,12 +555,12 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
       syncedToBackend: data['isSynced'] == true,
       generatedAt:
           DateTime.tryParse(
-            data['createdAt']?.toString() ??
+            data['local_timestamp']?.toString() ??
+                data['createdAt']?.toString() ??
                 data['created_at']?.toString() ??
-                data['local_timestamp']?.toString() ??
                 '',
           ) ??
-          DateTime(1900),
+          DateTime.now(),
     );
   }
 

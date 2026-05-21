@@ -194,6 +194,11 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
             ? getPeriodId(month, year)!.trim()
             : PjTransactionItemController.localPeriodKey(month, year);
 
+        // Format "YYYY-MM" selalu dipakai untuk periodId agar invoice
+        // bisa parse bulannya dengan benar (ObjectId tidak bisa di-parse).
+        // MongoDB ObjectId disimpan di duesPeriodId untuk referensi API.
+        final periodKey = PjTransactionItemController.localPeriodKey(month, year);
+
         await PjTransactionItemController.cachePeriodId(
           month: month,
           year: year,
@@ -204,8 +209,8 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
           TransactionItemModel(
             anggotaId: anggotaId,
             transactionId: transactionId,
-            periodId: duesObjectId,
-            duesPeriodId: duesObjectId,
+            periodId: periodKey,       // Selalu "YYYY-MM" ← parseable
+            duesPeriodId: duesObjectId, // MongoDB ObjectId untuk API
             status: 'paid',
             amount: amount,
             description: 'Iuran ${_getMonthName(month)} $year',

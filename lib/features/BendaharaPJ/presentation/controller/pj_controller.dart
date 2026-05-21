@@ -8,6 +8,7 @@ import 'package:persis_app/core/storage/secure_storage_service.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
@@ -46,6 +47,19 @@ class PjController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Simpan invoice terakhir yang baru saja dibuat untuk anggota tertentu.
+  /// Dipanggil tepat setelah pembayaran berhasil agar tombol "Lihat Invoice"
+  /// di kartu anggota langsung menampilkan data yang sama dengan post-payment.
+  void cacheLastInvoice(String memberId, PjInvoiceData invoice) {
+    _lastInvoiceCache[memberId] = invoice;
+    notifyListeners();
+  }
+
+  /// Ambil invoice terakhir dari cache (null jika belum ada).
+  PjInvoiceData? getLastInvoiceCache(String memberId) {
+    return _lastInvoiceCache[memberId];
+  }
+
 
   static const String _cacheBoxName = 'pj_data_cache';
 
@@ -64,6 +78,11 @@ class PjController extends ChangeNotifier {
   final List<UserModel> _members = [];
   final List<TransactionModel> _transactions = [];
   late final PjHiveController _hiveController;
+
+  /// Cache invoice terakhir per anggota (memberId → PjInvoiceData).
+  /// Di-set segera setelah transaksi berhasil dibuat sehingga UI
+  /// bisa menampilkan invoice yang sama persis dengan post-payment.
+  final Map<String, PjInvoiceData> _lastInvoiceCache = {};
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -593,33 +612,64 @@ class PjController extends ChangeNotifier {
     );
   }
 
-  /// Ambil transaksi terakhir milik anggota (dari history yang sudah di-load)
+  /// Ambil transaksi terakhir milik anggota (dari history yang sudah di-load).
+  ///
+  /// Prioritaskan transaksi "real" dari history (yang punya multi-item / bukan
+  /// snapshot individual per-bulan) agar invoice yang ditampilkan sama dengan
+  /// invoice setelah pembayaran (gabungan semua bulan yang dipilih).
   TransactionModel? lastTransactionForMember(String anggotaId) {
     if (anggotaId.isEmpty) return null;
-    
-    // Cari transaksi yang melibatkan anggota ini
+
+    // Cari semua transaksi yang melibatkan anggota ini
     final memberTxs = _transactions.where((tx) {
       // 1. Cek apakah ada item yang ditujukan untuk anggota ini
-      final hasItemForMember = tx.items?.any((item) => 
+      final hasItemForMember = tx.items?.any((item) =>
         (item.anggotaId?.toString() ?? '') == anggotaId
       ) ?? false;
       if (hasItemForMember) return true;
 
       // 2. Cek apakah anggota ini adalah pembuat transaksi (fallback)
       if ((tx.creatorId?.toString() ?? '') == anggotaId) return true;
-      
+
       return false;
     }).toList();
 
     if (memberTxs.isEmpty) return null;
 
-    // Sort by date descending (latest first)
-    memberTxs.sort((a, b) {
-      final aDate = DateTime.tryParse(a.createdAt ?? '') ?? DateTime(1900);
-      final bDate = DateTime.tryParse(b.createdAt ?? '') ?? DateTime(1900);
-      return bDate.compareTo(aDate);
-    });
+    // Pisahkan transaksi "real" (dari history/create) vs "snapshot" (per-bulan)
+    final realTxs = <TransactionModel>[];
+    final snapshotTxs = <TransactionModel>[];
 
-    return memberTxs.first;
+    for (final tx in memberTxs) {
+      final id = tx.id ?? '';
+      if (id.startsWith('snapshot-')) {
+        snapshotTxs.add(tx);
+      } else {
+        realTxs.add(tx);
+      }
+    }
+
+    // Helper: sort by date descending (latest first)
+    void sortByDateDesc(List<TransactionModel> list) {
+      list.sort((a, b) {
+        final aDate = DateTime.tryParse(a.createdAt ?? '') ?? DateTime(1900);
+        final bDate = DateTime.tryParse(b.createdAt ?? '') ?? DateTime(1900);
+        return bDate.compareTo(aDate);
+      });
+    }
+
+    // Prioritas 1: transaksi real (dari history/create) paling baru
+    if (realTxs.isNotEmpty) {
+      sortByDateDesc(realTxs);
+      return realTxs.first;
+    }
+
+    // Fallback: transaksi snapshot (per-bulan dari payment status)
+    if (snapshotTxs.isNotEmpty) {
+      sortByDateDesc(snapshotTxs);
+      return snapshotTxs.first;
+    }
+
+    return null;
   }
 }

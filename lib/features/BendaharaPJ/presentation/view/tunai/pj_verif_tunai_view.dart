@@ -11,6 +11,7 @@ import 'package:persis_app/helpers/auth_helper.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/core/network/api_client.dart';
 import '../pj_invoice.view.dart';
+import '../../widgets/sweet_alert_dialog.dart';
 
 class PjVerifTunaiViewPage extends StatefulWidget {
   final PjController controller;
@@ -115,6 +116,36 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
       return;
     }
 
+    double totalAmount = 0;
+    for (final m in _selectedMonths) {
+      final cachedAmount = _itemController.getMonthAmount(m, _selectedYear);
+      if (cachedAmount > 0) {
+        totalAmount += cachedAmount;
+      } else {
+        totalAmount += widget.controller.getNominalForMemberMonth(
+          anggotaId: anggotaId,
+          month: m,
+          year: _selectedYear,
+        );
+      }
+    }
+
+    final formattedTotal = _formatCurrency(totalAmount);
+    final sortedMonths = _selectedMonths.toList()..sort();
+    final monthLabels = sortedMonths.map((m) => _monthNames[m - 1]).join(', ');
+    final memberName = widget.controller.memberDisplayName(widget.member);
+
+    final shouldProceed = await SweetAlertDialog.showConfirmation(
+      context: context,
+      title: 'Konfirmasi Pembayaran',
+      message: 'Apakah anda yakin membayar bulan $monthLabels sebesar $formattedTotal untuk anggota $memberName?',
+      confirmText: 'Ya, Bayar',
+      cancelText: 'Batal',
+    );
+
+    if (!shouldProceed) return;
+    if (!mounted) return;
+
     // Show loading dialog
     showDialog(
       context: context,
@@ -194,6 +225,10 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                 PjTransactionItemController.localPeriodKey(month, year);
           },
         );
+
+        // Tambahkan transaksi ke controller agar card "Invoice Terakhir"
+        // langsung update tanpa menunggu loadInitialData selesai.
+        widget.controller.addTransaction(invoiceResult.transaction);
 
         await widget.controller.loadInitialData();
         final refreshedUserId = widget.member.id;

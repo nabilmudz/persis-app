@@ -149,20 +149,10 @@ class PjInvoiceData {
 
     final sourceItems = transaction.items ?? const <TransactionItemModel>[];
     for (final item in sourceItems) {
-      final desc = item.description ?? '';
-      int month = 0;
-
-      // Extract month from description if possible
-      for (var i = 0; i < _monthNames.length; i++) {
-        if (desc.contains(_monthNames[i])) {
-          month = i + 1;
-          final yearMatch = RegExp(r'(20\d{2})').firstMatch(desc);
-          if (yearMatch != null) {
-            year = int.tryParse(yearMatch.group(0)!) ?? year;
-          }
-          break;
-        }
-      }
+      final resolved = _resolveItemPeriod(item, transaction.createdAt);
+      final desc = item.description?.trim() ?? '';
+      final month = resolved.$1;
+      year = resolved.$2 ?? year;
 
       if (month > 0) {
         months.add(month);
@@ -172,7 +162,7 @@ class PjInvoiceData {
         PjInvoiceLineItem(
           month: month,
           year: year,
-          label: desc.isNotEmpty ? desc : 'Iuran',
+          label: desc.isNotEmpty ? desc : _monthLabel(month, year),
           amount: item.amount ?? 0,
         ),
       );
@@ -236,7 +226,8 @@ class PjInvoiceData {
       return '-';
     }
 
-    return months.map((month) => _monthNames[month - 1]).join(', ');
+    final uniqueMonths = months.toSet().toList()..sort();
+    return uniqueMonths.map((month) => _monthNames[month - 1]).join(', ');
   }
 
   String get statusLabel =>
@@ -283,6 +274,70 @@ class PjInvoiceData {
       ..writeln('Silakan simpan invoice ini sebagai bukti pembayaran.');
 
     return buffer.toString();
+  }
+
+  static (int, int?) _resolveItemPeriod(
+    TransactionItemModel item,
+    String? fallbackCreatedAt,
+  ) {
+    // Cek sumber-sumber period secara berurutan:
+    // 1. periodId (sebaiknya "YYYY-MM" format)
+    // 2. duesPeriodId
+    // 3. description (e.g., "Iuran Januari 2026")
+    final periodSources = <String?>[
+      item.periodId,
+      item.duesPeriodId,
+      item.description,
+    ];
+
+    for (final source in periodSources) {
+      final resolved = _resolveMonthYearFromText(source);
+      if (resolved.$1 > 0) {
+        return resolved;
+      }
+    }
+
+    // Jangan fallback ke createdAt.month karena itu tanggal PEMBUATAN TRANSAKSI,
+    // bukan bulan iuran yang dibayar (akan salah untuk catch-up payment).
+    // Kembalikan (0, null) → caller akan handle sebagai "bulan tidak diketahui".
+    return (0, null);
+  }
+
+  static (int, int?) _resolveMonthYearFromText(String? raw) {
+    final src = raw?.trim() ?? '';
+    if (src.isEmpty) {
+      return (0, null);
+    }
+
+    final compactMatch = RegExp(r'(\d{4})[-_/](\d{1,2})').firstMatch(src);
+    if (compactMatch != null) {
+      final year = int.tryParse(compactMatch.group(1)!);
+      final month = int.tryParse(compactMatch.group(2)!);
+      if (year != null && month != null && month >= 1 && month <= 12) {
+        return (month, year);
+      }
+    }
+
+    final lowerSrc = src.toLowerCase();
+    for (var i = 0; i < _monthNames.length; i++) {
+      if (lowerSrc.contains(_monthNames[i].toLowerCase())) {
+        final yearMatch = RegExp(r'(19|20)\d{2}').firstMatch(src);
+        return (
+          i + 1,
+          yearMatch != null ? int.tryParse(yearMatch.group(0)!) : null,
+        );
+      }
+    }
+
+    return (0, null);
+  }
+
+  static String _monthLabel(int month, int year) {
+    if (month < 1 || month > 12) {
+      return 'Iuran';
+    }
+
+    return '${_monthNames[month - 1]} $year';
   }
 }
 
@@ -463,6 +518,7 @@ class PjInvoiceController extends ChangeNotifier {
 
     return digits;
   }
+
 }
 
 const List<String> _monthNames = [

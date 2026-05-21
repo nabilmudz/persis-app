@@ -3,6 +3,7 @@ import 'package:persis_app/app/routes.dart';
 
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_item_detail_model.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
@@ -491,24 +492,26 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
 
     for (final rawItem in rawItems) {
       if (rawItem is! Map) continue;
-      final desc = rawItem['description']?.toString() ?? '';
-      int month = 0;
-      for (var i = 0; i < monthNames.length; i++) {
-        if (desc.contains(monthNames[i])) {
-          month = i + 1;
-          final yearMatch = RegExp(r'(20\d{2})').firstMatch(desc);
-          if (yearMatch != null)
-            year = int.tryParse(yearMatch.group(0)!) ?? year;
-          break;
-        }
+      final detail = TransactionItemDetailModel.fromJson(
+        Map<String, dynamic>.from(rawItem),
+      );
+      final desc = detail.description?.trim() ?? '';
+      final resolvedMonth = detail.resolveMonth() ?? 0;
+      final resolvedYear = detail.resolveYear() ?? year;
+
+      if (resolvedMonth > 0 && !months.contains(resolvedMonth)) {
+        months.add(resolvedMonth);
       }
-      if (month > 0) months.add(month);
+
+      year = resolvedYear;
       invoiceItems.add(
         PjInvoiceLineItem(
-          month: month,
+          month: resolvedMonth,
           year: year,
-          label: desc,
-          amount: (rawItem['amount'] as num?)?.toInt() ?? 0,
+          label: desc.isNotEmpty
+              ? desc
+              : (resolvedMonth > 0 ? '${monthNames[resolvedMonth - 1]} $year' : 'Iuran'),
+          amount: detail.amount ?? (rawItem['amount'] as num?)?.toInt() ?? 0,
         ),
       );
     }

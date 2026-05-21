@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/laporan/pj_payment_data_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/laporan/pj_log_transaksi_view.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/view/anggota/riwayat_view.dart';
 import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
@@ -165,6 +166,31 @@ class _PjViewPageState extends State<PjViewPage> {
                         },
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // ── Row: Log Transaksi ──
+                Row(
+                  children: [
+                    Expanded(
+                      child: BendaharaMenuCard(
+                        title: 'Log Transaksi',
+                        icon: Icons.receipt_long_outlined,
+                        iconBackgroundColor: const Color(0xFFE8F5EE),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PjLogTransaksiView(
+                                controller: _controller,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(child: SizedBox()),
                   ],
                 ),
                 const SizedBox(height: 12),
