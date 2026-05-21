@@ -92,15 +92,50 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
     }
 
     if (mounted) {
-      final localTransactions = widget.controller.allTransactions.where((t) {
-        if (t.createdAt == null) return false;
-        try {
-          final date = DateTime.parse(t.createdAt!);
-          return date.year == _selectedMonth.year && date.month == _selectedMonth.month;
-        } catch (_) {
-          return false;
+      final List<TransactionModel> localTransactions = [];
+      for (final t in widget.controller.allTransactions) {
+        final items = t.items ?? [];
+        if (items.isNotEmpty) {
+          for (final item in items) {
+            final periodStr = item.periodId ?? '';
+            final parts = periodStr.split('-');
+            bool matches = false;
+            if (parts.length >= 2) {
+              final y = int.tryParse(parts[0]);
+              final m = int.tryParse(parts[1]);
+              if (y == _selectedMonth.year && m == _selectedMonth.month) {
+                matches = true;
+              }
+            } else {
+              if (t.createdAt != null) {
+                try {
+                  final date = DateTime.parse(t.createdAt!);
+                  if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                    matches = true;
+                  }
+                } catch (_) {}
+              }
+            }
+
+            if (matches) {
+              localTransactions.add(t.copyWith(
+                totalAmount: item.amount ?? 20000,
+              ));
+            }
+          }
+        } else {
+          if (t.createdAt != null) {
+            try {
+              final date = DateTime.parse(t.createdAt!);
+              if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                localTransactions.add(t.copyWith(
+                  totalAmount: 20000,
+                ));
+              }
+            } catch (_) {}
+          }
         }
-      }).toList();
+      }
 
       setState(() {
         _monthlyTransactions = localTransactions;
@@ -177,15 +212,51 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         final List rawData = result['data'];
         exportData = rawData.map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e))).toList();
       } else {
-        exportData = widget.controller.allTransactions.where((transaction) {
-          if (transaction.createdAt == null) return false;
-          try {
-            final date = DateTime.parse(transaction.createdAt!);
-            return date.year == _selectedMonth.year && date.month == _selectedMonth.month;
-          } catch (e) {
-            return false;
+        final List<TransactionModel> fallbackList = [];
+        for (final t in widget.controller.allTransactions) {
+          final items = t.items ?? [];
+          if (items.isNotEmpty) {
+            for (final item in items) {
+              final periodStr = item.periodId ?? '';
+              final parts = periodStr.split('-');
+              bool matches = false;
+              if (parts.length >= 2) {
+                final y = int.tryParse(parts[0]);
+                final m = int.tryParse(parts[1]);
+                if (y == _selectedMonth.year && m == _selectedMonth.month) {
+                  matches = true;
+                }
+              } else {
+                if (t.createdAt != null) {
+                  try {
+                    final date = DateTime.parse(t.createdAt!);
+                    if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                      matches = true;
+                    }
+                  } catch (_) {}
+                }
+              }
+
+              if (matches) {
+                fallbackList.add(t.copyWith(
+                  totalAmount: item.amount ?? 20000,
+                ));
+              }
+            }
+          } else {
+            if (t.createdAt != null) {
+              try {
+                final date = DateTime.parse(t.createdAt!);
+                if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                  fallbackList.add(t.copyWith(
+                    totalAmount: 20000,
+                  ));
+                }
+              } catch (_) {}
+            }
           }
-        }).toList();
+        }
+        exportData = fallbackList;
       }
 
       if (exportData.isEmpty) {

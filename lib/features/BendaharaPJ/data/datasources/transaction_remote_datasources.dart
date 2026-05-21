@@ -189,7 +189,7 @@ class TransactionRemoteDataSource {
               '_id': tx['_id']?.toString() ?? tx['transaction_id']?.toString(),
               'type': tx['type']?.toString() ?? type ?? 'tunai',
               'creator_id': tx['creator_id']?.toString(),
-              'total_amount': (tx['total_amount'] as num?)?.toInt() ?? 0,
+              'total_amount': (tx['amount'] as num?)?.toInt() ?? (tx['item_amount'] as num?)?.toInt() ?? 20000,
               'status': txStatus,
               // Pastikan acc_status terisi agar lolos filter UI
               'acc_status': tx['acc_status']?.toString() ??
@@ -205,7 +205,7 @@ class TransactionRemoteDataSource {
                   'period_id':
                       '${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
                   'status': tx['item_status']?.toString() ?? tx['status']?.toString(),
-                  'amount': (tx['total_amount'] as num?)?.toInt() ?? 0,
+                  'amount': (tx['amount'] as num?)?.toInt() ?? (tx['item_amount'] as num?)?.toInt() ?? 20000,
                   'description':
                       'Iuran ${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
                 }
