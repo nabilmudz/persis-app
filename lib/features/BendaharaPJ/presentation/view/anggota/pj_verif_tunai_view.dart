@@ -94,13 +94,35 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
       return;
     }
 
-    setState(() {
-      if (_selectedMonths.contains(month)) {
-        _selectedMonths.remove(month);
-      } else {
-        _selectedMonths.add(month);
+    if (_selectedMonths.contains(month)) {
+      bool hasLaterSelected = _selectedMonths.any((m) => m > month);
+      if (hasLaterSelected) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tidak dapat membatalkan pilihan bulan ini karena bulan setelahnya masih terpilih.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
       }
-    });
+      setState(() {
+        _selectedMonths.remove(month);
+      });
+    } else {
+      bool isDisabled = false;
+      for (int i = 1; i < month; i++) {
+        final s = _itemController.getMonthStatus(i, _selectedYear);
+        if (s != PjMonthStatus.paid && !_selectedMonths.contains(i)) {
+          isDisabled = true;
+          break;
+        }
+      }
+      if (isDisabled) return;
+
+      setState(() {
+        _selectedMonths.add(month);
+      });
+    }
   }
 
   Future<void> _handleConfirmTransaction() async {
@@ -176,9 +198,6 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
             },
           );
 
-      if (!mounted) return;
-      Navigator.pop(context);
-
       if (invoiceResult != null) {
         await _itemController.markMonthsPaidLocally(
           anggotaId: anggotaId,
@@ -238,6 +257,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         });
 
         if (!mounted) return;
+        Navigator.pop(context);
 
         if (!invoiceResult.syncedToBackend) {
           await Navigator.push(
@@ -259,6 +279,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         }
       } else {
         if (!mounted) return;
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -337,6 +358,14 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                   }
                   final totalTunggakan = _itemController.totalTunggakan
                       .toDouble();
+
+                  bool isAllPaid = true;
+                  for (int i = 1; i <= 12; i++) {
+                    if (_itemController.getMonthStatus(i, _selectedYear) != PjMonthStatus.paid) {
+                      isAllPaid = false;
+                      break;
+                    }
+                  }
 
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
@@ -457,10 +486,20 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                               _selectedYear,
                             );
 
+                            bool isDisabled = false;
+                            for (int i = 1; i < month; i++) {
+                              final s = _itemController.getMonthStatus(i, _selectedYear);
+                              if (s != PjMonthStatus.paid && !_selectedMonths.contains(i)) {
+                                isDisabled = true;
+                                break;
+                              }
+                            }
+
                             return _MonthCard(
                               name: monthName,
                               status: status,
                               isSelected: _selectedMonths.contains(month),
+                              isDisabled: isDisabled,
                               onTap: () => _handleMonthTap(month),
                             );
                           },
@@ -491,12 +530,14 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: _handleConfirmTransaction,
-                            icon: const Icon(Icons.receipt_long_rounded),
-                            label: const Text('Konfirmasi Pembayaran'),
+                            onPressed: isAllPaid ? null : _handleConfirmTransaction,
+                            icon: Icon(isAllPaid ? Icons.check_circle_outline : Icons.receipt_long_rounded),
+                            label: Text(isAllPaid ? 'Pembayaran sudah lunas' : 'Konfirmasi Pembayaran'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF073D4D),
                               foregroundColor: Colors.white,
+                              disabledBackgroundColor: const Color(0xFFEBEBEB),
+                              disabledForegroundColor: const Color(0xFFA1A1A1),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -542,12 +583,14 @@ class _MonthCard extends StatelessWidget {
     required this.name,
     required this.status,
     required this.isSelected,
+    required this.isDisabled,
     required this.onTap,
   });
 
   final String name;
   final PjMonthStatus status;
   final bool isSelected;
+  final bool isDisabled;
   final VoidCallback onTap;
 
   @override
@@ -583,6 +626,14 @@ class _MonthCard extends StatelessWidget {
       );
       textColor = Colors.white;
       iconData = Icons.check_circle;
+    } else if (isDisabled) {
+      decoration = BoxDecoration(
+        color: const Color(0xFFEBEBEB),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFD6D6D6)),
+      );
+      textColor = const Color(0xFFA1A1A1);
+      iconData = Icons.lock_outline;
     } else if (isTunggakan) {
       decoration = BoxDecoration(
         gradient: const LinearGradient(
@@ -609,7 +660,7 @@ class _MonthCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: isLunas ? null : onTap,
+        onTap: (isLunas || isDisabled) ? null : onTap,
         child: Ink(
           decoration: decoration,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -630,7 +681,7 @@ class _MonthCard extends StatelessWidget {
               ),
               if (iconData != null) ...[
                 const SizedBox(height: 8),
-                Icon(iconData, color: Colors.white, size: 22),
+                Icon(iconData, color: isDisabled ? const Color(0xFFA1A1A1) : Colors.white, size: 22),
               ],
             ],
           ),
