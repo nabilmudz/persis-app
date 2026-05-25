@@ -46,21 +46,41 @@ class AnggotaController extends ChangeNotifier {
 
   void _hitungTotalTagihan() {
     totalTagihan = 0;
+
+    final now = DateTime.now();
+
     for (final item in riwayatTransaksi) {
-      final status = (item.status ?? '').toLowerCase();
-      if (status == 'pending' || status == 'tunggakan' || status == 'unpaid') {
-        final amount = item.amount ?? item.jumlah ?? 0;
-        totalTagihan += (amount is String
-            ? int.tryParse(amount) ?? 0
-            : (amount as num).toInt());
+      final isUnpaid = item.id == null || item.id!.isEmpty;
+
+      if (!isUnpaid) continue;
+
+      final periodDate = _resolvePeriodDate(item);
+      if (periodDate == null) continue;
+      final isPastMonth =
+          periodDate.year < now.year ||
+          (periodDate.year == now.year && periodDate.month < now.month);
+
+      if (!isPastMonth) continue;
+
+      dynamic rawAmount = item.amount ?? item.jumlah;
+
+      if (rawAmount == null || rawAmount == 0 || rawAmount == '0') {
+        rawAmount = 20000;
       }
+
+      final nominal = rawAmount is String
+          ? int.tryParse(rawAmount) ?? 0
+          : (rawAmount as num).toInt();
+
+      totalTagihan += nominal;
     }
   }
 
   List<TransactionItemModel> get riwayatLunas {
     return riwayatTransaksi.where((tx) {
-      final status = (tx.status ?? '').toLowerCase();
-      return _statusLunas.any((s) => status.contains(s));
+      final status = (tx.status ?? '').toLowerCase().trim();
+
+      return _statusLunas.contains(status);
     }).toList();
   }
 
@@ -85,59 +105,52 @@ class AnggotaController extends ChangeNotifier {
     });
   }
 
-  List<TransactionItemModel> get riwayatTerakhir =>
-      (List<TransactionItemModel>.from(riwayatLunas)
-            ..sort((a, b) => _sortValue(b).compareTo(_sortValue(a))))
-          .take(3)
-          .toList();
+  List<TransactionItemModel> get riwayatTerakhir {
+    final items = List<TransactionItemModel>.from(riwayatLunas);
+
+    items.sort((a, b) {
+      final aDate = _resolvePeriodDate(a);
+      final bDate = _resolvePeriodDate(b);
+
+      if (aDate == null || bDate == null) return 0;
+
+      return bDate.compareTo(aDate);
+    });
+
+    return items.take(3).toList();
+  }
 
   int _sortValue(TransactionItemModel tx) {
     final createdAt = DateTime.tryParse(tx.createdAt ?? '');
-    if (createdAt != null) return createdAt.millisecondsSinceEpoch;
 
-    final periodDate = _resolvePeriodDate(tx);
-    if (periodDate != null) return periodDate.millisecondsSinceEpoch;
+    if (createdAt != null) {
+      return createdAt.millisecondsSinceEpoch;
+    }
 
     return 0;
   }
 
   DateTime? _resolvePeriodDate(TransactionItemModel tx) {
+    if (tx.periodYear != null &&
+        tx.periodMonth != null &&
+        tx.periodMonth! >= 1 &&
+        tx.periodMonth! <= 12) {
+      return DateTime(tx.periodYear!, tx.periodMonth!);
+    }
+
     final source = '${tx.periodId ?? ''} ${tx.description ?? ''}';
 
     final numericMatch = RegExp(r'(\d{4})[-_/](\d{1,2})').firstMatch(source);
+
     if (numericMatch != null) {
       final year = int.tryParse(numericMatch.group(1)!);
       final month = int.tryParse(numericMatch.group(2)!);
+
       if (year != null && month != null && month >= 1 && month <= 12) {
         return DateTime(year, month);
       }
     }
 
-    final yearMatch = RegExp(r'(19|20)\d{2}').firstMatch(source);
-    final year = yearMatch == null ? null : int.tryParse(yearMatch.group(0)!);
-    if (year == null) return null;
-
-    const months = [
-      'januari',
-      'februari',
-      'maret',
-      'april',
-      'mei',
-      'juni',
-      'juli',
-      'agustus',
-      'september',
-      'oktober',
-      'november',
-      'desember',
-    ];
-    final lowerSource = source.toLowerCase();
-    for (var i = 0; i < months.length; i++) {
-      if (lowerSource.contains(months[i])) {
-        return DateTime(year, i + 1);
-      }
-    }
-
-    return DateTime(year);
+    return null;
   }
 }
