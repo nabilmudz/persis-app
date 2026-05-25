@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/app/routes.dart';
-import 'package:intl/intl.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
@@ -103,7 +102,7 @@ class _PjInvoiceViewPageState extends State<PjInvoiceViewPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Invoice berhasil dibuat',
+                              'Transaksi terakhir',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -175,17 +174,17 @@ class _PjInvoiceViewPageState extends State<PjInvoiceViewPage> {
                         title: 'Rincian Iuran',
                         child: Column(
                           children: [
-                            for (
-                              var index = 0;
-                              index < _controller.invoiceData.items.length;
-                              index++
-                            ) ...[
-                              _InvoiceLineItemTile(
-                                item: _controller.invoiceData.items[index],
+                            // Per-item breakdown (bulan yang dibayar)
+                            if (_controller.invoiceData.items.isNotEmpty) ...[
+                              ..._controller.invoiceData.items.map(
+                                (item) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: _InvoiceRow(
+                                    label: item.label,
+                                    value: formatRupiah(item.amount),
+                                  ),
+                                ),
                               ),
-                              if (index !=
-                                  _controller.invoiceData.items.length - 1)
-                                const SizedBox(height: 12),
                             ],
                             const Divider(height: 28),
                             Row(

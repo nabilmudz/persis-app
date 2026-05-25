@@ -98,16 +98,50 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     }
 
     if (mounted) {
-      final localTransactions = widget.controller.transactions.where((t) {
-        if (t.createdAt == null) return false;
-        try {
-          final date = DateTime.parse(t.createdAt!);
-          return date.year == _selectedMonth.year &&
-              date.month == _selectedMonth.month;
-        } catch (_) {
-          return false;
+      final List<TransactionModel> localTransactions = [];
+      for (final t in widget.controller.transactions) {
+        final items = t.items ?? [];
+        if (items.isNotEmpty) {
+          for (final item in items) {
+            final periodStr = item.periodId ?? '';
+            final parts = periodStr.split('-');
+            bool matches = false;
+            if (parts.length >= 2) {
+              final y = int.tryParse(parts[0]);
+              final m = int.tryParse(parts[1]);
+              if (y == _selectedMonth.year && m == _selectedMonth.month) {
+                matches = true;
+              }
+            } else {
+              if (t.createdAt != null) {
+                try {
+                  final date = DateTime.parse(t.createdAt!);
+                  if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                    matches = true;
+                  }
+                } catch (_) {}
+              }
+            }
+
+            if (matches) {
+              localTransactions.add(t.copyWith(
+                totalAmount: item.amount ?? 20000,
+              ));
+            }
+          }
+        } else {
+          if (t.createdAt != null) {
+            try {
+              final date = DateTime.parse(t.createdAt!);
+              if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                localTransactions.add(t.copyWith(
+                  totalAmount: 20000,
+                ));
+              }
+            } catch (_) {}
+          }
         }
-      }).toList();
+      }
 
       setState(() {
         _monthlyTransactions = localTransactions;
@@ -220,21 +254,51 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
           '✓ API Export: ${exportData.length} transaksi diterima dari server',
         );
       } else {
-        final allTransactionsMonth = widget.controller.transactions.where((
-          transaction,
-        ) {
-          if (transaction.createdAt == null) return false;
-          try {
-            final transactionDate = DateTime.parse(transaction.createdAt!);
-            final isSameMonth =
-                transactionDate.year == _selectedMonth.year &&
-                transactionDate.month == _selectedMonth.month;
-            return isSameMonth;
-          } catch (e) {
-            return false;
+        final List<TransactionModel> fallbackList = [];
+        for (final t in widget.controller.transactions) {
+          final items = t.items ?? [];
+          if (items.isNotEmpty) {
+            for (final item in items) {
+              final periodStr = item.periodId ?? '';
+              final parts = periodStr.split('-');
+              bool matches = false;
+              if (parts.length >= 2) {
+                final y = int.tryParse(parts[0]);
+                final m = int.tryParse(parts[1]);
+                if (y == _selectedMonth.year && m == _selectedMonth.month) {
+                  matches = true;
+                }
+              } else {
+                if (t.createdAt != null) {
+                  try {
+                    final date = DateTime.parse(t.createdAt!);
+                    if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                      matches = true;
+                    }
+                  } catch (_) {}
+                }
+              }
+
+              if (matches) {
+                fallbackList.add(t.copyWith(
+                  totalAmount: item.amount ?? 20000,
+                ));
+              }
+            }
+          } else {
+            if (t.createdAt != null) {
+              try {
+                final date = DateTime.parse(t.createdAt!);
+                if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                  fallbackList.add(t.copyWith(
+                    totalAmount: 20000,
+                  ));
+                }
+              } catch (_) {}
+            }
           }
-        }).toList();
-        exportData = allTransactionsMonth;
+        }
+        exportData = fallbackList;
         debugPrint(
           '⚠ Fallback: ${exportData.length} transaksi dari data lokal',
         );
