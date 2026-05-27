@@ -32,6 +32,7 @@ class PcLaporanController extends ChangeNotifier {
       );
 
       if (result != null && result['url'] != null) {
+        debugPrint('📥 Export result: URL returned');
         String urlString = result['url'];
         if (!urlString.startsWith('http')) {
           final baseUrl = ApiClient.baseUrl.endsWith('/')
@@ -48,6 +49,7 @@ class PcLaporanController extends ChangeNotifier {
         }
       } else if (result != null && result['data'] != null) {
         final dataCount = (result['data'] as List?)?.length ?? 0;
+        debugPrint('📥 Export result: $dataCount items data returned');
         return result;
       } else if (result != null && result['message'] != null) {
         _errorMessage = result['message'];

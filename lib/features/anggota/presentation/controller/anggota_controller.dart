@@ -120,16 +120,6 @@ class AnggotaController extends ChangeNotifier {
     return items.take(3).toList();
   }
 
-  int _sortValue(TransactionItemModel tx) {
-    final createdAt = DateTime.tryParse(tx.createdAt ?? '');
-
-    if (createdAt != null) {
-      return createdAt.millisecondsSinceEpoch;
-    }
-
-    return 0;
-  }
-
   DateTime? _resolvePeriodDate(TransactionItemModel tx) {
     if (tx.periodYear != null &&
         tx.periodMonth != null &&
