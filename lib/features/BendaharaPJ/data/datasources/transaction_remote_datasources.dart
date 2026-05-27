@@ -174,41 +174,33 @@ class TransactionRemoteDataSource {
                 final tx = Map<String, dynamic>.from(item);
                 final txStatus = tx['status']?.toString() ?? '';
 
-                return <String, dynamic>{
-                  '_id':
-                      tx['_id']?.toString() ?? tx['transaction_id']?.toString(),
-                  'type': tx['type']?.toString() ?? type ?? 'tunai',
-                  'creator_id': tx['creator_id']?.toString(),
-                  'total_amount': (tx['total_amount'] as num?)?.toInt() ?? 0,
-                  'status': txStatus,
-                  'acc_status':
-                      tx['acc_status']?.toString() ??
-                      (txStatus == 'completed' ? 'acc_pj' : ''),
-                  'member_name': tx['member_name']?.toString(),
-                  'npa': tx['npa']?.toString(),
-                  'created_at':
-                      tx['created_at']?.toString() ??
-                      tx['createdAt']?.toString(),
-                  'items': [
-                    {
-                      'anggota_id': tx['creator_id']?.toString(),
-                      'transaction_id':
-                          tx['transaction_id']?.toString() ??
-                          tx['_id']?.toString(),
-                      'period_id':
-                          '${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
-                      'status':
-                          tx['item_status']?.toString() ??
-                          tx['status']?.toString(),
-                      'amount': (tx['total_amount'] as num?)?.toInt() ?? 0,
-                      'description':
-                          'Iuran ${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
-                    },
-                  ],
-                };
-              })
-              .where((e) => e.isNotEmpty)
-              .toList();
+            return <String, dynamic>{
+              '_id': tx['_id']?.toString() ?? tx['transaction_id']?.toString(),
+              'type': tx['type']?.toString() ?? type ?? 'tunai',
+              'creator_id': tx['creator_id']?.toString(),
+              'total_amount': (tx['amount'] as num?)?.toInt() ?? (tx['item_amount'] as num?)?.toInt() ?? 20000,
+              'status': txStatus,
+              // Pastikan acc_status terisi agar lolos filter UI
+              'acc_status': tx['acc_status']?.toString() ??
+                  (txStatus == 'completed' ? 'acc_pj' : ''),
+              'member_name': tx['member_name']?.toString(),
+              'npa': tx['npa']?.toString(),
+              'created_at': tx['created_at']?.toString() ?? tx['createdAt']?.toString(),
+              // Bangun items dari field period_month/period_year di response
+              'items': [
+                {
+                  'anggota_id': tx['creator_id']?.toString(),
+                  'transaction_id': tx['transaction_id']?.toString() ?? tx['_id']?.toString(),
+                  'period_id':
+                      '${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
+                  'status': tx['item_status']?.toString() ?? tx['status']?.toString(),
+                  'amount': (tx['amount'] as num?)?.toInt() ?? (tx['item_amount'] as num?)?.toInt() ?? 20000,
+                  'description':
+                      'Iuran ${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
+                }
+              ],
+            };
+          }).where((e) => e.isNotEmpty).toList();
 
           debugPrint(
             '📊 exportTransactions: ${txList.length} transaksi untuk bulan=$month/$year',

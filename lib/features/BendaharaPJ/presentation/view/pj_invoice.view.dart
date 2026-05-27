@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/app/routes.dart';
-import 'package:intl/intl.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
@@ -103,7 +102,7 @@ class _PjInvoiceViewPageState extends State<PjInvoiceViewPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Invoice berhasil dibuat',
+                              'Transaksi terakhir',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -175,17 +174,17 @@ class _PjInvoiceViewPageState extends State<PjInvoiceViewPage> {
                         title: 'Rincian Iuran',
                         child: Column(
                           children: [
-                            for (
-                              var index = 0;
-                              index < _controller.invoiceData.items.length;
-                              index++
-                            ) ...[
-                              _InvoiceLineItemTile(
-                                item: _controller.invoiceData.items[index],
+                            // Per-item breakdown (bulan yang dibayar)
+                            if (_controller.invoiceData.items.isNotEmpty) ...[
+                              ..._controller.invoiceData.items.map(
+                                (item) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: _InvoiceRow(
+                                    label: item.label,
+                                    value: formatRupiah(item.amount),
+                                  ),
+                                ),
                               ),
-                              if (index !=
-                                  _controller.invoiceData.items.length - 1)
-                                const SizedBox(height: 12),
                             ],
                             const Divider(height: 28),
                             Row(
@@ -415,103 +414,4 @@ class _InvoiceRow extends StatelessWidget {
       ],
     );
   }
-}
-
-class _InvoiceLineItemTile extends StatelessWidget {
-  const _InvoiceLineItemTile({required this.item});
-
-  final PjInvoiceLineItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final amount = NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    ).format(item.amount);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FBFC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE4EEF0)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0C844C).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.receipt_long_rounded,
-              color: Color(0xFF0C844C),
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.label,
-                  style: const TextStyle(
-                    color: Color(0xFF073D4D),
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${_monthName(item.month)} ${item.year}',
-                  style: const TextStyle(
-                    color: Color(0xFF6A6A6A),
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            amount,
-            style: const TextStyle(
-              color: Color(0xFF1B1B1B),
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-String _monthName(int month) {
-  const monthNames = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
-  ];
-
-  if (month < 1 || month > 12) {
-    return '-';
-  }
-
-  return monthNames[month - 1];
 }

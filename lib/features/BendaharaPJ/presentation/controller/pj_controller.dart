@@ -8,6 +8,7 @@ import 'package:persis_app/core/storage/secure_storage_service.dart';
 import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_invoice_controller.dart';
 import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/anggota/data/models/user_model.dart';
@@ -43,6 +44,15 @@ class PjController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void cacheLastInvoice(String memberId, PjInvoiceData invoice) {
+    _lastInvoiceCache[memberId] = invoice;
+    notifyListeners();
+  }
+
+  PjInvoiceData? getLastInvoiceCache(String memberId) {
+    return _lastInvoiceCache[memberId];
+  }
+
   static const String _cacheBoxName = 'pj_data_cache';
 
   static Future<void> initCache() async {
@@ -60,6 +70,8 @@ class PjController extends ChangeNotifier {
   final List<UserModel> _members = [];
   final List<TransactionModel> _transactions = [];
   late final PjHiveController _hiveController;
+
+  final Map<String, PjInvoiceData> _lastInvoiceCache = {};
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -584,11 +596,9 @@ class PjController extends ChangeNotifier {
     if (anggotaId.isEmpty) return null;
 
     final memberTxs = _transactions.where((tx) {
-      final hasItemForMember =
-          tx.items?.any(
-            (item) => (item.anggotaId?.toString() ?? '') == anggotaId,
-          ) ??
-          false;
+      final hasItemForMember = tx.items?.any((item) =>
+        (item.anggotaId?.toString() ?? '') == anggotaId
+      ) ?? false;
       if (hasItemForMember) return true;
       if ((tx.creatorId?.toString() ?? '') == anggotaId) return true;
 
@@ -596,13 +606,36 @@ class PjController extends ChangeNotifier {
     }).toList();
 
     if (memberTxs.isEmpty) return null;
+    final realTxs = <TransactionModel>[];
+    final snapshotTxs = <TransactionModel>[];
 
-    memberTxs.sort((a, b) {
-      final aDate = DateTime.tryParse(a.createdAt ?? '') ?? DateTime(1900);
-      final bDate = DateTime.tryParse(b.createdAt ?? '') ?? DateTime(1900);
-      return bDate.compareTo(aDate);
-    });
+    for (final tx in memberTxs) {
+      final id = tx.id ?? '';
+      if (id.startsWith('snapshot-')) {
+        snapshotTxs.add(tx);
+      } else {
+        realTxs.add(tx);
+      }
+    }
 
-    return memberTxs.first;
+    void sortByDateDesc(List<TransactionModel> list) {
+      list.sort((a, b) {
+        final aDate = DateTime.tryParse(a.createdAt ?? '') ?? DateTime(1900);
+        final bDate = DateTime.tryParse(b.createdAt ?? '') ?? DateTime(1900);
+        return bDate.compareTo(aDate);
+      });
+    }
+
+    if (realTxs.isNotEmpty) {
+      sortByDateDesc(realTxs);
+      return realTxs.first;
+    }
+
+    if (snapshotTxs.isNotEmpty) {
+      sortByDateDesc(snapshotTxs);
+      return snapshotTxs.first;
+    }
+
+    return null;
   }
 }
