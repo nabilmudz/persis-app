@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:persis_app/app/routes.dart';
 import 'package:intl/intl.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
-import '../../../data/models/transaction_model.dart';
-import 'pj_transfer_detail_view.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/laporan/pj_transfer_detail_view.dart';
 
 class PjRecapDetailViewPage extends StatelessWidget {
   final String title;
@@ -12,6 +13,7 @@ class PjRecapDetailViewPage extends StatelessWidget {
   final int year;
   final String monthLabel;
   final String Function(TransactionModel) getMemberName;
+  final PjController controller;
 
   const PjRecapDetailViewPage({
     super.key,
@@ -21,6 +23,7 @@ class PjRecapDetailViewPage extends StatelessWidget {
     required this.year,
     required this.monthLabel,
     required this.getMemberName,
+    required this.controller,
   });
 
   String _formatCurrency(int? amount) {
@@ -180,6 +183,7 @@ class PjRecapDetailViewPage extends StatelessWidget {
                 return _DetailedTransactionCard(
                   transaction: transaction,
                   memberName: memberName,
+                  controller: controller,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -187,6 +191,7 @@ class PjRecapDetailViewPage extends StatelessWidget {
                         builder: (_) => TransferDetailPage(
                           transaction: transaction,
                           memberName: memberName,
+                          controller: controller,
                         ),
                       ),
                     );
@@ -276,11 +281,13 @@ class _DetailedTransactionCard extends StatelessWidget {
   final TransactionModel transaction;
   final String memberName;
   final VoidCallback onTap;
+  final PjController controller;
 
   const _DetailedTransactionCard({
     required this.transaction,
     required this.memberName,
     required this.onTap,
+    required this.controller,
   });
 
   String _formatCurrency(int? amount) {
@@ -411,7 +418,7 @@ class _DetailedTransactionCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      transaction.verifiedBy ?? '-',
+                      controller.lookupMemberName(transaction.accBy ?? transaction.verifiedBy),
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,

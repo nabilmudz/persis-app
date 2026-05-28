@@ -7,10 +7,10 @@ import 'package:persis_app/app/routes.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
-import '../../controller/pj_controller.dart';
-import '../../controller/pj_laporan_controller.dart';
-import '../../../data/models/transaction_model.dart';
-import 'pj_recap_detail_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_laporan_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/laporan/pj_recap_detail_view.dart';
 
 class PjPaymentDataViewPage extends StatefulWidget {
   final PjController controller;
@@ -213,24 +213,38 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
   }
 
   String _getMemberName(TransactionModel transaction) {
-    // 1. Coba ambil langsung dari field memberName (member_name) hasil API
+    // 1. Coba dari root anggotaId
+    final rootAnggotaId = transaction.anggotaId;
+    if (rootAnggotaId != null && rootAnggotaId.isNotEmpty) {
+      try {
+        final member = widget.controller.members.firstWhere(
+          (m) => m.id == rootAnggotaId,
+        );
+        final name = widget.controller.memberDisplayName(member);
+        if (name.isNotEmpty) return name;
+      } catch (_) {}
+    }
+
+    // 2. Coba ambil dari list members controller jika data item ada terlebih dahulu
+    if (transaction.items != null && transaction.items!.isNotEmpty) {
+      final anggotaId = transaction.items!.first.anggotaId;
+      if (anggotaId != null && anggotaId.isNotEmpty) {
+        try {
+          final member = widget.controller.members.firstWhere(
+            (m) => m.id == anggotaId,
+          );
+          final name = widget.controller.memberDisplayName(member);
+          if (name.isNotEmpty) return name;
+        } catch (_) {}
+      }
+    }
+
+    // 3. Coba ambil langsung dari field memberName (member_name) hasil API
     if (transaction.memberName != null && transaction.memberName!.isNotEmpty) {
       return transaction.memberName!;
     }
 
-    // 2. Fallback: Cari dari list members controller jika data item ada
-    if (transaction.items == null || transaction.items!.isEmpty) return '-';
-    final anggotaId = transaction.items!.first.anggotaId;
-    if (anggotaId == null) return '-';
-
-    try {
-      final member = widget.controller.members.firstWhere(
-        (m) => m.id == anggotaId,
-      );
-      return widget.controller.memberDisplayName(member);
-    } catch (_) {
-      return 'Member Tidak Dikenal';
-    }
+    return 'Member Tidak Dikenal';
   }
 
   void _exportExcel() async {
@@ -373,7 +387,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         final dariHingga = monthLabel;
 
         // Di ACC oleh
-        final diAccOleh = t.verifiedBy ?? '-';
+        final diAccOleh = widget.controller.lookupMemberName(t.accBy ?? t.verifiedBy);
 
         // Hitung pembagian
         final pj = (amount * 30) ~/ 100;
@@ -607,6 +621,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                                 transaction: recapTransaction,
                                 isRecap: true,
                                 memberName: '-',
+                                controller: widget.controller,
                                 onTap: () {
                                   Navigator.push(
                                     context,
@@ -621,6 +636,7 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                                           'id_ID',
                                         ).format(_selectedMonth),
                                         getMemberName: _getMemberName,
+                                        controller: widget.controller,
                                       ),
                                     ),
                                   );
@@ -937,10 +953,12 @@ class _PaymentDataCard extends StatelessWidget {
   final String memberName;
   final VoidCallback? onTap;
   final bool isRecap;
+  final PjController controller;
 
   const _PaymentDataCard({
     required this.transaction,
     required this.memberName,
+    required this.controller,
     this.onTap,
     this.isRecap = false,
   });
@@ -1207,8 +1225,8 @@ class _PaymentDataCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          transaction.verifiedBy ?? '-',
+                         Text(
+                          controller.lookupMemberName(transaction.accBy ?? transaction.verifiedBy),
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,

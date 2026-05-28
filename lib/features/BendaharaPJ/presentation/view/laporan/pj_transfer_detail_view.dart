@@ -3,15 +3,18 @@ import 'package:persis_app/app/routes.dart';
 import 'package:intl/intl.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
 
 class TransferDetailPage extends StatelessWidget {
   final TransactionModel transaction;
   final String memberName;
+  final PjController controller;
 
   const TransferDetailPage({
     super.key,
     required this.transaction,
     required this.memberName,
+    required this.controller,
   });
 
   String _formatCurrency(int? amount) {
@@ -120,7 +123,7 @@ class TransferDetailPage extends StatelessWidget {
                   ),
                   _InfoRow(
                     label: 'Diverifikasi Oleh',
-                    value: transaction.verifiedBy ?? '-',
+                    value: controller.lookupMemberName(transaction.accBy ?? transaction.verifiedBy),
                   ),
                   _InfoRow(
                     label: 'Total',

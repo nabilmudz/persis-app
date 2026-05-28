@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:persis_app/features/BendaharaPJ/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
-import '../../controller/pj_controller.dart';
-import '../../controller/pj_laporan_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_laporan_controller.dart';
+import 'package:persis_app/helpers/auth_helper.dart';
 
 class PjLogTransaksiView extends StatefulWidget {
   final PjController controller;
@@ -54,11 +57,27 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
     setState(() => _isLoading = true);
 
     try {
-      // Selalu ambil dari controller terlebih dahulu (data history terlengkap)
-      final txFromController = widget.controller.transactions.toList();
+      final dataSource = TransactionRemoteDataSource();
+      final monthParam = _filterByMonth ? _selectedMonth.month : 0;
+      final yearParam = _selectedMonth.year;
+
+      final creatorId = await AuthHelper.getUserId() ?? '';
+      final regionId = await AuthHelper.getRegionId() ?? '';
+
+      final txList = await dataSource.getLogTransactions(
+        creatorId: creatorId,
+        year: yearParam,
+        regionId: regionId,
+        month: monthParam,
+      );
+
+      debugPrint(
+        '[PjLogTransaksi] Loaded ${txList.length} transaksi dari API untuk monthParam=$monthParam, yearParam=$yearParam',
+      );
+
       if (mounted) {
         setState(() {
-          _allTransactions = txFromController;
+          _allTransactions = txList;
           _isLoading = false;
         });
       }
@@ -66,7 +85,7 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
       debugPrint('[PjLogTransaksi] Error: $e');
       if (mounted) {
         setState(() {
-          _allTransactions = widget.controller.transactions.toList();
+          _allTransactions = [];
           _isLoading = false;
         });
       }
@@ -82,7 +101,7 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
         accStatus == 'approved';
   }
 
-  /// Cek apakah createdAt jatuh pada bulan & tahun yang dipilih
+  /// Filter berdasarkan created_at sesuai bulan yang dipilih
   bool _matchesSelectedMonth(TransactionModel tx) {
     if (tx.createdAt == null) return false;
     try {
@@ -94,7 +113,8 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
     }
   }
 
-  /// Daftar transaksi yang sudah lunas dan sesuai filter bulan (createdAt)
+
+  /// Daftar transaksi yang sudah lunas, difilter per bulan dari created_at
   List<TransactionModel> get _filteredTransactions {
     return _allTransactions.where((tx) {
       if (!_isLunas(tx)) return false;
@@ -102,10 +122,8 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
       return true;
     }).toList()
       ..sort((a, b) {
-        final aDate =
-            DateTime.tryParse(a.createdAt ?? '') ?? DateTime(1900);
-        final bDate =
-            DateTime.tryParse(b.createdAt ?? '') ?? DateTime(1900);
+        final aDate = DateTime.tryParse(a.createdAt ?? '') ?? DateTime(1900);
+        final bDate = DateTime.tryParse(b.createdAt ?? '') ?? DateTime(1900);
         return bDate.compareTo(aDate);
       });
   }
@@ -113,51 +131,24 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   String _getMemberName(TransactionModel tx) {
-    // 1. Field memberName langsung dari API
-    if (tx.memberName != null && tx.memberName!.trim().isNotEmpty) {
+    if (tx.memberName?.trim().isNotEmpty == true) {
       return tx.memberName!.trim();
     }
-    // 2. Cari dari daftar anggota via anggotaId di item pertama
     final items = tx.items ?? [];
-    if (items.isNotEmpty) {
-      final anggotaId = items.first.anggotaId;
-      if (anggotaId != null && anggotaId.isNotEmpty) {
-        try {
-          final member = widget.controller.members.firstWhere(
-            (m) => m.id == anggotaId,
-          );
-          final name = widget.controller.memberDisplayName(member);
-          if (name.isNotEmpty) return name;
-        } catch (_) {}
-      }
-    }
-    // 3. Cari via creatorId
-    final creatorId = tx.creatorId;
-    if (creatorId != null && creatorId.isNotEmpty) {
-      try {
-        final member = widget.controller.members.firstWhere(
-          (m) => m.id == creatorId,
-        );
-        final name = widget.controller.memberDisplayName(member);
-        if (name.isNotEmpty) return name;
-      } catch (_) {}
+    if (items.isNotEmpty &&
+        items.first.memberName?.trim().isNotEmpty == true) {
+      return items.first.memberName!.trim();
     }
     return '-';
   }
 
   String _getNpa(TransactionModel tx) {
-    if (tx.npa != null && tx.npa!.trim().isNotEmpty) return tx.npa!.trim();
+    if (tx.npa?.trim().isNotEmpty == true) {
+      return tx.npa!.trim();
+    }
     final items = tx.items ?? [];
-    if (items.isNotEmpty) {
-      final anggotaId = items.first.anggotaId;
-      if (anggotaId != null) {
-        try {
-          final member = widget.controller.members.firstWhere(
-            (m) => m.id == anggotaId,
-          );
-          return member.npa?.trim() ?? '';
-        } catch (_) {}
-      }
+    if (items.isNotEmpty && items.first.npa?.trim().isNotEmpty == true) {
+      return items.first.npa!.trim();
     }
     return '';
   }
@@ -246,7 +237,7 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
         _selectedMonth = DateTime(picked.year, picked.month);
         _filterByMonth = true;
       });
-      // Data sudah ada di controller, cukup rebuild
+      _loadData();
     }
   }
 
@@ -305,6 +296,7 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
                               paidMonths: _getPaidMonths(tx),
                               formatCurrency: _formatCurrency,
                               formatDate: _formatDate,
+                              controller: widget.controller,
                             );
                           },
                         ),
@@ -332,7 +324,13 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
             label: 'Semua',
             isSelected: !_filterByMonth,
             onTap: () {
-              if (_filterByMonth) setState(() => _filterByMonth = false);
+              if (_filterByMonth) {
+                setState(() {
+                  _filterByMonth = false;
+                  _selectedMonth = DateTime.now();
+                });
+                _loadData();
+              }
             },
           ),
           const SizedBox(width: 8),
@@ -586,6 +584,7 @@ class _TransaksiCard extends StatelessWidget {
     required this.paidMonths,
     required this.formatCurrency,
     required this.formatDate,
+    required this.controller,
   });
 
   final TransactionModel transaction;
@@ -594,6 +593,7 @@ class _TransaksiCard extends StatelessWidget {
   final List<String> paidMonths;
   final String Function(int?) formatCurrency;
   final String Function(String?) formatDate;
+  final PjController controller;
 
   Color get _statusColor {
     final s = (transaction.status ?? '').toLowerCase();
@@ -711,6 +711,37 @@ class _TransaksiCard extends StatelessWidget {
                 ),
                 Text(
                   tanggalBayar,
+                  style: const TextStyle(
+                    color: Color(0xFF374151),
+                    fontSize: 12,
+                    fontFamily: 'Poppins',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            // ── Di ACC oleh ──────────────────────────────────
+            Row(
+              children: [
+                const Icon(
+                  Icons.admin_panel_settings_outlined,
+                  size: 13,
+                  color: Color(0xFF9CA3AF),
+                ),
+                const SizedBox(width: 6),
+                const Text(
+                  'Di ACC oleh: ',
+                  style: TextStyle(
+                    color: Color(0xFF9CA3AF),
+                    fontSize: 11,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+                Text(
+                  controller.lookupMemberName(transaction.accBy ?? transaction.verifiedBy),
                   style: const TextStyle(
                     color: Color(0xFF374151),
                     fontSize: 12,

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
-import '../../controller/pj_verif_non_tunai_controller.dart';
-import '../../../../BendaharaPC/presentation/controller/pc_controller.dart';
-import '../../../../BendaharaPC/presentation/widgets/sweet_alert_dialog.dart';
-import '../../../../BendaharaPC/presentation/widgets/verifikasi_card.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_verif_non_tunai_controller.dart';
+import 'package:persis_app/features/BendaharaPC/presentation/controller/pc_controller.dart';
+import 'package:persis_app/features/BendaharaPC/presentation/widgets/sweet_alert_dialog.dart';
+import 'package:persis_app/features/BendaharaPC/presentation/widgets/verifikasi_card.dart';
 
 class PjVerifNonTunaiViewPage extends StatefulWidget {
   const PjVerifNonTunaiViewPage({super.key});

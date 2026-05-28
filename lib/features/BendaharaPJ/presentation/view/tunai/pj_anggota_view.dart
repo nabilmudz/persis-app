@@ -293,12 +293,16 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                                   PjDetailAnggotaView(member: member),
                             );
                           },
-                          onTapInvoice: _getLastInvoiceForMember(member) != null
-                              ? () async {
-                                  var invoiceData = _getLastInvoiceForMember(
-                                    member,
-                                  );
-                                  if (invoiceData == null) return;
+                          onTapInvoice: () async {
+                                  var invoiceData = _getLastInvoiceForMember(member);
+                                  if (invoiceData == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Anggota belum memiliki riwayat transaksi/invoice.'),
+                                      ),
+                                    );
+                                    return;
+                                  }
 
                                   // Fetch complete member if phone is missing
                                   if ((invoiceData.member.noHp == null ||
@@ -309,7 +313,9 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                                         ApiClient.baseUrl,
                                       );
                                       final fetchedUser = await userRemote
-                                          .getOneUsers(invoiceData.member.id!);
+                                          .getOneUsers(
+                                        invoiceData.member.id!,
+                                      );
                                       if (fetchedUser.noHp != null &&
                                           fetchedUser.noHp!.isNotEmpty) {
                                         invoiceData = invoiceData.copyWith(
@@ -319,7 +325,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                                     } catch (_) {}
                                   }
 
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
@@ -328,8 +334,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                                       ),
                                     ),
                                   );
-                                }
-                              : null,
+                                },
                         ),
                       );
                     }),
@@ -449,6 +454,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
         historyInvoice = PjInvoiceData.fromTransaction(
           member: member,
           transaction: lastHistoryTx,
+          accByName: widget.controller.lookupMemberName(lastHistoryTx.accBy ?? lastHistoryTx.verifiedBy),
         );
       }
     } catch (e) {
@@ -532,6 +538,7 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
                 '',
           ) ??
           DateTime.now(),
+      accByName: widget.controller.lookupMemberName(transaction.accBy ?? transaction.verifiedBy),
     );
   }
 
