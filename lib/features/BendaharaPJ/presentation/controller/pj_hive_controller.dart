@@ -227,14 +227,23 @@ class PjHiveController extends ChangeNotifier {
     TransactionItemModel item,
     TransactionRemoteDataSource remoteDataSource,
   ) async {
-    final currentPeriodId = (item.periodId ?? item.duesPeriodId ?? '').trim();
-    if (_looksLikeBackendId(currentPeriodId)) {
+    // 1. Cek apakah duesPeriodId atau periodId sudah merupakan MongoDB ID yang valid
+    final dId = (item.duesPeriodId ?? '').trim();
+    if (_looksLikeBackendId(dId)) {
       return item.copyWith(
-        periodId: currentPeriodId,
-        duesPeriodId: currentPeriodId,
+        periodId: dId,
+        duesPeriodId: dId,
+      );
+    }
+    final pId = (item.periodId ?? '').trim();
+    if (_looksLikeBackendId(pId)) {
+      return item.copyWith(
+        periodId: pId,
+        duesPeriodId: pId,
       );
     }
 
+    // 2. Jika tidak, coba resolve dari cache berdasarkan bulan & tahun
     final parsed = _parseMonthYearFromItem(item);
     if (parsed != null) {
       final cachedPeriodId = PjTransactionItemController.getCachedPeriodId(

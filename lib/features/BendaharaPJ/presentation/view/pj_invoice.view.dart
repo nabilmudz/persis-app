@@ -166,6 +166,14 @@ class _PjInvoiceViewPageState extends State<PjInvoiceViewPage> {
                               label: 'Status',
                               value: _controller.invoiceData.statusLabel,
                             ),
+                            const SizedBox(height: 10),
+                            _InvoiceRow(
+                              label: 'Di ACC oleh',
+                              value: (() {
+                                final acc = (_controller.invoiceData.accByName ?? _controller.invoiceData.transaction.accBy ?? _controller.invoiceData.transaction.verifiedBy ?? '').trim();
+                                return (acc.isEmpty || acc == '-') ? 'Bendahara PJ' : acc;
+                              })(),
+                            ),
                           ],
                         ),
                       ),

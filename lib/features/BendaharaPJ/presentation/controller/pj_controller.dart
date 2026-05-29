@@ -638,4 +638,14 @@ class PjController extends ChangeNotifier {
 
     return null;
   }
+
+  String lookupMemberName(String? id) {
+    if (id == null || id.trim().isEmpty || id.trim() == '-') return 'Bendahara PJ';
+    try {
+      final member = _members.firstWhere((m) => m.id == id.trim());
+      final name = member.fullname?.trim() ?? member.name?.trim() ?? '';
+      if (name.isNotEmpty) return name;
+    } catch (_) {}
+    return id.trim();
+  }
 }

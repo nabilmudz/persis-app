@@ -5,11 +5,11 @@ import 'package:persis_app/features/BendaharaPJ/presentation/view/anggota/riwaya
 import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
-import '../controller/pj_controller.dart';
-import 'anggota/pj_anggota_view.dart';
-import 'tunai/pending_transaction_view.dart';
-import 'non-tunai/pj_verif_non_tunai_view.dart';
-import '../widgets/bendahara_shared_cards.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_controller.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/anggota/pj_anggota_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/tunai/pending_transaction_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/view/non-tunai/pj_verif_non_tunai_view.dart';
+import 'package:persis_app/features/BendaharaPJ/presentation/widgets/bendahara_shared_cards.dart';
 
 class PjViewPage extends StatefulWidget {
   const PjViewPage({super.key});
@@ -112,14 +112,16 @@ class _PjViewPageState extends State<PjViewPage> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: BendaharaMenuCard(
-                        title: 'Bayar Iuran',
-                        icon: Icons.paid_outlined,
-                        iconBackgroundColor: const Color(0xFFFFFBEA),
+                        title: 'Log Transaksi',
+                        icon: Icons.receipt_long_outlined,
+                        iconBackgroundColor: const Color(0xFFE8F5EE),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const PjVerifNonTunaiViewPage(),
+                              builder: (_) => PjLogTransaksiView(
+                                controller: _controller,
+                              ),
                             ),
                           );
                         },
@@ -166,31 +168,6 @@ class _PjViewPageState extends State<PjViewPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // ── Row: Log Transaksi ──
-                Row(
-                  children: [
-                    Expanded(
-                      child: BendaharaMenuCard(
-                        title: 'Log Transaksi',
-                        icon: Icons.receipt_long_outlined,
-                        iconBackgroundColor: const Color(0xFFE8F5EE),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PjLogTransaksiView(
-                                controller: _controller,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(child: SizedBox()),
-                  ],
-                ),
-                const SizedBox(height: 12),
               ],
             ),
           );

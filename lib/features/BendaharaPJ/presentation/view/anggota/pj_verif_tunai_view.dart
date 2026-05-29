@@ -285,6 +285,7 @@ class _PjVerifTunaiViewPageState extends State<PjVerifTunaiViewPage> {
         final invoiceData = PjInvoiceData.fromCreationResult(
           member: completeMember,
           result: invoiceResult,
+          accByName: widget.controller.lookupMemberName(invoiceResult.transaction.accBy ?? invoiceResult.transaction.verifiedBy),
         );
 
         // Simpan ke controller cache agar tombol "Lihat Invoice" di kartu anggota

@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:persis_app/core/network/api_client.dart';
 import 'package:persis_app/core/storage/secure_storage_service.dart';
-import '../models/transaction_item_detail_model.dart';
-import '../models/transaction_model.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_item_detail_model.dart';
+import 'package:persis_app/features/BendaharaPJ/data/models/transaction_model.dart';
 
 class TransactionRemoteDataSource {
   Map<String, dynamic> _buildCreatePayload(TransactionModel transaction) {
@@ -30,6 +30,13 @@ class TransactionRemoteDataSource {
     final items = (payload['items'] as List?)?.map((item) {
       final itemMap = Map<String, dynamic>.from(item as Map);
       itemMap.remove('status');
+
+      // Pastikan period_id adalah MongoDB ObjectId untuk backend
+      final duesPeriodId = itemMap['dues_period_id']?.toString().trim() ?? '';
+      if (RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(duesPeriodId)) {
+        itemMap['period_id'] = duesPeriodId;
+      }
+
       return itemMap;
     }).toList();
 
@@ -77,11 +84,65 @@ class TransactionRemoteDataSource {
     try {
       final response = await ApiClient.get('/transaction');
       if (response.statusCode == 200) {
-        List data = json.decode(response.body);
-        return data.map((e) => TransactionModel.fromJson(e)).toList();
+        final decoded = json.decode(response.body);
+        List? rawList;
+        if (decoded is List) {
+          rawList = decoded;
+        } else if (decoded is Map && decoded['data'] is List) {
+          rawList = decoded['data'] as List;
+        }
+        if (rawList != null) {
+          return rawList
+              .map(
+                (e) => TransactionModel.fromJson(
+                  Map<String, dynamic>.from(e as Map),
+                ),
+              )
+              .toList();
+        }
       }
       return <TransactionModel>[];
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('Error getHistory: $e');
+      debugPrint('Stacktrace: $stack');
+      return <TransactionModel>[];
+    }
+  }
+
+  // Ambil history transaksi yang terfilter untuk log
+  Future<List<TransactionModel>> getLogTransactions({
+    required String creatorId,
+    required int year,
+    required String regionId,
+    required int month,
+  }) async {
+    try {
+      String url =
+          '/transaction?creator_id=$creatorId&year=$year&region_id=$regionId&month=$month';
+      debugPrint('📡 getLogTransactions URL: $url');
+      final response = await ApiClient.get(url);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final decoded = json.decode(response.body);
+        List? rawList;
+        if (decoded is List) {
+          rawList = decoded;
+        } else if (decoded is Map && decoded['data'] is List) {
+          rawList = decoded['data'] as List;
+        }
+        if (rawList != null) {
+          return rawList
+              .map(
+                (e) => TransactionModel.fromJson(
+                  Map<String, dynamic>.from(e as Map),
+                ),
+              )
+              .toList();
+        }
+      }
+      return <TransactionModel>[];
+    } catch (e, stack) {
+      debugPrint('Error getLogTransactions: $e');
+      debugPrint('Stacktrace: $stack');
       return <TransactionModel>[];
     }
   }
@@ -92,17 +153,27 @@ class TransactionRemoteDataSource {
     try {
       final response = await ApiClient.get('/transaction-item/user/$userId');
       if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
-        return data
-            .map(
-              (e) => TransactionItemDetailModel.fromJson(
-                e as Map<String, dynamic>,
-              ),
-            )
-            .toList();
+        final decoded = json.decode(response.body);
+        List? rawList;
+        if (decoded is List) {
+          rawList = decoded;
+        } else if (decoded is Map && decoded['data'] is List) {
+          rawList = decoded['data'] as List;
+        }
+        if (rawList != null) {
+          return rawList
+              .map(
+                (e) => TransactionItemDetailModel.fromJson(
+                  Map<String, dynamic>.from(e as Map),
+                ),
+              )
+              .toList();
+        }
       }
       return <TransactionItemDetailModel>[];
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Error getTransactionItemsByUser: $e');
+      debugPrint('Stacktrace: $stack');
       return <TransactionItemDetailModel>[];
     }
   }
@@ -143,6 +214,90 @@ class TransactionRemoteDataSource {
     return null;
   }
 
+  /// Ambil semua data transaksi log tanpa filter bulan/tahun.
+  /// Endpoint: GET /transaction/export?region_id={regionId}
+  /// Filtering bulan dilakukan client-side berdasarkan created_at.
+  Future<List<TransactionModel>> fetchAllExportTransactions() async {
+    try {
+      final regionId = await _resolveRegionId();
+      String url = '/transaction/export';
+      if (regionId != null && regionId.isNotEmpty) {
+        url += '?region_id=$regionId';
+      }
+
+      debugPrint('📡 fetchAllExportTransactions URL: $url');
+
+      final response = await ApiClient.get(url);
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        debugPrint(
+          '⚠️ fetchAllExportTransactions: status ${response.statusCode}',
+        );
+        return [];
+      }
+
+      final decoded = json.decode(response.body);
+      final resultMap = decoded is Map<String, dynamic>
+          ? decoded
+          : Map<String, dynamic>.from(decoded as Map);
+
+      final rawData = resultMap['data'];
+      if (rawData is! List) return [];
+
+      final txList = <TransactionModel>[];
+      for (final item in rawData) {
+        if (item is! Map) continue;
+        final tx = Map<String, dynamic>.from(item);
+        final txStatus = tx['status']?.toString() ?? '';
+        txList.add(
+          TransactionModel.fromJson({
+            '_id': tx['_id']?.toString() ?? tx['transaction_id']?.toString(),
+            'type': tx['type']?.toString() ?? 'tunai',
+            'creator_id': tx['creator_id']?.toString(),
+            'total_amount':
+                (tx['total_amount'] as num?)?.toInt() ??
+                (tx['amount'] as num?)?.toInt() ??
+                20000,
+            'status': txStatus,
+            'acc_status':
+                tx['acc_status']?.toString() ??
+                (txStatus == 'completed' ? 'acc_pj' : ''),
+            'acc_by': tx['acc_by']?.toString(),
+            'member_name': tx['member_name']?.toString(),
+            'npa': tx['npa']?.toString(),
+            'created_at':
+                tx['created_at']?.toString() ?? tx['createdAt']?.toString(),
+            'items': [
+              {
+                'anggota_id': tx['creator_id']?.toString(),
+                'transaction_id':
+                    tx['transaction_id']?.toString() ?? tx['_id']?.toString(),
+                'period_id':
+                    '${tx['period_year']}-${(tx['period_month'] as int? ?? 1).toString().padLeft(2, '0')}',
+                'status': tx['item_status']?.toString() ?? txStatus,
+                'amount':
+                    (tx['total_amount'] as num?)?.toInt() ??
+                    (tx['amount'] as num?)?.toInt() ??
+                    20000,
+                'description':
+                    'Iuran ${tx['period_year']}-${(tx['period_month'] as int? ?? 1).toString().padLeft(2, '0')}',
+              },
+            ],
+          }),
+        );
+      }
+
+      debugPrint(
+        '[fetchAllExportTransactions] ${txList.length} transaksi dimuat',
+      );
+      return txList;
+    } catch (e) {
+      debugPrint('[fetchAllExportTransactions] Error: $e');
+      return [];
+    }
+  }
+
+  /// Ambil data transaksi laporan berdasarkan bulan, tahun, dan region.
+  /// Endpoint: GET /transaction/export?month={month}&year={year}&region_id={regionId}
   Future<Map<String, dynamic>?> exportTransactions(
     int month,
     int year, {
@@ -174,33 +329,50 @@ class TransactionRemoteDataSource {
                 final tx = Map<String, dynamic>.from(item);
                 final txStatus = tx['status']?.toString() ?? '';
 
-            return <String, dynamic>{
-              '_id': tx['_id']?.toString() ?? tx['transaction_id']?.toString(),
-              'type': tx['type']?.toString() ?? type ?? 'tunai',
-              'creator_id': tx['creator_id']?.toString(),
-              'total_amount': (tx['amount'] as num?)?.toInt() ?? (tx['item_amount'] as num?)?.toInt() ?? 20000,
-              'status': txStatus,
-              // Pastikan acc_status terisi agar lolos filter UI
-              'acc_status': tx['acc_status']?.toString() ??
-                  (txStatus == 'completed' ? 'acc_pj' : ''),
-              'member_name': tx['member_name']?.toString(),
-              'npa': tx['npa']?.toString(),
-              'created_at': tx['created_at']?.toString() ?? tx['createdAt']?.toString(),
-              // Bangun items dari field period_month/period_year di response
-              'items': [
-                {
-                  'anggota_id': tx['creator_id']?.toString(),
-                  'transaction_id': tx['transaction_id']?.toString() ?? tx['_id']?.toString(),
-                  'period_id':
-                      '${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
-                  'status': tx['item_status']?.toString() ?? tx['status']?.toString(),
-                  'amount': (tx['amount'] as num?)?.toInt() ?? (tx['item_amount'] as num?)?.toInt() ?? 20000,
-                  'description':
-                      'Iuran ${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
-                }
-              ],
-            };
-          }).where((e) => e.isNotEmpty).toList();
+                return <String, dynamic>{
+                  '_id':
+                      tx['_id']?.toString() ?? tx['transaction_id']?.toString(),
+                  'type': tx['type']?.toString() ?? type ?? 'tunai',
+                  'creator_id': tx['creator_id']?.toString(),
+                  'total_amount':
+                      (tx['total_amount'] as num?)?.toInt() ??
+                      (tx['amount'] as num?)?.toInt() ??
+                      (tx['item_amount'] as num?)?.toInt() ??
+                      20000,
+                  'status': txStatus,
+                  'acc_status':
+                      tx['acc_status']?.toString() ??
+                      (txStatus == 'completed' ? 'acc_pj' : ''),
+                  'acc_by': tx['acc_by']?.toString() ?? tx['accBy']?.toString(),
+                  'member_name': tx['member_name']?.toString(),
+                  'npa': tx['npa']?.toString(),
+                  'created_at':
+                      tx['created_at']?.toString() ??
+                      tx['createdAt']?.toString(),
+                  // Bangun items dari field period_month/period_year di response
+                  'items': [
+                    {
+                      'anggota_id': tx['creator_id']?.toString(),
+                      'transaction_id':
+                          tx['transaction_id']?.toString() ??
+                          tx['_id']?.toString(),
+                      'period_id':
+                          '${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
+                      'status':
+                          tx['item_status']?.toString() ??
+                          tx['status']?.toString(),
+                      'amount':
+                          (tx['amount'] as num?)?.toInt() ??
+                          (tx['item_amount'] as num?)?.toInt() ??
+                          20000,
+                      'description':
+                          'Iuran ${tx['period_year'] ?? year}-${(tx['period_month'] ?? month).toString().padLeft(2, '0')}',
+                    },
+                  ],
+                };
+              })
+              .where((e) => e.isNotEmpty)
+              .toList();
 
           debugPrint(
             '📊 exportTransactions: ${txList.length} transaksi untuk bulan=$month/$year',

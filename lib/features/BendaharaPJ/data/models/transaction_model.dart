@@ -20,6 +20,7 @@ class TransactionModel {
   final String? memberName;
   final String? npa;
   final List<TransactionItemModel>? items;
+  final String? anggotaId;
 
   TransactionModel({
     this.id,
@@ -43,6 +44,7 @@ class TransactionModel {
     this.memberName,
     this.npa,
     this.items,
+    this.anggotaId,
   });
 
   factory TransactionModel.fromJson(Map<dynamic, dynamic> json) {
@@ -51,30 +53,74 @@ class TransactionModel {
       id: map['_id'] ?? map['id'],
       code: map['code'],
       type: map['type'],
-      creatorId: map['creator_id'] ?? map['creatorId'],
+      creatorId: map['creator_id'] is Map
+          ? (map['creator_id']['_id'] ?? map['creator_id']['id'])?.toString()
+          : (map['creator_id'] ?? map['creatorId'])?.toString(),
       paymentMethodId: map['payment_method_id'] ?? map['paymentMethodId'],
       proofUrl: map['proof_url'] ?? map['proofUrl'],
       bankName: map['bank_name'] ?? map['bankName'],
       bankAccountName: map['bank_account_name'] ?? map['bankAccountName'],
-      verifiedBy: map['verified_by'] ?? map['verifiedBy'],
+      verifiedBy: map['verified_by'] is Map
+          ? (map['verified_by']['fullname'] ??
+                    map['verified_by']['name'] ??
+                    map['verified_by']['full_name'])
+                ?.toString()
+          : (map['verified_by'] ?? map['verifiedBy'])?.toString(),
       totalAmount: map['total_amount'] ?? map['totalAmount'],
       status: map['status'],
       accStatus: map['acc_status']?.toString(),
       isSynced: map['is_synced'] ?? map['isSynced'],
       createdAt: map['created_at'] ?? map['createdAt'],
       updatedAt: map['updated_at'] ?? map['updatedAt'],
-      accBy: map['acc_by'] ?? map['accBy'],
+      accBy: map['acc_by'] is Map
+          ? (map['acc_by']['fullname'] ??
+                    map['acc_by']['name'] ??
+                    map['acc_by']['full_name'])
+                ?.toString()
+          : (map['acc_by'] ?? map['accBy'])?.toString(),
       accAt: map['acc_at'] ?? map['accAt'],
       syncedAt: map['synced_at'] ?? map['syncedAt'],
-      memberName: map['member_name'] ?? map['memberName'],
-      npa: map['npa'],
-      items: (map['items'] as List?)
-          ?.map(
-            (x) => TransactionItemModel.fromJson(
-              Map<String, dynamic>.from(x as Map),
-            ),
-          )
-          .toList(),
+      memberName:
+          map['member_name'] ??
+          map['memberName'] ??
+          (map['creator_id'] is Map
+              ? (map['creator_id']['fullname'] ??
+                        map['creator_id']['name'] ??
+                        map['creator_id']['full_name'])
+                    ?.toString()
+              : (map['creator'] is Map
+                    ? (map['creator']['fullname'] ??
+                              map['creator']['name'] ??
+                              map['creator']['full_name'])
+                          ?.toString()
+                    : null)),
+      npa:
+          map['npa'] ??
+          (map['creator_id'] is Map
+              ? map['creator_id']['npa']?.toString()
+              : (map['creator'] is Map
+                    ? map['creator']['npa']?.toString()
+                    : null)),
+      items: (() {
+        final rawItems = map['items'] ?? map['transaction_items'];
+        if (rawItems is List) {
+          return rawItems
+              .map(
+                (x) => TransactionItemModel.fromJson(
+                  Map<String, dynamic>.from(x as Map),
+                ),
+              )
+              .toList();
+        } else if (rawItems is Map) {
+          return [
+            TransactionItemModel.fromJson(Map<String, dynamic>.from(rawItems)),
+          ];
+        }
+        return <TransactionItemModel>[];
+      })(),
+      anggotaId: map['anggota_id'] is Map
+          ? (map['anggota_id']['_id'] ?? map['anggota_id']['id'])?.toString()
+          : (map['anggota_id'] ?? map['anggotaId'])?.toString(),
     );
   }
 
@@ -100,6 +146,7 @@ class TransactionModel {
     "member_name": memberName,
     "npa": npa,
     "items": items?.map((x) => x.toJson()).toList(),
+    "anggota_id": anggotaId,
   };
 
   TransactionModel copyWith({
@@ -122,6 +169,7 @@ class TransactionModel {
     String? accAt,
     String? syncedAt,
     List<TransactionItemModel>? items,
+    String? anggotaId,
   }) {
     return TransactionModel(
       id: id ?? this.id,
@@ -143,6 +191,7 @@ class TransactionModel {
       accAt: accAt ?? this.accAt,
       syncedAt: syncedAt ?? this.syncedAt,
       items: items ?? this.items,
+      anggotaId: anggotaId ?? this.anggotaId,
     );
   }
 }
@@ -155,6 +204,8 @@ class TransactionItemModel {
   final String? duesPeriodId;
   final int? amount;
   final String? description;
+  final String? memberName; // Baru dari populated user
+  final String? npa; // Baru dari populated user
 
   TransactionItemModel({
     this.anggotaId,
@@ -164,18 +215,47 @@ class TransactionItemModel {
     this.duesPeriodId,
     this.amount,
     this.description,
+    this.memberName,
+    this.npa,
   });
 
-  factory TransactionItemModel.fromJson(Map<String, dynamic> json) =>
-      TransactionItemModel(
-        anggotaId: json['anggota_id'] ?? json['anggotaId'],
-        transactionId: json['transaction_id'] ?? json['transactionId'],
-        periodId: json['period_id'] ?? json['periodId'],
-        status: json['status'],
-        duesPeriodId: json['dues_period_id'] ?? json['duesPeriodId'],
-        amount: json['amount'],
-        description: json['description'],
-      );
+  factory TransactionItemModel.fromJson(Map<String, dynamic> json) {
+    final rawAnggota = json['anggota_id'] ?? json['anggotaId'];
+    String? resolvedAnggotaId;
+    String? resolvedMemberName;
+    String? resolvedNpa;
+
+    if (rawAnggota is String) {
+      resolvedAnggotaId = rawAnggota;
+    } else if (rawAnggota is Map) {
+      resolvedAnggotaId =
+          rawAnggota['_id']?.toString() ?? rawAnggota['id']?.toString();
+      resolvedMemberName =
+          rawAnggota['fullname']?.toString() ?? rawAnggota['name']?.toString();
+      resolvedNpa = rawAnggota['npa']?.toString();
+    }
+
+    final rawPeriod = json['period_id'] ?? json['periodId'];
+    String? resolvedPeriodId;
+    if (rawPeriod is String) {
+      resolvedPeriodId = rawPeriod;
+    } else if (rawPeriod is Map) {
+      resolvedPeriodId =
+          rawPeriod['_id']?.toString() ?? rawPeriod['id']?.toString();
+    }
+
+    return TransactionItemModel(
+      anggotaId: resolvedAnggotaId,
+      transactionId: json['transaction_id'] ?? json['transactionId'],
+      periodId: resolvedPeriodId,
+      status: json['status'],
+      duesPeriodId: json['dues_period_id'] ?? json['duesPeriodId'],
+      amount: json['amount'],
+      description: json['description'],
+      memberName: resolvedMemberName,
+      npa: resolvedNpa,
+    );
+  }
 
   TransactionItemModel copyWith({
     String? anggotaId,
@@ -185,6 +265,8 @@ class TransactionItemModel {
     String? duesPeriodId,
     int? amount,
     String? description,
+    String? memberName,
+    String? npa,
   }) {
     return TransactionItemModel(
       anggotaId: anggotaId ?? this.anggotaId,
@@ -194,6 +276,8 @@ class TransactionItemModel {
       duesPeriodId: duesPeriodId ?? this.duesPeriodId,
       amount: amount ?? this.amount,
       description: description ?? this.description,
+      memberName: memberName ?? this.memberName,
+      npa: npa ?? this.npa,
     );
   }
 
@@ -205,6 +289,8 @@ class TransactionItemModel {
     "dues_period_id": duesPeriodId,
     "amount": amount,
     "description": description,
+    "member_name": memberName,
+    "npa": npa,
   };
 }
 

@@ -155,6 +155,7 @@ class _PendingTransactionViewPageState
                           transactionKey,
                           transactionMap,
                         ),
+                        controller: widget.controller,
                       ),
                     );
                   }),
@@ -271,10 +272,12 @@ class _PendingTransactionViewPageState
 class _PendingTransactionCard extends StatelessWidget {
   final Map<String, dynamic> transactionData;
   final VoidCallback onDelete;
+  final PjController controller;
 
   const _PendingTransactionCard({
     required this.transactionData,
     required this.onDelete,
+    required this.controller,
   });
 
   String _formatCurrency(dynamic amount) {
@@ -399,6 +402,11 @@ class _PendingTransactionCard extends StatelessWidget {
               color: Color(0xFFB31012),
               fontWeight: FontWeight.w600,
             ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Di ACC oleh: ${controller.lookupMemberName(transactionData['acc_by'] ?? transactionData['accBy'] ?? transactionData['verified_by'] ?? transactionData['verifiedBy'])}',
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
           ),
           const SizedBox(height: 6),
           Text(

@@ -67,6 +67,7 @@ class PjInvoiceData {
   final int totalAmount;
   final bool syncedToBackend;
   final DateTime generatedAt;
+  final String? accByName;
 
   const PjInvoiceData({
     required this.member,
@@ -77,6 +78,7 @@ class PjInvoiceData {
     required this.totalAmount,
     required this.syncedToBackend,
     required this.generatedAt,
+    this.accByName,
   });
 
   PjInvoiceData copyWith({
@@ -88,6 +90,7 @@ class PjInvoiceData {
     int? totalAmount,
     bool? syncedToBackend,
     DateTime? generatedAt,
+    String? accByName,
   }) {
     return PjInvoiceData(
       member: member ?? this.member,
@@ -98,12 +101,14 @@ class PjInvoiceData {
       totalAmount: totalAmount ?? this.totalAmount,
       syncedToBackend: syncedToBackend ?? this.syncedToBackend,
       generatedAt: generatedAt ?? this.generatedAt,
+      accByName: accByName ?? this.accByName,
     );
   }
 
   factory PjInvoiceData.fromCreationResult({
     required UserModel member,
     required PjTransactionCreationResult result,
+    String? accByName,
   }) {
     final sourceItems =
         result.transaction.items ?? const <TransactionItemModel>[];
@@ -136,12 +141,14 @@ class PjInvoiceData {
       totalAmount: result.totalAmount,
       syncedToBackend: result.syncedToBackend,
       generatedAt: result.generatedAt,
+      accByName: accByName,
     );
   }
 
   factory PjInvoiceData.fromTransaction({
     required UserModel member,
     required TransactionModel transaction,
+    String? accByName,
   }) {
     final invoiceItems = <PjInvoiceLineItem>[];
     final months = <int>[];
@@ -180,6 +187,7 @@ class PjInvoiceData {
       totalAmount: transaction.totalAmount ?? 0,
       syncedToBackend: true,
       generatedAt: createdAt,
+      accByName: accByName,
     );
   }
 
@@ -254,6 +262,10 @@ class PjInvoiceData {
       ..writeln('Periode: $monthLabelSummary $year')
       ..writeln('Tanggal: $generatedAtLabel')
       ..writeln('Status: $statusLabel')
+      ..writeln('Di ACC oleh: ${(() {
+        final acc = (transaction.accBy ?? transaction.verifiedBy ?? '').trim();
+        return (acc.isEmpty || acc == '-') ? 'Bendahara PJ' : acc;
+      })()}')
       ..writeln('')
       ..writeln('Rincian:');
 
