@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:persis_app/core/network/network_status.dart';
-import 'package:persis_app/features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
+import 'package:persis_app/features/bendahara_pj/presentation/controller/pj_hive_controller.dart';
 
 class ConnectivityService {
   ConnectivityService._();

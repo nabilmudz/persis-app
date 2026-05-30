@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
-import 'package:persis_app/core/helpers/auth_helper.dart';
-import 'package:persis_app/features/bendahara_pj/data/models/transaction_item_detail_model.dart';
-import 'package:persis_app/features/bendahara_pj/presentation/controller/pj_transaction_item_controller.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import '../controller/pc_controller.dart';
+import '../../../bendahara_pj/data/models/transaction_item_detail_model.dart';
+import '../../../bendahara_pj/presentation/controller/pj_transaction_item_controller.dart';
 
-class RiwayatView extends StatefulWidget {
-  const RiwayatView({super.key});
+class PcRiwayatPembayaranViewPage extends StatefulWidget {
+  final PcController controller;
+
+  const PcRiwayatPembayaranViewPage({super.key, required this.controller});
 
   @override
-  State<RiwayatView> createState() => _RiwayatViewState();
+  State<PcRiwayatPembayaranViewPage> createState() =>
+      _PcRiwayatPembayaranViewPageState();
 }
 
-class _RiwayatViewState extends State<RiwayatView> {
-  late final PjTransactionItemController _controller;
+class _PcRiwayatPembayaranViewPageState
+    extends State<PcRiwayatPembayaranViewPage> {
+  late final PjTransactionItemController _itemController;
   String _selectedYear = 'Semua';
-  String? _userId;
-  bool _loadingUser = true;
 
   static const _statusLunas = {
     'paid',
@@ -29,33 +32,28 @@ class _RiwayatViewState extends State<RiwayatView> {
   @override
   void initState() {
     super.initState();
-    _controller = PjTransactionItemController();
-    _initUser();
+    initializeDateFormatting('id_ID', null);
+    _itemController = PjTransactionItemController();
+    _loadData();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _itemController.dispose();
     super.dispose();
   }
 
-  Future<void> _initUser() async {
-    final uid = await AuthHelper.getUserId();
-    if (!mounted) return;
-    setState(() {
-      _userId = uid;
-      _loadingUser = false;
-    });
-    if (uid != null && uid.isNotEmpty) {
-      _controller.loadByUser(uid);
-    }
+  Future<void> _loadData({bool forceRefresh = false}) {
+    return _itemController.loadByUser(
+      'all_members',
+      forceRefresh: forceRefresh,
+    );
   }
 
   List<TransactionItemDetailModel> _getLunasItems() {
-    return _controller.items.where((tx) {
+    return _itemController.items.where((tx) {
       final status = (tx.status ?? '').trim().toLowerCase();
-      final isOwner = _userId == null || tx.anggotaId == _userId;
-      return isOwner && _statusLunas.any((s) => status.contains(s));
+      return _statusLunas.any((s) => status.contains(s));
     }).toList();
   }
 
@@ -107,97 +105,90 @@ class _RiwayatViewState extends State<RiwayatView> {
           child: Container(color: const Color(0xFFD0D0D0), height: 1.0),
         ),
       ),
-      body: _loadingUser
-          ? const Center(child: CircularProgressIndicator())
-          : _userId == null
-          ? const _ErrorState(message: 'Gagal membaca data pengguna.')
-          : ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) {
-                if (_controller.isLoading && _controller.items.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body: ListenableBuilder(
+        listenable: _itemController,
+        builder: (context, _) {
+          if (_itemController.isLoading && _itemController.items.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF189D4A)),
+            );
+          }
 
-                if (_controller.errorMessage != null &&
-                    _controller.items.isEmpty) {
-                  return _ErrorState(
-                    message: _controller.errorMessage!,
-                    onRetry: () =>
-                        _controller.loadByUser(_userId!, forceRefresh: true),
-                  );
-                }
+          if (_itemController.errorMessage != null &&
+              _itemController.items.isEmpty) {
+            return _ErrorState(
+              message: _itemController.errorMessage!,
+              onRetry: () => _loadData(forceRefresh: true),
+            );
+          }
 
-                final lunasAll = _getLunasItems();
-                final years = _availableYears(lunasAll);
+          final lunasAll = _getLunasItems();
+          final years = _availableYears(lunasAll);
 
-                if (_selectedYear != 'Semua' &&
-                    !years.contains(_selectedYear)) {
-                  SchedulerBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) setState(() => _selectedYear = 'Semua');
-                  });
-                }
+          if (_selectedYear != 'Semua' && !years.contains(_selectedYear)) {
+            SchedulerBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _selectedYear = 'Semua');
+            });
+          }
 
-                final filterOptions = ['Semua', ...years];
-                final transactions = _filterByYear(lunasAll);
-                final totalAmount = _hitungTotal(transactions);
+          final filterOptions = ['Semua', ...years];
+          final transactions = _filterByYear(lunasAll);
+          final totalAmount = _hitungTotal(transactions);
 
-                return RefreshIndicator(
-                  color: const Color(0xFF189D4A),
-                  onRefresh: () =>
-                      _controller.loadByUser(_userId!, forceRefresh: true),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 16),
+          return RefreshIndicator(
+            color: const Color(0xFF189D4A),
+            onRefresh: () => _loadData(forceRefresh: true),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
 
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Row(
-                          children: filterOptions
-                              .map(
-                                (label) => Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: _FilterChip(
-                                    label: label == 'Semua'
-                                        ? 'Semua'
-                                        : 'Tahun $label',
-                                    isSelected: _selectedYear == label,
-                                    onTap: () =>
-                                        setState(() => _selectedYear = label),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      if (transactions.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: _TotalCard(totalAmount: totalAmount),
-                        ),
-
-                      const SizedBox(height: 16),
-
-                      Expanded(
-                        child: transactions.isEmpty
-                            ? const _EmptyState()
-                            : ListView.builder(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                ),
-                                itemCount: transactions.length,
-                                itemBuilder: (context, index) =>
-                                    _RiwayatCard(item: transactions[index]),
-                              ),
-                      ),
-                    ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: filterOptions
+                        .map(
+                          (label) => Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _FilterChip(
+                              label: label == 'Semua'
+                                  ? 'Semua'
+                                  : 'Tahun $label',
+                              isSelected: _selectedYear == label,
+                              onTap: () =>
+                                  setState(() => _selectedYear = label),
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
-                );
-              },
+                ),
+
+                const SizedBox(height: 20),
+
+                if (transactions.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _TotalCard(totalAmount: totalAmount),
+                  ),
+
+                const SizedBox(height: 16),
+
+                Expanded(
+                  child: transactions.isEmpty
+                      ? const _EmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          itemCount: transactions.length,
+                          itemBuilder: (context, index) =>
+                              _RiwayatCard(item: transactions[index]),
+                        ),
+                ),
+              ],
             ),
+          );
+        },
+      ),
     );
   }
 }
@@ -288,7 +279,6 @@ class _TotalCard extends StatelessWidget {
 
 class _RiwayatCard extends StatelessWidget {
   const _RiwayatCard({required this.item});
-
   final TransactionItemDetailModel item;
 
   static const _monthNames = [
@@ -314,7 +304,7 @@ class _RiwayatCard extends StatelessWidget {
       decimalDigits: 0,
     ).format(item.amount ?? 0);
 
-    String label = item.description ?? 'Iuran';
+    String label = item.description ?? 'Iuran Anggota';
     final month = item.resolveMonth();
     final year = item.resolveYear();
     if (month != null && year != null && month >= 1 && month <= 12) {

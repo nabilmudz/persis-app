@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
+import '../features/bendahara_pj/presentation/controller/pj_hive_controller.dart';
 import 'routes.dart';
 
 class MyApp extends StatefulWidget {

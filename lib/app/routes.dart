@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:persis_app/features/auth/login_screen.dart';
-import 'package:persis_app/features/auth/splash_screen.dart';
-import 'package:persis_app/features/profile/profile_screen.dart';
+import 'package:persis_app/features/auth/presentation/view/login_screen.dart';
+import 'package:persis_app/features/auth/presentation/view/splash_screen.dart';
+import 'package:persis_app/features/profile/presentation/profile_screen.dart';
 import 'package:persis_app/features/anggota/presentation/view/anggota_view.dart';
-import 'package:persis_app/features/BendaharaPC/presentation/view/pc_view.dart';
-import 'package:persis_app/features/BendaharaPJ/presentation/view/pj_view.dart';
+import 'package:persis_app/features/bendahara_pc/presentation/view/pc_view.dart';
+import 'package:persis_app/features/bendahara_pj/presentation/view/pj_view.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
-import 'package:persis_app/features/BendaharaPJ/presentation/view/non-tunai/pj_verif_non_tunai_view.dart';
-import 'package:persis_app/features/auth/login_controller.dart';
+import 'package:persis_app/features/bendahara_pj/presentation/view/non_tunai/pj_verif_non_tunai_view.dart';
+import 'package:persis_app/features/auth/presentation/controller/login_controller.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/data/repositories/anggota_repository.dart';
-import 'package:persis_app/features/BendaharaPC/presentation/view/pc_verifikasi_view.dart';
+import 'package:persis_app/features/bendahara_pc/presentation/view/pc_verifikasi_view.dart';
 
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/widgets/offline_warning_banner.dart';
@@ -27,7 +27,7 @@ class AppRoutes {
   static const String verifikasiPC = '/verifikasi-pc';
   static const String anggota = '/anggota';
   static const String profile = '/profile';
-  static const String verifikasiNonTunai = '/verifikasi-non-tunai';
+  static const String verifikasiNonTunai = '/verifikasi-non_tunai';
   static String get _baseUrl => AppConfig.baseUrl;
 
   static Map<String, WidgetBuilder> get routes {
