@@ -42,9 +42,9 @@ class MockManualBankDataSource implements BankAccountRemoteDataSource {
 void main() {
   late PcBankAccountController controller;
   late MockManualBankDataSource mockDataSource;
-  
+
 setUpAll(() {
-    dotenv.testLoad(fileInput: 'API_BASE_URL=http://localhost');
+    dotenv.testLoad(fileInput: 'BASE_URL=http://localhost');
   });
 
   setUp(() {
