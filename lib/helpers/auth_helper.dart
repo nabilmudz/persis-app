@@ -50,7 +50,8 @@ class AuthHelper {
     debugPrint('Role: $role');
     debugPrint('User ID: $userId');
     debugPrint('Region ID: $regionId');
-    debugPrint('Token: ${accessToken.substring(0, 10)}...');
+    final tokenPreview = accessToken.length > 10 ? '${accessToken.substring(0, 10)}...' : accessToken;
+    debugPrint('Token: $tokenPreview');
 
     await SecureStorageService.write(
       SecureStorageService.accessTokenKey,
