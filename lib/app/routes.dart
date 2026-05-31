@@ -11,7 +11,7 @@ import 'package:persis_app/features/anggota/data/datasources/user_remote_datasou
 import 'package:persis_app/features/bendahara_pj/presentation/view/non_tunai/pj_verif_non_tunai_view.dart';
 import 'package:persis_app/features/auth/presentation/controller/login_controller.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
-import 'package:persis_app/features/anggota/data/repositories/anggota_repository.dart';
+
 import 'package:persis_app/features/bendahara_pc/presentation/view/pc_verifikasi_view.dart';
 
 import 'package:persis_app/core/config/config.dart';
@@ -44,7 +44,7 @@ class AppRoutes {
       verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
       anggota: (_) => ChangeNotifierProvider(
         create: (_) => AnggotaController(
-          repository: AnggotaRepository(UserRemoteDataSource(_baseUrl)),
+          remoteDataSource: UserRemoteDataSource(_baseUrl),
         ),
         child: const AnggotaView(),
       ),

@@ -18,18 +18,16 @@ class TransactionRemoteDataSource {
     payload['synced_at'] = DateTime.now().toIso8601String();
     payload['syncedAt'] = payload['synced_at'];
 
-    if (transaction.accBy != null) {
-      payload['acc_by'] = transaction.accBy;
-      payload['accBy'] = transaction.accBy;
-    }
-    if (transaction.accAt != null) {
-      payload['acc_at'] = transaction.accAt;
-      payload['accAt'] = transaction.accAt;
-    }
+    payload['acc_by'] = transaction.accBy ?? transaction.creatorId;
+    payload['accBy'] = transaction.accBy ?? transaction.creatorId;
+    payload['acc_at'] = transaction.accAt ?? transaction.createdAt;
+    payload['accAt'] = transaction.accAt ?? transaction.createdAt;
+    payload['synced_at'] = DateTime.now().toIso8601String();
+    payload['syncedAt'] = payload['synced_at'];
 
     final items = (payload['items'] as List?)?.map((item) {
       final itemMap = Map<String, dynamic>.from(item as Map);
-      itemMap.remove('status');
+      itemMap['status'] = 'paid';
 
       final duesPeriodId = itemMap['dues_period_id']?.toString().trim() ?? '';
       if (RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(duesPeriodId)) {

@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../data/models/payment_model.dart';
-import '../../data/repositories/payment_repository.dart';
+import '../../data/datasources/payment_remote_datasource.dart';
 
 class PembayaranController extends ChangeNotifier {
-  final PaymentRepository repository;
+  final PaymentRemoteDataSource remoteDataSource;
 
-  PembayaranController({required this.repository});
+  PembayaranController({required this.remoteDataSource});
 
   bool isLoading = false;
   bool isUploading = false;
@@ -120,7 +120,7 @@ class PembayaranController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final data = await repository.getQrisDetail();
+      final data = await remoteDataSource.getQrisDetail();
       qrisImageUrl = data['qris_image_url'];
     } catch (e) {
       debugPrint('Error fetchQrisDetail: $e');
@@ -145,7 +145,7 @@ class PembayaranController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      buktiUrl = await repository.uploadBukti(buktiFile!);
+      buktiUrl = await remoteDataSource.uploadBukti(buktiFile!);
     } catch (e) {
       errorMessage = e.toString();
       debugPrint('Error uploadBukti: $e');
@@ -183,7 +183,7 @@ class PembayaranController extends ChangeNotifier {
         buktiUrl: buktiUrl,
       );
 
-      await repository.submitPayment(payment);
+      await remoteDataSource.submitPayment(payment);
       isSuccess = true;
     } catch (e) {
       debugPrint('Error submitPayment: $e');

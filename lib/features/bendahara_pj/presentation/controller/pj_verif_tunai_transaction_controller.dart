@@ -205,15 +205,17 @@ class PjVerifTunaiTransactionController extends ChangeNotifier {
 
       final nowIso = DateTime.now().toIso8601String();
 
+      final creatorId = accById ?? memberId;
+
       final transaction = TransactionModel(
         id: transactionId,
         type: 'tunai',
-        creatorId: accById ?? memberId,
+        creatorId: creatorId,
         paymentMethodId: _tunaiPaymentMethodId ?? 'tunai',
         totalAmount: totalAmount,
         status: 'pending',
         accStatus: 'acc_pj',
-        accBy: accById,
+        accBy: creatorId,
         accAt: nowIso,
         isSynced: false,
         createdAt: nowIso,

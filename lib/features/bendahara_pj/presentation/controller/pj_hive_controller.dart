@@ -99,6 +99,8 @@ class PjHiveController extends ChangeNotifier {
           final payload = transaction.copyWith(
             status: 'completed',
             accStatus: 'acc_pj',
+            accBy: transaction.accBy ?? transaction.creatorId,
+            accAt: transaction.accAt ?? transaction.createdAt,
             isSynced: true,
             syncedAt: DateTime.now().toIso8601String(),
           );
