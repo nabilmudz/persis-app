@@ -11,7 +11,7 @@ void main() {
     testWidgets('1. Pastikan judul dan Tab "Masuk" / "Aktivasi" muncul di layar', (WidgetTester tester) async {
       await tester.pumpWidget(jalankanLayarLogin());
       expect(find.text('InfaQu'), findsOneWidget);
-      // PERBAIKAN: Fokus cari tulisan "Masuk" yang ada di Tab atas
+
       expect(find.widgetWithText(Tab, 'Masuk'), findsOneWidget); 
       expect(find.widgetWithText(Tab, 'Aktivasi Akun'), findsOneWidget);
     });
@@ -23,7 +23,7 @@ void main() {
       TextField tfWidget = tester.widget(kolomPassword);
       expect(tfWidget.obscureText, true);
 
-      // PERBAIKAN: Cari ikon mata "Tercoret" terlebih dahulu karena itu kondisi awalnya
+
       final logoMataTertutup = find.byIcon(Icons.visibility_off_outlined);
       await tester.tap(logoMataTertutup);
       await tester.pump();

@@ -10,9 +10,7 @@ class MockTransactionItemModel extends Mock implements TransactionItemModel {}
 void main() {
   late PjVerifTunaiController controller;
 
-  // --- DATA DUMMY ---
-  // Kita buat skenario dengan tahun 2020 sebagai "Masa Lalu" (pasti tunggakan jika belum bayar)
-  // dan tahun 2050 sebagai "Masa Depan" (pasti pending).
+
   
   // Member 1: Punya 1 tunggakan, 1 lunas, 1 pending.
   late MockTransactionItemModel itemUnpaid;
