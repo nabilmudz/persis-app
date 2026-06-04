@@ -5,9 +5,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'app/app.dart';
 import 'core/network/connectivity_service.dart';
 import 'core/storage/hive_service.dart';
-import 'features/BendaharaPJ/presentation/controller/pj_controller.dart';
-import 'features/BendaharaPJ/presentation/controller/pj_transaction_item_controller.dart';
-import 'features/BendaharaPJ/presentation/controller/pj_hive_controller.dart';
+import 'features/bendahara_pj/presentation/controller/pj_controller.dart';
+import 'features/bendahara_pj/presentation/controller/pj_transaction_item_controller.dart';
+import 'features/bendahara_pj/presentation/controller/pj_hive_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

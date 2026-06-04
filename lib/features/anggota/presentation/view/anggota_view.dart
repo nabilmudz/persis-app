@@ -7,7 +7,7 @@ import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 
 import 'package:persis_app/core/config/config.dart';
-import 'package:persis_app/helpers/auth_helper.dart';
+import 'package:persis_app/core/helpers/auth_helper.dart';
 import 'package:persis_app/features/anggota/presentation/widgets/anggota_card.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/presentation/view/riwayat_view.dart';

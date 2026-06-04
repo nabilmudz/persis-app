@@ -4,7 +4,7 @@ import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:persis_app/features/anggota/data/datasources/payment_remote_datasource.dart';
-import 'package:persis_app/features/anggota/data/repositories/payment_repository.dart';
+
 import '../controller/pembayaran_controller.dart';
 import 'transfer_bank_view.dart';
 import 'qris_view.dart';
@@ -73,9 +73,7 @@ class PilihPembayaranView extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => ChangeNotifierProvider(
                           create: (_) => PembayaranController(
-                            repository: PaymentRepository(
-                              PaymentRemoteDataSource(_baseUrl),
-                            ),
+                            remoteDataSource: PaymentRemoteDataSource(_baseUrl),
                           ),
                           child: const TransferBankView(),
                         ),
@@ -96,9 +94,7 @@ class PilihPembayaranView extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => ChangeNotifierProvider(
                           create: (_) => PembayaranController(
-                            repository: PaymentRepository(
-                              PaymentRemoteDataSource(_baseUrl),
-                            ),
+                            remoteDataSource: PaymentRemoteDataSource(_baseUrl),
                           ),
                           child: const QrisView(),
                         ),

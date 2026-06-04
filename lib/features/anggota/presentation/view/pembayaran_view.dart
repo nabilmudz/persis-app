@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:persis_app/app/routes.dart';
-import 'package:persis_app/features/anggota/data/repositories/payment_repository.dart';
+import 'package:persis_app/features/anggota/data/datasources/payment_remote_datasource.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:provider/provider.dart';
 import '../controller/anggota_controller.dart';
@@ -13,10 +13,10 @@ class PilihPembayaranView extends StatelessWidget {
 
   PembayaranController _buildPembayaranController(
     BuildContext context,
-    PaymentRepository repository,
+    PaymentRemoteDataSource remoteDataSource,
   ) {
     final anggota = context.read<AnggotaController>();
-    final ctrl = PembayaranController(repository: repository);
+    final ctrl = PembayaranController(remoteDataSource: remoteDataSource);
 
     if (anggota.riwayatTransaksi.isNotEmpty) {
       final pending = anggota.riwayatTransaksi
@@ -36,8 +36,8 @@ class PilihPembayaranView extends StatelessWidget {
   }
 
   void _navigateTo(BuildContext context, Widget child) {
-    final repository = context.read<PaymentRepository>();
-    final ctrl = _buildPembayaranController(context, repository);
+    final remoteDataSource = context.read<PaymentRemoteDataSource>();
+    final ctrl = _buildPembayaranController(context, remoteDataSource);
 
     Navigator.push(
       context,

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../data/models/transaction_item_model.dart';
-import '../../data/repositories/anggota_repository.dart';
+import '../../data/datasources/user_remote_datasource.dart';
 
 class AnggotaController extends ChangeNotifier {
-  final AnggotaRepository repository;
+  final UserRemoteDataSource remoteDataSource;
 
-  AnggotaController({required this.repository});
+  AnggotaController({required this.remoteDataSource});
 
   bool isLoading = false;
   String? errorMessage;
@@ -30,7 +30,7 @@ class AnggotaController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final data = await repository.getRiwayatIuran(userId, year: year);
+      final data = await remoteDataSource.getRiwayatIuran(userId, year: year);
       riwayatTransaksi = data;
       _hitungTotalTagihan();
     } catch (e) {

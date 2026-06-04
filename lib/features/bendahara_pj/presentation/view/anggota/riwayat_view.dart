@@ -5,14 +5,14 @@ import 'package:persis_app/core/helpers/auth_helper.dart';
 import 'package:persis_app/features/bendahara_pj/data/models/transaction_item_detail_model.dart';
 import 'package:persis_app/features/bendahara_pj/presentation/controller/pj_transaction_item_controller.dart';
 
-class RiwayatView extends StatefulWidget {
-  const RiwayatView({super.key});
+class PjRiwayatView extends StatefulWidget {
+  const PjRiwayatView({super.key});
 
   @override
-  State<RiwayatView> createState() => _RiwayatViewState();
+  State<PjRiwayatView> createState() => _PjRiwayatViewState();
 }
 
-class _RiwayatViewState extends State<RiwayatView> {
+class _PjRiwayatViewState extends State<PjRiwayatView> {
   late final PjTransactionItemController _controller;
   String _selectedYear = 'Semua';
   String? _userId;
@@ -240,6 +240,7 @@ class _FilterChip extends StatelessWidget {
 
 class _TotalCard extends StatelessWidget {
   const _TotalCard({required this.totalAmount});
+
   final double totalAmount;
 
   @override
