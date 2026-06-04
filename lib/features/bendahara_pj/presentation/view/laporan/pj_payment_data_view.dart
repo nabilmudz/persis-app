@@ -263,9 +263,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         exportData = rawData
             .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
             .toList();
-        debugPrint(
-          '✓ API Export: ${exportData.length} transaksi diterima dari server',
-        );
       } else {
         final List<TransactionModel> fallbackList = [];
         for (final t in widget.controller.transactions) {

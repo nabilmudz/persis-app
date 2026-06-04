@@ -81,10 +81,6 @@ class _PjLogTransaksiViewState extends State<PjLogTransaksiView> {
         month: monthParam,
       );
 
-      debugPrint(
-        '[PjLogTransaksi] Loaded ${txList.length} transaksi dari API untuk monthParam=$monthParam, yearParam=$yearParam',
-      );
-
       if (mounted) {
         setState(() {
           _allTransactions = txList;

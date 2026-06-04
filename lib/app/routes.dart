@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:persis_app/features/auth/presentation/view/login_screen.dart';
 import 'package:persis_app/features/auth/presentation/view/splash_screen.dart';
 import 'package:persis_app/features/profile/presentation/profile_screen.dart';
+import 'package:persis_app/features/profile/controller/profile_controller.dart';
 import 'package:persis_app/features/anggota/presentation/view/anggota_view.dart';
 import 'package:persis_app/features/bendahara_pc/presentation/view/pc_view.dart';
 import 'package:persis_app/features/bendahara_pj/presentation/view/pj_view.dart';
@@ -11,9 +11,7 @@ import 'package:persis_app/features/anggota/data/datasources/user_remote_datasou
 import 'package:persis_app/features/bendahara_pj/presentation/view/non_tunai/pj_verif_non_tunai_view.dart';
 import 'package:persis_app/features/auth/presentation/controller/login_controller.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
-
 import 'package:persis_app/features/bendahara_pc/presentation/view/pc_verifikasi_view.dart';
-
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/widgets/offline_warning_banner.dart';
 
@@ -43,12 +41,14 @@ class AppRoutes {
       bendaharaPJ: (_) => const PjViewPage(),
       verifikasiNonTunai: (_) => const PjVerifNonTunaiViewPage(),
       anggota: (_) => ChangeNotifierProvider(
-        create: (_) => AnggotaController(
-          remoteDataSource: UserRemoteDataSource(_baseUrl),
-        ),
+        create: (_) =>
+            AnggotaController(remoteDataSource: UserRemoteDataSource(_baseUrl)),
         child: const AnggotaView(),
       ),
-      profile: (_) => const ProfileScreen(),
+      profile: (_) => ChangeNotifierProvider(
+        create: (_) => ProfileController(),
+        child: const ProfileScreen(),
+      ),
       testBases: (_) => const TestBasesPage(),
       verifikasiPC: (_) => const PcVerifikasiPage(),
     };

@@ -59,10 +59,15 @@ class UserRemoteDataSource {
     throw Exception('Gagal mengambil data user');
   }
 
-  Future<List<UserModel>> getAllUsers({String? regionId}) async {
-    final url = regionId != null
+  Future<List<UserModel>> getAllUsers({String? regionId, bool? isActive}) async {
+    final base = regionId != null
         ? '$baseUrl/users/region/$regionId'
         : '$baseUrl/users';
+    final params = <String, String>{};
+    if (isActive != null) params['isActive'] = isActive.toString();
+    final url = params.isNotEmpty
+        ? '$base?${Uri(queryParameters: params).query}'
+        : base;
     final response = await http
         .get(Uri.parse(url))
         .timeout(const Duration(seconds: 10));

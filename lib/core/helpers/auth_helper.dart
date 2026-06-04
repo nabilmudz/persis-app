@@ -13,13 +13,11 @@ class AuthHelper {
 
   static Future<String?> getRole() async {
     final role = await SecureStorageService.read(SecureStorageService.roleKey);
-    debugPrint('AuthHelper: Reading Role -> $role');
     return role;
   }
 
   static Future<String?> getUserId() async {
     final uid = await SecureStorageService.read('user_id');
-    debugPrint('AuthHelper: Reading User ID -> $uid');
     return uid;
   }
 
@@ -27,15 +25,11 @@ class AuthHelper {
     final token = await SecureStorageService.read(
       SecureStorageService.accessTokenKey,
     );
-    debugPrint(
-      'AuthHelper: Reading Access Token -> ${token != null ? "FOUND" : "NULL"}',
-    );
     return token;
   }
 
   static Future<String?> getRegionId() async {
     final regionId = await SecureStorageService.read('region_id');
-    debugPrint('AuthHelper: Reading Region ID -> $regionId');
     return regionId;
   }
 
@@ -46,12 +40,6 @@ class AuthHelper {
     String? userId,
     String? regionId,
   }) async {
-    debugPrint('=== AUTH SESSION SAVING ===');
-    debugPrint('Role: $role');
-    debugPrint('User ID: $userId');
-    debugPrint('Region ID: $regionId');
-    debugPrint('Token: ${accessToken.substring(0, 10)}...');
-
     await SecureStorageService.write(
       SecureStorageService.accessTokenKey,
       accessToken,
@@ -80,17 +68,12 @@ class AuthHelper {
   }
 
   static Future<void> clearSession() async {
-    debugPrint('=== CLEARING AUTH SESSION ===');
     final savedEmail = await SecureStorageService.read('saved_email');
     final savedPassword = await SecureStorageService.read('saved_password');
     final rememberMe = await SecureStorageService.read('remember_me');
-
-    debugPrint('rememberMe saat logout: $rememberMe');
-
     await SecureStorageService.deleteAll();
 
     if (rememberMe == 'true' && savedEmail != null && savedPassword != null) {
-      debugPrint('Restoring credentials untuk autofill...');
       await SecureStorageService.write('saved_email', savedEmail);
       await SecureStorageService.write('saved_password', savedPassword);
       await SecureStorageService.write('remember_me', 'true');

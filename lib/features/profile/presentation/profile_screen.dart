@@ -1,12 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:persis_app/app/routes.dart';
-import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/theme/app_colors.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:persis_app/features/auth/presentation/view/forgot_password_screen.dart';
 import 'package:persis_app/core/helpers/auth_helper.dart';
+import 'package:persis_app/features/profile/controller/profile_controller.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,69 +14,21 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String _role = 'ANGGOTA';
-  bool _isLoading = true;
-  Map<String, dynamic>? _userData;
-
   @override
   void initState() {
     super.initState();
-    _loadProfileData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfileController>().loadProfile();
+    });
   }
 
-  Future<void> _loadProfileData() async {
-    setState(() => _isLoading = true);
-    try {
-      final role = await AuthHelper.getRole();
-      final userId = await AuthHelper.getUserId();
-      final token = await AuthHelper.getAccessToken();
-
-      debugPrint('=== PROFILE DEBUG ===');
-      debugPrint('userId: $userId');
-      debugPrint('token: ${token != null ? "ADA" : "NULL"}');
-      debugPrint('role: $role');
-
-      if (userId == null || token == null) {
-        debugPrint('userId atau token null, skip fetch');
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse('${AppConfig.baseUrl}/users/$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-          'ngrok-skip-browser-warning': 'true',
-        },
-      );
-
-      debugPrint('Profile response status: ${response.statusCode}');
-      debugPrint('Profile response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        setState(() {
-          _userData = body['data'] ?? body['user'] ?? body;
-          _role =
-              role?.toUpperCase() ??
-              _userData?['role']?.toUpperCase() ??
-              'ANGGOTA';
-        });
-      }
-    } catch (e) {
-      debugPrint('Gagal memuat profil: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showEditBottomSheet() {
+  void _showEditBottomSheet(ProfileController ctrl) {
     final emailCtrl = TextEditingController(
-      text: (_userData?['email'] ?? '').toString(),
+      text: (ctrl.userData?['email'] ?? '').toString(),
     );
     final noHpCtrl = TextEditingController(
-      text: (_userData?['no_hp'] ?? _userData?['phone'] ?? '').toString(),
+      text: (ctrl.userData?['no_hp'] ?? ctrl.userData?['phone'] ?? '')
+          .toString(),
     );
     final formKey = GlobalKey<FormState>();
 
@@ -92,58 +43,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onSave: () async {
           if (!formKey.currentState!.validate()) return;
           Navigator.pop(ctx);
-          await _updateProfile(
+          await ctrl.updateProfile(
             email: emailCtrl.text.trim(),
             noHp: noHpCtrl.text.trim(),
           );
+          if (!mounted) return;
+          if (ctrl.errorMessage != null) {
+            _showSnackBar(ctrl.errorMessage!, isError: true);
+          } else {
+            _showSnackBar('Profil berhasil diperbarui!');
+          }
         },
       ),
     );
-  }
-
-  Future<void> _updateProfile({
-    required String email,
-    required String noHp,
-  }) async {
-    setState(() => _isLoading = true);
-    try {
-      final userId = await AuthHelper.getUserId();
-      final token = await AuthHelper.getAccessToken();
-
-      if (userId == null || token == null) {
-        _showSnackBar('Sesi tidak valid, silakan login ulang.', isError: true);
-        return;
-      }
-
-      final response = await http.patch(
-        Uri.parse('${AppConfig.baseUrl}/users/$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-          'ngrok-skip-browser-warning': 'true',
-        },
-        body: jsonEncode({'email': email, 'no_hp': noHp}),
-      );
-
-      debugPrint('Update profile status: ${response.statusCode}');
-      debugPrint('Update profile body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _userData = {...?_userData, 'email': email, 'no_hp': noHp};
-        });
-        _showSnackBar('Profil berhasil diperbarui!');
-      } else {
-        final body = jsonDecode(response.body);
-        final msg = body['message'] ?? 'Gagal memperbarui profil.';
-        _showSnackBar(msg, isError: true);
-      }
-    } catch (e) {
-      debugPrint('Error update profil: $e');
-      _showSnackBar('Terjadi kesalahan. Coba lagi.', isError: true);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -207,21 +119,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isBendahara = _role.contains('BENDAHARA');
-    final homeRoute = _role.contains('BENDAHARA_PJ')
+    final ctrl = context.watch<ProfileController>();
+    final isBendahara = ctrl.role.contains('BENDAHARA');
+    final homeRoute = ctrl.role.contains('BENDAHARA_PJ')
         ? AppRoutes.bendaharaPJ
-        : _role.contains('BENDAHARA_PC')
+        : ctrl.role.contains('BENDAHARA_PC')
         ? AppRoutes.bendaharaPC
         : AppRoutes.anggota;
     final fullname =
-        (_userData?['fullname'] ?? _userData?['name'] ?? 'Pengguna InfaQu')
+        (ctrl.userData?['fullname'] ??
+                ctrl.userData?['name'] ??
+                'Pengguna InfaQu')
             .toString();
-    final npa = (_userData?['npa'] ?? '-').toString();
-    final email = (_userData?['email'] ?? '-').toString();
-    final noHp = (_userData?['no_hp'] ?? _userData?['phone'] ?? '-').toString();
-    final cabang = _userData?['region_id'] is Map
-        ? (_userData?['region_id']?['name'] ?? '-').toString()
-        : '-';
+    final npa = (ctrl.userData?['npa'] ?? '-').toString();
+    final email = (ctrl.userData?['email'] ?? '-').toString();
+    final noHp = (ctrl.userData?['no_hp'] ?? ctrl.userData?['phone'] ?? '-')
+        .toString();
+    final cabang = ctrl.cabang;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -238,9 +152,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         iconTheme: const IconThemeData(color: darkText),
         actions: [
-          if (!_isLoading)
+          if (!ctrl.isLoading)
             TextButton.icon(
-              onPressed: _showEditBottomSheet,
+              onPressed: () => _showEditBottomSheet(ctrl),
               icon: const Icon(
                 Icons.edit_outlined,
                 size: 16,
@@ -257,11 +171,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
         ],
       ),
-      body: _isLoading
+      body: ctrl.isLoading
           ? const Center(child: CircularProgressIndicator(color: primaryGreen))
           : RefreshIndicator(
               color: primaryGreen,
-              onRefresh: _loadProfileData,
+              onRefresh: () => ctrl.loadProfile(),
               child: ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
@@ -306,7 +220,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        _role,
+                        ctrl.role,
                         style: const TextStyle(
                           color: primaryGreen,
                           fontSize: 12,
@@ -330,15 +244,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildInfoRow(Icons.email_outlined, 'Email', email),
                       _buildDivider(),
                       _buildInfoRow(Icons.phone_outlined, 'No. Telepon', noHp),
-                      if (!isBendahara) ...[
-                        _buildDivider(),
-                        _buildInfoRow(
-                          Icons.location_city_outlined,
-                          'Cabang',
-                          cabang,
-                          isReadonly: true,
-                        ),
-                      ],
+                      _buildDivider(),
+                      _buildInfoRow(
+                        Icons.location_city_outlined,
+                        'Cabang',
+                        cabang,
+                        isReadonly: true,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),

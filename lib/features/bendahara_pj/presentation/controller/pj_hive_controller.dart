@@ -156,10 +156,6 @@ class PjHiveController extends ChangeNotifier {
       return null;
     }
 
-    debugPrint(
-      '[PjHiveController] ✅ Memproses sync untuk transaksi: ${transaction.id}',
-    );
-
     final resolvedPaymentMethodId = await _resolvePaymentMethodId(
       transaction.paymentMethodId,
       paymentMethodDataSource,

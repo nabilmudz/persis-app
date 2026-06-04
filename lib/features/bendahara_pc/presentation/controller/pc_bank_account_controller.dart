@@ -103,16 +103,10 @@ class PcBankAccountController extends ChangeNotifier {
 
     try {
       final methods = await _paymentMethodDataSource.getAllPaymentMethods();
-      print('===== PAYMENT METHODS LOADED =====');
-      print('Loaded ${methods.length} payment methods');
-      for (var method in methods) {
-        print('Method: code=${method.code}, label=${method.label}');
-      }
       _paymentMethods
         ..clear()
         ..addAll(methods);
     } catch (e) {
-      print('===== ERROR LOADING PAYMENT METHODS =====');
       print('Error in loadPaymentMethods: $e');
       _errorMessage = 'Error loading payment methods: $e';
     } finally {
@@ -128,10 +122,6 @@ class PcBankAccountController extends ChangeNotifier {
 
     try {
       final accounts = await _dataSource.getAll();
-      print('Loaded ${accounts.length} bank accounts');
-      for (var account in accounts) {
-        print('Account: ${account.bankName} - ${account.accountNumber}');
-      }
       _bankAccounts
         ..clear()
         ..addAll(accounts);
@@ -146,10 +136,6 @@ class PcBankAccountController extends ChangeNotifier {
 
   Future<bool> addBankAccount(BankAccountModel account) async {
     try {
-      print('===== ADD BANK ACCOUNT =====');
-      print(
-        'Received account with paymentMethodId: "${account.paymentMethodId}"',
-      );
       await _dataSource.create(account);
       await loadBankAccounts();
       return true;
@@ -210,20 +196,14 @@ class PcBankAccountController extends ChangeNotifier {
   }) async {
     for (final method in _paymentMethods) {
       final normalizedCode = _normalize(method.code);
-      print('  Comparing normalized code: "$normalizedCode" with exactCodes');
       if (exactCodes.any((code) => normalizedCode == _normalize(code))) {
-        print('  ✓ MATCH! Returning id: ${method.id}');
         return method.id;
       }
     }
 
     for (final method in _paymentMethods) {
       final normalizedLabel = _normalize(method.label);
-      print(
-        '  Comparing normalized label: "$normalizedLabel" with exactLabels',
-      );
       if (exactLabels.any((label) => normalizedLabel == _normalize(label))) {
-        print('  ✓ MATCH! Returning id: ${method.id}');
         return method.id;
       }
     }
@@ -231,28 +211,22 @@ class PcBankAccountController extends ChangeNotifier {
     for (final method in _paymentMethods) {
       final normalizedLabel = _normalize(method.label);
       if (labels.any((label) => normalizedLabel == _normalize(label))) {
-        print('  ✓ MATCH! Returning id: ${method.id}');
         return method.id;
       }
     }
 
-    print('No labels match. Checking fallbackCodes...');
     for (final method in _paymentMethods) {
       final normalizedCode = _normalize(method.code);
       if (fallbackCodes.any((code) => normalizedCode == _normalize(code))) {
-        print('  ✓ MATCH! Returning id: ${method.id}');
         return method.id;
       }
     }
 
-    print('❌ NO MATCH FOUND. Returning null');
     return null;
   }
 
   Future<void> _ensurePaymentMethodsLoaded() async {
-    print('===== ENSURE PAYMENT METHODS LOADED =====');
     if (_paymentMethods.isEmpty) {
-      print('Payment methods empty. Loading...');
       await loadPaymentMethods();
     } else {
       print('Payment methods already loaded. Count: ${_paymentMethods.length}');

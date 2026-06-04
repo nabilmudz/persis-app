@@ -227,10 +227,6 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
       isActive: true,
     );
 
-    print(
-      'QRIS Account model created with paymentMethodId: ${qrisAccount.paymentMethodId}',
-    );
-
     final result = existingQris == null
         ? await _controller.addBankAccount(qrisAccount)
         : await _controller.updateBankAccount(existingQris.id!, qrisAccount);

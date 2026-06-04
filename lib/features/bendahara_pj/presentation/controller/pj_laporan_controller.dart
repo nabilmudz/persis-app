@@ -34,7 +34,6 @@ class PjLaporanController extends ChangeNotifier {
       );
 
       if (result != null && result['url'] != null) {
-        debugPrint('📥 Export result: URL returned');
         String urlString = result['url'];
         if (!urlString.startsWith('http')) {
           final baseUrl = ApiClient.baseUrl.endsWith('/')

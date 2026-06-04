@@ -11,11 +11,13 @@ class IsiDataScreen extends StatefulWidget {
   final String npa;
   final String id;
   final String regionName;
+  final String fullname;
   const IsiDataScreen({
     super.key,
     required this.npa,
     required this.id,
     required this.regionName,
+    this.fullname = '',
   });
   @override
   State<IsiDataScreen> createState() => _IsiDataScreenState();
@@ -61,6 +63,12 @@ class _IsiDataScreenState extends State<IsiDataScreen> {
             const SizedBox(height: 8),
             _readonlyField(widget.npa, Icons.badge_outlined),
             const SizedBox(height: 16),
+            if (widget.fullname.isNotEmpty) ...[
+              _label('Nama Lengkap'),
+              const SizedBox(height: 8),
+              _readonlyField(widget.fullname, Icons.person_outline),
+              const SizedBox(height: 16),
+            ],
             _label('Email'),
             const SizedBox(height: 8),
             _inputField(

@@ -115,7 +115,6 @@ class TransactionRemoteDataSource {
     try {
       String url =
           '/transaction?creator_id=$creatorId&year=$year&region_id=$regionId&month=$month';
-      debugPrint('📡 getLogTransactions URL: $url');
       final response = await ApiClient.get(url);
       if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = json.decode(response.body);
@@ -218,13 +217,8 @@ class TransactionRemoteDataSource {
         url += '?region_id=$regionId';
       }
 
-      debugPrint('📡 fetchAllExportTransactions URL: $url');
-
       final response = await ApiClient.get(url);
       if (response.statusCode != 200 && response.statusCode != 201) {
-        debugPrint(
-          '⚠️ fetchAllExportTransactions: status ${response.statusCode}',
-        );
         return [];
       }
 
@@ -278,10 +272,6 @@ class TransactionRemoteDataSource {
           }),
         );
       }
-
-      debugPrint(
-        '[fetchAllExportTransactions] ${txList.length} transaksi dimuat',
-      );
       return txList;
     } catch (e) {
       debugPrint('[fetchAllExportTransactions] Error: $e');
@@ -301,8 +291,6 @@ class TransactionRemoteDataSource {
       if (regionId != null && regionId.isNotEmpty) {
         url += '&region_id=$regionId';
       }
-
-      debugPrint('📡 exportTransactions URL: $url');
 
       final response = await ApiClient.get(url);
       final decoded = json.decode(response.body);
@@ -364,9 +352,6 @@ class TransactionRemoteDataSource {
               .where((e) => e.isNotEmpty)
               .toList();
 
-          debugPrint(
-            '📊 exportTransactions: ${txList.length} transaksi untuk bulan=$month/$year',
-          );
           resultMap['data'] = txList;
         }
 

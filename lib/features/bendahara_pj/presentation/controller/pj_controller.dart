@@ -169,7 +169,7 @@ class PjController extends ChangeNotifier {
   Future<void> _fetchAndCacheData() async {
     try {
       final regionId = await resolveRegionId();
-      final users = await _userDataSource.getAllUsers(regionId: regionId);
+      final users = await _userDataSource.getAllUsers(regionId: regionId, isActive: true);
       final transactions = await _transactionDataSource.getHistory();
 
       final filteredUsers = users
@@ -195,8 +195,6 @@ class PjController extends ChangeNotifier {
       await PjTransactionItemController.cachePeriodsFromTransactions(
         transactions,
       );
-
-      debugPrint('[PjController] Data berhasil di-cache untuk offline.');
     } catch (e) {
       debugPrint('[PjController] Gagal fetch data network: $e');
     }
@@ -319,9 +317,6 @@ class PjController extends ChangeNotifier {
       );
 
       _verifController.updateData(transactions: _transactions);
-      debugPrint(
-        '[PjController] Snapshot status pembayaran berhasil di-cache.',
-      );
     } catch (e) {
       debugPrint('[PjController] Gagal load snapshot status pembayaran: $e');
       await _fetchAndCacheData();
@@ -331,9 +326,6 @@ class PjController extends ChangeNotifier {
   Future<String?> resolveRegionId() async {
     final storedRegion = await SecureStorageService.read('region_id');
     if (storedRegion != null && storedRegion.trim().isNotEmpty) {
-      debugPrint(
-        '[PjController] resolveRegionId: Found in SecureStorage -> $storedRegion',
-      );
       return storedRegion.trim();
     }
 
@@ -354,9 +346,6 @@ class PjController extends ChangeNotifier {
     try {
       final payload = _decodeJwtPayload(parts[1]);
       final extracted = _extractRegionId(payload);
-      debugPrint(
-        '[PjController] resolveRegionId: Extracted from JWT -> $extracted',
-      );
       return extracted;
     } catch (_) {
       return null;
@@ -596,9 +585,11 @@ class PjController extends ChangeNotifier {
     if (anggotaId.isEmpty) return null;
 
     final memberTxs = _transactions.where((tx) {
-      final hasItemForMember = tx.items?.any((item) =>
-        (item.anggotaId?.toString() ?? '') == anggotaId
-      ) ?? false;
+      final hasItemForMember =
+          tx.items?.any(
+            (item) => (item.anggotaId?.toString() ?? '') == anggotaId,
+          ) ??
+          false;
       if (hasItemForMember) return true;
       if ((tx.creatorId?.toString() ?? '') == anggotaId) return true;
 
@@ -640,7 +631,8 @@ class PjController extends ChangeNotifier {
   }
 
   String lookupMemberName(String? id) {
-    if (id == null || id.trim().isEmpty || id.trim() == '-') return 'Bendahara PJ';
+    if (id == null || id.trim().isEmpty || id.trim() == '-')
+      return 'Bendahara PJ';
     try {
       final member = _members.firstWhere((m) => m.id == id.trim());
       final name = member.fullname?.trim() ?? member.name?.trim() ?? '';

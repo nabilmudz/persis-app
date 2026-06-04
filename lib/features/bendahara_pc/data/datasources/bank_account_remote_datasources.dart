@@ -9,9 +9,6 @@ class BankAccountRemoteDataSource {
   Future<List<BankAccountModel>> getAll() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/bank-account'));
-      print(
-        'Bank Account API Response: ${response.statusCode} - ${response.body}',
-      );
       if (response.statusCode == 200) {
         List data = json.decode(response.body);
         return data.map((e) => BankAccountModel.fromJson(e)).toList();
@@ -34,35 +31,19 @@ class BankAccountRemoteDataSource {
   }
 
   Future<void> create(BankAccountModel bankAccount) async {
-    print('===== CREATE BANK ACCOUNT =====');
-    print(
-      'Received bankAccount.paymentMethodId: "${bankAccount.paymentMethodId}"',
-    );
-    print('Is null: ${bankAccount.paymentMethodId == null}');
-    print('Is empty: ${bankAccount.paymentMethodId?.isEmpty ?? "N/A"}');
-
     if (bankAccount.paymentMethodId == null ||
         bankAccount.paymentMethodId!.trim().isEmpty) {
       print('❌ VALIDATION FAILED: payment_method_id adalah null atau kosong');
       throw Exception('payment_method_id tidak boleh kosong');
     }
 
-    print(
-      '✓ Validation passed. Payment Method ID: "${bankAccount.paymentMethodId}"',
-    );
-
     final qrisImageBytes = bankAccount.qrisImageBytes;
     if (qrisImageBytes != null && qrisImageBytes.isNotEmpty) {
-      print('Creating multipart request with QRIS image...');
       final request = http.MultipartRequest(
         'POST',
         Uri.parse('$baseUrl/bank-account'),
       );
-
       request.fields['payment_method_id'] = bankAccount.paymentMethodId ?? '';
-      print(
-        'Set field payment_method_id: "${request.fields['payment_method_id']}"',
-      );
 
       if (bankAccount.isActive != null) {
         request.fields['is_active'] = bankAccount.isActive.toString();
@@ -75,14 +56,8 @@ class BankAccountRemoteDataSource {
           filename: bankAccount.qrisImageName ?? 'qris.png',
         ),
       );
-
-      print('Sending multipart request to: $baseUrl/bank-account');
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-
-      print(
-        'Bank Account Create Response: ${response.statusCode} - ${response.body}',
-      );
 
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw Exception(
@@ -96,10 +71,6 @@ class BankAccountRemoteDataSource {
       Uri.parse('$baseUrl/bank-account'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(bankAccount.toJson()),
-    );
-
-    print(
-      'Bank Account Create Response: ${response.statusCode} - ${response.body}',
     );
 
     if (response.statusCode != 200 && response.statusCode != 201) {

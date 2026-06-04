@@ -703,12 +703,18 @@ class _LoginScreenState extends State<LoginScreen>
         final regionName =
             (body['region_name'] ?? body['regionName'])?.toString().trim() ??
             '';
+        final fullname =
+            (body['fullname'] ?? body['full_name'] ?? body['name'])?.toString().trim() ?? '';
         if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                IsiDataScreen(npa: npa, id: userId, regionName: regionName),
+            builder: (_) => IsiDataScreen(
+              npa: npa,
+              id: userId,
+              regionName: regionName,
+              fullname: fullname,
+            ),
           ),
         );
       } else {
