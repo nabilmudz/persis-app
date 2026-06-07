@@ -1,24 +1,24 @@
 class TransactionModel {
-  final String? id; // MongoDB _id
-  final String? code; // Ditambahkan agar sesuai copyWith
-  final String? type; // Ditambahkan agar sesuai copyWith
+  final String? id; 
+  final String? code; 
+  final String? type; 
   final String? creatorId;
   final String? paymentMethodId;
-  final String? proofUrl; // Ditambahkan agar sesuai copyWith
-  final String? bankName; // Ditambahkan agar sesuai copyWith
-  final String? bankAccountName; // Ditambahkan agar sesuai copyWith
-  final String? verifiedBy; // Ditambahkan agar sesuai copyWith
+  final String? proofUrl; 
+  final String? bankName; 
+  final String? bankAccountName; 
+  final String? verifiedBy; 
   final int? totalAmount;
   final String? status;
   final String? accStatus;
   final bool? isSynced;
   final String? createdAt;
-  final String? updatedAt; // Ditambahkan agar sesuai copyWith
+  final String? updatedAt; 
   final String? accBy;
   final String? accAt;
   final String? syncedAt;
-  final String? memberName; // Dari API: member_name
-  final String? npa; // Dari API: npa
+  final String? memberName; 
+  final String? npa; 
   final List<TransactionItemModel>? items;
   final String? anggotaId;
 

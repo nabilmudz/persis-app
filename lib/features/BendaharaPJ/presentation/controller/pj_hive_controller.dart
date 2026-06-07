@@ -28,7 +28,6 @@ class PjHiveController extends ChangeNotifier {
     bool autoSync = true,
   }) async {
     transactionData['local_timestamp'] = DateTime.now().toIso8601String();
-    // Gunakan status dari data jika ada (agar 'completed' tidak tertimpa 'pending' jika sudah diset)
     transactionData['status'] = transactionData['status'] ?? 'pending';
     transactionData['isSynced'] = transactionData['isSynced'] ?? false;
 
@@ -41,9 +40,6 @@ class PjHiveController extends ChangeNotifier {
           if (isOnline) {
             syncPendingTransactions(dataSource: dataSource).then((syncedCount) {
               if (syncedCount > 0) {
-                debugPrint(
-                  '[PjHiveController] Auto-sync setelah save: $syncedCount transaksi terkirim.',
-                );
                 notifyListeners();
               }
             });

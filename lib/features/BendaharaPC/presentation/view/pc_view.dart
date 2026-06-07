@@ -89,26 +89,7 @@ class _PcViewPageState extends State<PcViewPage> {
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
               childAspectRatio: 1.25, 
-              children: [
-                // 1. Verifikasi Setoran (Kiri Atas - Kuning)
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PcVerifikasiPage(),
-                      ),
-                    );
-                  },
-                  child: _buildMenuCard(
-                    context,
-                    'Verifikasi Setoran',
-                    Icons.assignment_outlined,
-                    const Color(0xFFFFFBEA), 
-                    const Color(0xFFF57F17), 
-                  ),
-                ),
-                // 2. Riwayat Pembayaran (Kanan Atas - Kuning)
+              children: [// 2. Riwayat Pembayaran (Kanan Atas - Kuning)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -127,24 +108,6 @@ class _PcViewPageState extends State<PcViewPage> {
                   ),
                 ),
                 // 3. Kelola Rekening (Kiri Bawah - Hijau)
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PcBankAccountPage(),
-                      ),
-                    );
-                  },
-                  child: _buildMenuCard(
-                    context,
-                    'Kelola Rekening',
-                    Icons.account_balance_wallet_outlined,
-                    const Color(0xFFE8F5E9), 
-                    const Color(0xFF0C844C), 
-                  ),
-                ),
-                // 4. Laporan Keuangan (Kanan Bawah - Hijau)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(

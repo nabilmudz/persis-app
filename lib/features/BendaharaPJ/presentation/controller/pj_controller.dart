@@ -35,8 +35,6 @@ class PjController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Tambah transaksi ke state lokal (biasanya setelah berhasil di BE)
-  /// agar UI langsung update tanpa menunggu fetch ulang.
   void addTransaction(TransactionModel tx) {
     // Hindari duplikat
     if (_transactions.any((t) => t.id == tx.id && tx.id != null)) {
@@ -47,15 +45,11 @@ class PjController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Simpan invoice terakhir yang baru saja dibuat untuk anggota tertentu.
-  /// Dipanggil tepat setelah pembayaran berhasil agar tombol "Lihat Invoice"
-  /// di kartu anggota langsung menampilkan data yang sama dengan post-payment.
   void cacheLastInvoice(String memberId, PjInvoiceData invoice) {
     _lastInvoiceCache[memberId] = invoice;
     notifyListeners();
   }
 
-  /// Ambil invoice terakhir dari cache (null jika belum ada).
   PjInvoiceData? getLastInvoiceCache(String memberId) {
     return _lastInvoiceCache[memberId];
   }

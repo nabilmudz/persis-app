@@ -9,6 +9,7 @@ import 'pj_verif_tunai_controller.dart';
 ///   - [PjMonthStatus.paid]
 ///   - [PjMonthStatus.tunggakan]
 ///   - [PjMonthStatus.pending]
+/// 
 class PjTransactionItemController extends ChangeNotifier {
   PjTransactionItemController({TransactionRemoteDataSource? dataSource})
     : _dataSource = dataSource ?? TransactionRemoteDataSource();
@@ -175,11 +176,7 @@ class PjTransactionItemController extends ChangeNotifier {
       }
     }
   }
-
-  /// Status warna kartu bulan tertentu.
   PjMonthStatus getMonthStatus(int month, int year) {
-    // ✅ FIX: jika bulan tidak ada di map sama sekali → pending
-    // (bukan tunggakan — bisa jadi period belum dibuat di backend)
     final cachedStatus = _monthStatusMap[_key(month, year)];
     if (cachedStatus != null) {
       return cachedStatus;

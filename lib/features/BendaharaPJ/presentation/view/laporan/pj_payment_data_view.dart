@@ -90,6 +90,15 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                   (e) =>
                       TransactionModel.fromJson(Map<String, dynamic>.from(e)),
                 )
+                .map((t) {
+                  // Hitung ulang amount hanya untuk bulan yang dipilih
+                  final monthAmount = _calculateAmountForMonth(
+                    t,
+                    _selectedMonth.month,
+                    _selectedMonth.year,
+                  );
+                  return t.copyWith(totalAmount: monthAmount);
+                })
                 .toList();
             _isInitialLoading = false;
           });
@@ -202,6 +211,34 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     }
   }
 
+  /// Menghitung total amount untuk bulan tertentu dari items transaksi.
+  /// Jika transaksi memiliki items dengan periodId, hitung hanya item yang
+  /// periodenya sesuai bulan/tahun yang dipilih. Jika tidak ada items atau
+  /// tidak ada yang match, gunakan totalAmount asli (sudah difilter API).
+  int _calculateAmountForMonth(TransactionModel t, int month, int year) {
+    final items = t.items ?? [];
+    if (items.isEmpty) return t.totalAmount ?? 0;
+
+    int matchedAmount = 0;
+    bool anyMatched = false;
+    for (final item in items) {
+      final periodStr = item.periodId ?? '';
+      final parts = periodStr.split('-');
+      bool matches = false;
+      if (parts.length >= 2) {
+        final y = int.tryParse(parts[0]);
+        final m = int.tryParse(parts[1]);
+        if (y == year && m == month) matches = true;
+      }
+      if (matches) {
+        matchedAmount += item.amount ?? 0;
+        anyMatched = true;
+      }
+    }
+    // Jika tidak ada item yang match period, kembalikan totalAmount asli
+    return anyMatched ? matchedAmount : (t.totalAmount ?? 0);
+  }
+
   String _formatCurrency(int? amount) {
     if (amount == null) return 'Rp. 0';
     final formatter = NumberFormat.currency(
@@ -276,6 +313,15 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         final List rawData = result['data'];
         exportData = rawData
             .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+            .map((t) {
+              // Hitung ulang amount hanya untuk bulan yang dipilih
+              final monthAmount = _calculateAmountForMonth(
+                t,
+                _selectedMonth.month,
+                _selectedMonth.year,
+              );
+              return t.copyWith(totalAmount: monthAmount);
+            })
             .toList();
         debugPrint(
           '✓ API Export: ${exportData.length} transaksi diterima dari server',
