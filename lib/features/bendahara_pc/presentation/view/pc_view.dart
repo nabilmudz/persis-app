@@ -3,8 +3,6 @@ import 'package:persis_app/app/routes.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import '../../../bendahara_pj/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
-import 'pc_bank_account_view.dart';
-import 'pc_verifikasi_view.dart';
 import 'pc_laporan_view.dart';
 import 'pc_riwayat_pembayaran_view.dart';
 

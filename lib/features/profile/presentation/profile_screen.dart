@@ -120,7 +120,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final ctrl = context.watch<ProfileController>();
-    final isBendahara = ctrl.role.contains('BENDAHARA');
     final homeRoute = ctrl.role.contains('BENDAHARA_PJ')
         ? AppRoutes.bendaharaPJ
         : ctrl.role.contains('BENDAHARA_PC')
