@@ -204,6 +204,11 @@ class PjController extends ChangeNotifier {
   }
 
   Future<void> fetchMembersByStatus(String statusTag) async {
+    if (statusTag.toLowerCase() == 'semua') {
+      await loadInitialData();
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -211,24 +216,18 @@ class PjController extends ChangeNotifier {
     try {
       final regionId = await resolveRegionId();
 
-      List<UserModel> users;
-      if (statusTag.toLowerCase() == 'semua') {
-        await loadInitialData();
-        return;
-      } else {
-        users = await _userDataSource.getUsersWithStatus(
-          statusTag.toLowerCase(),
-          regionId: regionId,
-        );
+      final users = await _userDataSource.getUsersWithStatus(
+        statusTag.toLowerCase(),
+        regionId: regionId,
+      );
 
-        final filteredUsers = users
-            .where((u) => u.id != null && u.id!.trim().isNotEmpty)
-            .toList();
+      final filteredUsers = users
+          .where((u) => u.id != null && u.id!.trim().isNotEmpty)
+          .toList();
 
-        _members
-          ..clear()
-          ..addAll(filteredUsers);
-      }
+      _members
+        ..clear()
+        ..addAll(filteredUsers);
     } catch (e) {
       debugPrint('[PjController] Error fetchMembersByStatus: $e');
       _errorMessage = 'Gagal memuat data anggota berdasarkan status: $e';
@@ -528,12 +527,14 @@ class PjController extends ChangeNotifier {
     }
 
     return _members.where((member) {
-      final name = (member.name ?? '').toLowerCase();
+      final name = (member.fullname ?? member.name ?? '').toLowerCase();
       final code = (member.code ?? '').toLowerCase();
       final email = (member.email ?? '').toLowerCase();
+      final region = (member.regionName ?? '').toLowerCase();
       return name.contains(trimmed) ||
           code.contains(trimmed) ||
-          email.contains(trimmed);
+          email.contains(trimmed) ||
+          region.contains(trimmed);
     }).toList();
   }
 

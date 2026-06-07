@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:persis_app/core/storage/secure_storage_service.dart';
 import 'package:persis_app/features/bendahara_pj/data/datasources/transaction_remote_datasources.dart';
 import 'package:persis_app/features/bendahara_pj/data/models/transaction_model.dart';
 
@@ -14,7 +16,6 @@ class PcController extends ChangeNotifier {
 
   final TransactionRemoteDataSource _dataSource;
   final List<TransactionModel> _allTransactions = <TransactionModel>[];
-
   final Map<String, String> _memberNames = {};
   final Map<String, String> _memberNpas = {};
 
@@ -32,14 +33,21 @@ class PcController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Resolve region_id dari user yang login
+      final regionId = await _resolveRegionId();
+
+      // Load dua API paralel — transaksi sudah difilter by region
       final results = await Future.wait([
-        _dataSource.getHistory(),
+        regionId != null && regionId.isNotEmpty
+            ? _dataSource.getTransactionsByRegion(regionId)
+            : _dataSource.getHistory(),
         _dataSource.getMembersPaymentStatus(year: DateTime.now().year),
       ]);
 
       final transactions = results[0] as List<TransactionModel>;
       final membersData = results[1] as Map<String, dynamic>?;
 
+      // Build lookup map: member _id → fullname & npa
       _memberNames.clear();
       _memberNpas.clear();
       if (membersData != null) {
@@ -62,6 +70,46 @@ class PcController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Resolve region_id dari secure storage (hasil login) atau JWT token.
+  Future<String?> _resolveRegionId() async {
+    final stored = await SecureStorageService.read('region_id');
+    if (stored != null && stored.trim().isNotEmpty) {
+      debugPrint('[PcController] region_id from storage: $stored');
+      return stored.trim();
+    }
+
+    // Fallback: baca dari JWT token
+    final token = await SecureStorageService.read(
+      SecureStorageService.accessTokenKey,
+    );
+    if (token == null || token.trim().isEmpty) return null;
+
+    final parts = token.split('.');
+    if (parts.length < 2) return null;
+
+    try {
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final payload = jsonDecode(decoded);
+      if (payload is Map<String, dynamic>) {
+        final candidates = [
+          payload['region_id'],
+          payload['regionId'],
+          payload['region'],
+        ];
+        for (final c in candidates) {
+          if (c is String && c.trim().isNotEmpty) return c.trim();
+          if (c is Map) {
+            final id = c['_id'] ?? c['id'] ?? c['region_id'] ?? c['regionId'];
+            if (id is String && id.trim().isNotEmpty) return id.trim();
+          }
+        }
+      }
+    } catch (_) {}
+    debugPrint('[PcController] region_id not found in token');
+    return null;
   }
 
   List<TransactionModel> get previewTransactions {
@@ -104,6 +152,7 @@ class PcController extends ChangeNotifier {
     );
   }
 
+  /// Resolve nama member: lookup map dulu, fallback ke field di model, lalu Unknown
   String _resolveMemberName(TransactionModel item) {
     final fromMap = _memberNames[item.creatorId] ?? '';
     if (fromMap.isNotEmpty) return fromMap;
@@ -114,12 +163,14 @@ class PcController extends ChangeNotifier {
     return 'Unknown';
   }
 
+  /// Resolve NPA: lookup map dulu, fallback ke field di model
   String _resolveMemberNpa(TransactionModel item) {
     final fromMap = _memberNpas[item.creatorId] ?? '';
     if (fromMap.isNotEmpty) return fromMap;
     return item.npa ?? '-';
   }
 
+  /// Kode tampilan transaksi: 8 karakter terakhir dari transaction ID
   String _resolveTransactionCode(TransactionModel item) {
     final id = item.id ?? item.creatorId ?? '';
     if (id.length >= 8) {

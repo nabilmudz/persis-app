@@ -10,6 +10,7 @@ class UserModel {
   final String? noHp;
   final bool? isActive;
   final DateTime? createdAt;
+  final String? regionName;
 
   String? get code => npa;
 
@@ -25,9 +26,19 @@ class UserModel {
     this.noHp,
     this.isActive,
     this.createdAt,
+    this.regionName,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    String? regionName;
+    final regionId = json['region_id'] ?? json['regionId'] ?? json['region'];
+    if (regionId is Map) {
+      regionName = (regionId['name'] ?? regionId['nama'])?.toString();
+    } else if (regionId is String && regionId.isNotEmpty) {
+      regionName = regionId;
+    }
+
+    return UserModel(
     id: json['_id'] ?? json['id'],
     npa: json['npa'],
     name: json['name'],
@@ -43,7 +54,9 @@ class UserModel {
     createdAt: json['created_at'] != null
         ? DateTime.tryParse(json['created_at'])
         : null,
+    regionName: regionName,
   );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -57,5 +70,6 @@ class UserModel {
     'no_hp': noHp,
     'is_active': isActive,
     'created_at': createdAt?.toIso8601String(),
+    'region_name': regionName,
   };
 }

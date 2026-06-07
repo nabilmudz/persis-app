@@ -9,7 +9,6 @@ class ConnectivityService {
 
   static StreamSubscription<List<ConnectivityResult>>? _subscription;
   static bool _wasOffline = false;
-
   static Future<void> init() async {
     final initialResults = await Connectivity().checkConnectivity();
     _wasOffline = _isOffline(initialResults);
@@ -28,7 +27,6 @@ class ConnectivityService {
         PjHiveController().syncPendingTransactions();
       }
     }
-
     _wasOffline = isCurrentlyOffline;
   }
 

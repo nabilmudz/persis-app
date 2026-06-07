@@ -84,6 +84,15 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                   (e) =>
                       TransactionModel.fromJson(Map<String, dynamic>.from(e)),
                 )
+                .map((t) {
+                  // Hitung ulang amount hanya untuk bulan yang dipilih
+                  final monthAmount = _calculateAmountForMonth(
+                    t,
+                    _selectedMonth.month,
+                    _selectedMonth.year,
+                  );
+                  return t.copyWith(totalAmount: monthAmount);
+                })
                 .toList();
             _isInitialLoading = false;
           });
@@ -113,7 +122,8 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
               if (t.createdAt != null) {
                 try {
                   final date = DateTime.parse(t.createdAt!);
-                  if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                  if (date.year == _selectedMonth.year &&
+                      date.month == _selectedMonth.month) {
                     matches = true;
                   }
                 } catch (_) {}
@@ -121,19 +131,18 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
             }
 
             if (matches) {
-              localTransactions.add(t.copyWith(
-                totalAmount: item.amount ?? 20000,
-              ));
+              localTransactions.add(
+                t.copyWith(totalAmount: item.amount ?? 20000),
+              );
             }
           }
         } else {
           if (t.createdAt != null) {
             try {
               final date = DateTime.parse(t.createdAt!);
-              if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
-                localTransactions.add(t.copyWith(
-                  totalAmount: 20000,
-                ));
+              if (date.year == _selectedMonth.year &&
+                  date.month == _selectedMonth.month) {
+                localTransactions.add(t.copyWith(totalAmount: 20000));
               }
             } catch (_) {}
           }
@@ -198,6 +207,29 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
     ).format(amount);
   }
 
+  int _calculateAmountForMonth(TransactionModel t, int month, int year) {
+    final items = t.items ?? [];
+    if (items.isEmpty) return t.totalAmount ?? 0;
+
+    int matchedAmount = 0;
+    bool anyMatched = false;
+    for (final item in items) {
+      final periodStr = item.periodId ?? '';
+      final parts = periodStr.split('-');
+      bool matches = false;
+      if (parts.length >= 2) {
+        final y = int.tryParse(parts[0]);
+        final m = int.tryParse(parts[1]);
+        if (y == year && m == month) matches = true;
+      }
+      if (matches) {
+        matchedAmount += item.amount ?? 0;
+        anyMatched = true;
+      }
+    }
+    return anyMatched ? matchedAmount : (t.totalAmount ?? 0);
+  }
+
   String _getMemberName(TransactionModel transaction) {
     if (transaction.memberName != null && transaction.memberName!.isNotEmpty) {
       return transaction.memberName!;
@@ -229,6 +261,15 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         final List rawData = result['data'];
         exportData = rawData
             .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
+            .map((t) {
+              // Hitung ulang amount hanya untuk bulan yang dipilih
+              final monthAmount = _calculateAmountForMonth(
+                t,
+                _selectedMonth.month,
+                _selectedMonth.year,
+              );
+              return t.copyWith(totalAmount: monthAmount);
+            })
             .toList();
       } else {
         final List<TransactionModel> fallbackList = [];
@@ -249,7 +290,8 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                 if (t.createdAt != null) {
                   try {
                     final date = DateTime.parse(t.createdAt!);
-                    if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
+                    if (date.year == _selectedMonth.year &&
+                        date.month == _selectedMonth.month) {
                       matches = true;
                     }
                   } catch (_) {}
@@ -257,19 +299,16 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
               }
 
               if (matches) {
-                fallbackList.add(t.copyWith(
-                  totalAmount: item.amount ?? 20000,
-                ));
+                fallbackList.add(t.copyWith(totalAmount: item.amount ?? 20000));
               }
             }
           } else {
             if (t.createdAt != null) {
               try {
                 final date = DateTime.parse(t.createdAt!);
-                if (date.year == _selectedMonth.year && date.month == _selectedMonth.month) {
-                  fallbackList.add(t.copyWith(
-                    totalAmount: 20000,
-                  ));
+                if (date.year == _selectedMonth.year &&
+                    date.month == _selectedMonth.month) {
+                  fallbackList.add(t.copyWith(totalAmount: 20000));
                 }
               } catch (_) {}
             }

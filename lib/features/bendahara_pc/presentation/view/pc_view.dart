@@ -93,23 +93,7 @@ class _PcViewPageState extends State<PcViewPage> {
               crossAxisSpacing: 16,
               childAspectRatio: 1.25,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PcVerifikasiPage(),
-                      ),
-                    );
-                  },
-                  child: _buildMenuCard(
-                    context,
-                    'Verifikasi Setoran',
-                    Icons.assignment_outlined,
-                    const Color(0xFFFFFBEA),
-                    const Color(0xFFF57F17),
-                  ),
-                ),
+                // 2. Riwayat Pembayaran (Kanan Atas - Kuning)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -129,23 +113,7 @@ class _PcViewPageState extends State<PcViewPage> {
                     const Color(0xFFF57F17),
                   ),
                 ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PcBankAccountPage(),
-                      ),
-                    );
-                  },
-                  child: _buildMenuCard(
-                    context,
-                    'Kelola Rekening',
-                    Icons.account_balance_wallet_outlined,
-                    const Color(0xFFE8F5E9),
-                    const Color(0xFF0C844C),
-                  ),
-                ),
+                // 3. Kelola Rekening (Kiri Bawah - Hijau)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(

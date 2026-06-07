@@ -106,6 +106,43 @@ class TransactionRemoteDataSource {
     }
   }
 
+  Future<List<TransactionModel>> getTransactionsByRegion(
+    String regionId,
+  ) async {
+    try {
+      final url =
+          '/transaction?region_id=${Uri.encodeQueryComponent(regionId)}';
+      debugPrint('📡 getTransactionsByRegion URL: $url');
+      final response = await ApiClient.get(url);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final decoded = json.decode(response.body);
+        List? rawList;
+        if (decoded is List) {
+          rawList = decoded;
+        } else if (decoded is Map && decoded['data'] is List) {
+          rawList = decoded['data'] as List;
+        }
+        if (rawList != null) {
+          return rawList
+              .map(
+                (e) => TransactionModel.fromJson(
+                  Map<String, dynamic>.from(e as Map),
+                ),
+              )
+              .toList();
+        }
+      }
+      debugPrint(
+        '⚠ getTransactionsByRegion: status ${response.statusCode}, fallback to getHistory()',
+      );
+      return getHistory();
+    } catch (e, stack) {
+      debugPrint('Error getTransactionsByRegion: $e');
+      debugPrint('Stacktrace: $stack');
+      return <TransactionModel>[];
+    }
+  }
+
   Future<List<TransactionModel>> getLogTransactions({
     required String creatorId,
     required int year,

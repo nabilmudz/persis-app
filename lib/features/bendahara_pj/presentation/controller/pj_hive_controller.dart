@@ -40,9 +40,6 @@ class PjHiveController extends ChangeNotifier {
           if (isOnline) {
             syncPendingTransactions(dataSource: dataSource).then((syncedCount) {
               if (syncedCount > 0) {
-                debugPrint(
-                  '[PjHiveController] Auto-sync setelah save: $syncedCount transaksi terkirim.',
-                );
                 notifyListeners();
               }
             });
