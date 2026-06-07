@@ -169,7 +169,10 @@ class PjController extends ChangeNotifier {
   Future<void> _fetchAndCacheData() async {
     try {
       final regionId = await resolveRegionId();
-      final users = await _userDataSource.getAllUsers(regionId: regionId, isActive: true);
+      final users = await _userDataSource.getAllUsers(
+        regionId: regionId,
+        isActive: true,
+      );
       final transactions = await _transactionDataSource.getHistory();
 
       final filteredUsers = users
@@ -620,11 +623,6 @@ class PjController extends ChangeNotifier {
     if (realTxs.isNotEmpty) {
       sortByDateDesc(realTxs);
       return realTxs.first;
-    }
-
-    if (snapshotTxs.isNotEmpty) {
-      sortByDateDesc(snapshotTxs);
-      return snapshotTxs.first;
     }
 
     return null;

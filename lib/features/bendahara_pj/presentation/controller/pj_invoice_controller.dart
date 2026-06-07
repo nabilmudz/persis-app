@@ -216,7 +216,13 @@ class PjInvoiceData {
   }
 
   String get memberPhone => member.noHp?.trim() ?? '';
+
+  bool get hasData => items.isNotEmpty && totalAmount > 0;
+
   String get invoiceNumber {
+    if (!hasData) {
+      return 'Belum ada transaksi';
+    }
     final npa = memberCode != '-' ? memberCode : 'NA';
     final month = months.isNotEmpty
         ? months.first.toString().padLeft(2, '0')
@@ -254,6 +260,14 @@ class PjInvoiceData {
   String get totalFormatted => formatRupiah(totalAmount);
 
   String buildWhatsappMessage() {
+    if (!hasData) {
+      return 'Invoice Iuran InfaQu\n'
+          'Nama: $memberName\n'
+          'Kode/NPA: $memberCode\n'
+          '\n'
+          'Belum pernah bayar — anggota belum memiliki riwayat pembayaran iuran.';
+    }
+
     final buffer = StringBuffer()
       ..writeln('Invoice Iuran InfaQu')
       ..writeln('No. Invoice: $invoiceNumber')

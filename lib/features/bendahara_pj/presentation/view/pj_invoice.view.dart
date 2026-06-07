@@ -46,27 +46,28 @@ class _PjInvoiceViewPageState extends State<PjInvoiceViewPage> {
           ),
         ),
         actions: [
-          IconButton(
-            tooltip: 'Share ke WhatsApp',
-            icon: const Icon(Icons.share_rounded, color: Color(0xFF25D366)),
-            onPressed: _controller.isSharing
-                ? null
-                : () async {
-                    final success = await _controller.shareInvoiceAsImage(
-                      _boundaryKey,
-                    );
-                    if (!success && mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            _controller.errorMessage ??
-                                'Gagal membagikan invoice.',
-                          ),
-                        ),
+          if (_controller.invoiceData.hasData)
+            IconButton(
+              tooltip: 'Share ke WhatsApp',
+              icon: const Icon(Icons.share_rounded, color: Color(0xFF25D366)),
+              onPressed: _controller.isSharing
+                  ? null
+                  : () async {
+                      final success = await _controller.shareInvoiceAsImage(
+                        _boundaryKey,
                       );
-                    }
-                  },
-          ),
+                      if (!success && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              _controller.errorMessage ??
+                                  'Gagal membagikan invoice.',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+            ),
         ],
       ),
       body: AnimatedBuilder(
@@ -81,158 +82,220 @@ class _PjInvoiceViewPageState extends State<PjInvoiceViewPage> {
                   color: const Color(0xFFF4F7FA),
                   child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF073D4D), Color(0xFF0C844C)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      if (_controller.invoiceData.hasData) ...[
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF073D4D), Color(0xFF0C844C)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x22073D4D),
+                                blurRadius: 24,
+                                offset: Offset(0, 12),
+                              ),
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x22073D4D),
-                              blurRadius: 24,
-                              offset: Offset(0, 12),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Transaksi terakhir',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w600,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Transaksi terakhir',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _controller.invoiceData.invoiceNumber,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w800,
+                              const SizedBox(height: 8),
+                              Text(
+                                _controller.invoiceData.invoiceNumber,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _controller.invoiceData.memberName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontFamily: 'Poppins',
-                                fontWeight: FontWeight.w700,
+                              const SizedBox(height: 8),
+                              Text(
+                                _controller.invoiceData.memberName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Periode ${_controller.invoiceData.monthLabelSummary} ${_controller.invoiceData.year}',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _InvoiceCard(
-                        title: 'Ringkasan',
-                        child: Column(
-                          children: [
-                            _InvoiceRow(
-                              label: 'Nama',
-                              value: _controller.invoiceData.memberName,
-                            ),
-                            const SizedBox(height: 10),
-                            _InvoiceRow(
-                              label: 'Kode / NPA',
-                              value: _controller.invoiceData.memberCode,
-                            ),
-                            const SizedBox(height: 10),
-                            _InvoiceRow(
-                              label: 'Tanggal',
-                              value: _controller.invoiceData.generatedAtLabel,
-                            ),
-                            const SizedBox(height: 10),
-                            _InvoiceRow(
-                              label: 'Status',
-                              value: _controller.invoiceData.statusLabel,
-                            ),
-                            const SizedBox(height: 10),
-                            _InvoiceRow(
-                              label: 'Di ACC oleh',
-                              value: (() {
-                                final acc =
-                                    (_controller.invoiceData.accByName ??
-                                            _controller
-                                                .invoiceData
-                                                .transaction
-                                                .accBy ??
-                                            _controller
-                                                .invoiceData
-                                                .transaction
-                                                .verifiedBy ??
-                                            '')
-                                        .trim();
-                                return (acc.isEmpty || acc == '-')
-                                    ? 'Bendahara PJ'
-                                    : acc;
-                              })(),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _InvoiceCard(
-                        title: 'Rincian Iuran',
-                        child: Column(
-                          children: [
-                            if (_controller.invoiceData.items.isNotEmpty) ...[
-                              ..._controller.invoiceData.items.map(
-                                (item) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: _InvoiceRow(
-                                    label: item.label,
-                                    value: formatRupiah(item.amount),
-                                  ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Periode ${_controller.invoiceData.monthLabelSummary} ${_controller.invoiceData.year}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  fontFamily: 'Poppins',
                                 ),
                               ),
                             ],
-                            const Divider(height: 28),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Total',
-                                  style: TextStyle(
-                                    color: Color(0xFF073D4D),
-                                    fontSize: 16,
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                Text(
-                                  _controller.invoiceData.totalFormatted,
-                                  style: const TextStyle(
-                                    color: Color(0xFF0C844C),
-                                    fontSize: 20,
-                                    fontFamily: 'Poppins',
-                                    fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _InvoiceCard(
+                          title: 'Ringkasan',
+                          child: Column(
+                            children: [
+                              _InvoiceRow(
+                                label: 'Nama',
+                                value: _controller.invoiceData.memberName,
+                              ),
+                              const SizedBox(height: 10),
+                              _InvoiceRow(
+                                label: 'Kode / NPA',
+                                value: _controller.invoiceData.memberCode,
+                              ),
+                              const SizedBox(height: 10),
+                              _InvoiceRow(
+                                label: 'Tanggal',
+                                value: _controller.invoiceData.generatedAtLabel,
+                              ),
+                              const SizedBox(height: 10),
+                              _InvoiceRow(
+                                label: 'Status',
+                                value: _controller.invoiceData.statusLabel,
+                              ),
+                              const SizedBox(height: 10),
+                              _InvoiceRow(
+                                label: 'Di ACC oleh',
+                                value: (() {
+                                  final acc =
+                                      (_controller.invoiceData.accByName ??
+                                              _controller
+                                                  .invoiceData
+                                                  .transaction
+                                                  .accBy ??
+                                              _controller
+                                                  .invoiceData
+                                                  .transaction
+                                                  .verifiedBy ??
+                                              '')
+                                          .trim();
+                                  return (acc.isEmpty || acc == '-')
+                                      ? 'Bendahara PJ'
+                                      : acc;
+                                })(),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _InvoiceCard(
+                          title: 'Rincian Iuran',
+                          child: Column(
+                            children: [
+                              if (_controller.invoiceData.items.isNotEmpty) ...[
+                                ..._controller.invoiceData.items.map(
+                                  (item) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: _InvoiceRow(
+                                      label: item.label,
+                                      value: formatRupiah(item.amount),
+                                    ),
                                   ),
                                 ),
                               ],
-                            ),
-                          ],
+                              const Divider(height: 28),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Total',
+                                    style: TextStyle(
+                                      color: Color(0xFF073D4D),
+                                      fontSize: 16,
+                                      fontFamily: 'Poppins',
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  Text(
+                                    _controller.invoiceData.totalFormatted,
+                                    style: const TextStyle(
+                                      color: Color(0xFF0C844C),
+                                      fontSize: 20,
+                                      fontFamily: 'Poppins',
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF073D4D), Color(0xFF0C844C)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x22073D4D),
+                                blurRadius: 24,
+                                offset: Offset(0, 12),
+                              ),
+                            ],
+                          ),
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Invoice Iuran',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Belum pernah bayar',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontFamily: 'Poppins',
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Anggota belum memiliki riwayat pembayaran iuran.',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _InvoiceCard(
+                          title: 'Ringkasan',
+                          child: _InvoiceRow(
+                            label: 'Nama',
+                            value: _controller.invoiceData.memberName,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -247,96 +310,98 @@ class _PjInvoiceViewPageState extends State<PjInvoiceViewPage> {
                   ),
                 ),
               ],
-              const SizedBox(height: 24),
-              Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _controller.isSharing
-                          ? null
-                          : () async {
-                              final success = await _controller
-                                  .saveInvoiceToGallery(_boundaryKey);
-                              if (success && mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Invoice berhasil disimpan ke galeri.',
+              if (_controller.invoiceData.hasData) ...[
+                const SizedBox(height: 24),
+                Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _controller.isSharing
+                            ? null
+                            : () async {
+                                final success = await _controller
+                                    .saveInvoiceToGallery(_boundaryKey);
+                                if (success && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Invoice berhasil disimpan ke galeri.',
+                                      ),
+                                      backgroundColor: Color(0xFF0C844C),
                                     ),
-                                    backgroundColor: Color(0xFF0C844C),
-                                  ),
-                                );
-                              } else if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      _controller.errorMessage ??
-                                          'Gagal menyimpan gambar.',
+                                  );
+                                } else if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        _controller.errorMessage ??
+                                            'Gagal menyimpan gambar.',
+                                      ),
                                     ),
-                                  ),
-                                );
-                              }
-                            },
-                      icon: const Icon(Icons.download_rounded),
-                      label: const Text('Generate PNG (Download)'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF073D4D),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                                  );
+                                }
+                              },
+                        icon: const Icon(Icons.download_rounded),
+                        label: const Text('Generate PNG (Download)'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF073D4D),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _controller.isSharing
-                          ? null
-                          : () async {
-                              final success = await _controller
-                                  .shareInvoiceAsText();
-                              if (!success && mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      _controller.errorMessage ??
-                                          'Gagal membuka WhatsApp.',
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _controller.isSharing
+                            ? null
+                            : () async {
+                                final success = await _controller
+                                    .shareInvoiceAsText();
+                                if (!success && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        _controller.errorMessage ??
+                                            'Gagal membuka WhatsApp.',
+                                      ),
                                     ),
-                                  ),
-                                );
-                              }
-                            },
-                      icon: _controller.isSharing
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.share_rounded),
-                      label: Text(
-                        _controller.isSharing
-                            ? 'Memproses...'
-                            : 'Kirim ke WhatsApp (Teks)',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                                  );
+                                }
+                              },
+                        icon: _controller.isSharing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.share_rounded),
+                        label: Text(
+                          _controller.isSharing
+                              ? 'Memproses...'
+                              : 'Kirim ke WhatsApp (Teks)',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF25D366),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => Navigator.pop(context),

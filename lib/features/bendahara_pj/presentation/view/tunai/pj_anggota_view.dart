@@ -455,12 +455,14 @@ class _PjAnggotaViewPageState extends State<PjAnggotaViewPage> {
     }
 
     if (hiveInvoice != null && historyInvoice != null) {
-      return hiveInvoice.generatedAt.isAfter(historyInvoice.generatedAt)
+      final chosen = hiveInvoice.generatedAt.isAfter(historyInvoice.generatedAt)
           ? hiveInvoice
           : historyInvoice;
+      return chosen.hasData ? chosen : null;
     }
 
-    return hiveInvoice ?? historyInvoice;
+    final fallback = hiveInvoice ?? historyInvoice;
+    return fallback != null && fallback.hasData ? fallback : null;
   }
 
   PjInvoiceData _buildInvoiceFromHiveMap(
