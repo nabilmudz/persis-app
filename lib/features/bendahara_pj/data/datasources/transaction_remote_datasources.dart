@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:persis_app/core/network/api_client.dart';
 import 'package:persis_app/core/storage/secure_storage_service.dart';
 import 'package:persis_app/features/bendahara_pj/data/models/transaction_item_detail_model.dart';
@@ -476,6 +478,67 @@ class TransactionRemoteDataSource {
       return null;
     } catch (e) {
       debugPrint('[fetchSummary] Exception: $e');
+      return null;
+    }
+  }
+
+  Future<bool> updateTransactionItem(
+    String itemId,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final token = await SecureStorageService.read(
+        SecureStorageService.accessTokenKey,
+      );
+      final response = await ApiClient.patch(
+        '/transaction-item/$itemId',
+        body: body,
+        token: token,
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      }
+      debugPrint(
+        'Error updateTransactionItem: ${response.statusCode} - ${response.body}',
+      );
+      return false;
+    } catch (e) {
+      debugPrint('Error updateTransactionItem: $e');
+      return false;
+    }
+  }
+
+  Future<String?> uploadBuktiBayar(File imageFile) async {
+    try {
+      final token = await SecureStorageService.read(
+        SecureStorageService.accessTokenKey,
+      );
+      final url = Uri.parse('${ApiClient.baseUrl}/payments/upload-bukti');
+      final request = http.MultipartRequest('POST', url);
+
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+
+      request.files.add(
+        await http.MultipartFile.fromPath('bukti', imageFile.path),
+      );
+
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = json.decode(response.body);
+        return data['url'] as String? ?? '';
+      }
+      debugPrint(
+        'Error uploadBuktiBayar: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      debugPrint('Error uploadBuktiBayar: $e');
       return null;
     }
   }

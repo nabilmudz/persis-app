@@ -1,14 +1,27 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:persis_app/core/helpers/auth_helper.dart';
 import '../models/payment_method_model.dart';
 
 class PaymentMethodRemoteDataSource {
   final String baseUrl;
   PaymentMethodRemoteDataSource(this.baseUrl);
 
+  Future<Map<String, String>> _authHeaders() async {
+    final token = await AuthHelper.getAccessToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
+
   Future<List<PaymentMethodModel>> getAllPaymentMethods() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/payment-method'));
+      final headers = await _authHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/payment-method'),
+        headers: headers,
+      );
       if (response.statusCode == 200) {
         List data = json.decode(response.body);
         return data.map((e) => PaymentMethodModel.fromJson(e)).toList();
@@ -20,7 +33,11 @@ class PaymentMethodRemoteDataSource {
   }
 
   Future<PaymentMethodModel> getOne(String id) async {
-    final response = await http.get(Uri.parse('$baseUrl/payment-method/$id'));
+    final headers = await _authHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/payment-method/$id'),
+      headers: headers,
+    );
     if (response.statusCode == 200) {
       return PaymentMethodModel.fromJson(json.decode(response.body));
     }
@@ -28,9 +45,10 @@ class PaymentMethodRemoteDataSource {
   }
 
   Future<void> create(PaymentMethodModel paymentMethod) async {
+    final headers = await _authHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/payment-method'),
-      headers: {"Content-Type": "application/json"},
+      headers: headers,
       body: jsonEncode(paymentMethod.toJson()),
     );
     if (response.statusCode != 201) {
@@ -39,9 +57,10 @@ class PaymentMethodRemoteDataSource {
   }
 
   Future<void> update(String id, PaymentMethodModel paymentMethod) async {
+    final headers = await _authHeaders();
     final response = await http.patch(
       Uri.parse('$baseUrl/payment-method/$id'),
-      headers: {"Content-Type": "application/json"},
+      headers: headers,
       body: jsonEncode(paymentMethod.toJson()),
     );
     if (response.statusCode != 200) {
@@ -50,8 +69,10 @@ class PaymentMethodRemoteDataSource {
   }
 
   Future<void> delete(String id) async {
+    final headers = await _authHeaders();
     final response = await http.delete(
       Uri.parse('$baseUrl/payment-method/$id'),
+      headers: headers,
     );
     if (response.statusCode != 200) {
       throw Exception('Gagal menghapus metode pembayaran');

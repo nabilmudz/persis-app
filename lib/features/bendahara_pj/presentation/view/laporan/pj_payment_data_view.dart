@@ -88,7 +88,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
                       TransactionModel.fromJson(Map<String, dynamic>.from(e)),
                 )
                 .map((t) {
-                  // Hitung ulang amount hanya untuk bulan yang dipilih
                   final monthAmount = _calculateAmountForMonth(
                     t,
                     _selectedMonth.month,
@@ -203,10 +202,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
     }
   }
 
-  /// Menghitung total amount untuk bulan tertentu dari items transaksi.
-  /// Jika transaksi memiliki items dengan periodId, hitung hanya item yang
-  /// periodenya sesuai bulan/tahun yang dipilih. Jika tidak ada items atau
-  /// tidak ada yang match, gunakan totalAmount asli (sudah difilter API).
   int _calculateAmountForMonth(TransactionModel t, int month, int year) {
     final items = t.items ?? [];
     if (items.isEmpty) return t.totalAmount ?? 0;

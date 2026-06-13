@@ -5,6 +5,7 @@ import '../../../bendahara_pj/presentation/widgets/bendahara_shared_cards.dart';
 import '../controller/pc_controller.dart';
 import 'pc_laporan_view.dart';
 import 'pc_riwayat_pembayaran_view.dart';
+import 'pc_bank_account_view.dart';
 
 class PcViewPage extends StatefulWidget {
   const PcViewPage({super.key});
@@ -91,7 +92,6 @@ class _PcViewPageState extends State<PcViewPage> {
               crossAxisSpacing: 16,
               childAspectRatio: 1.25,
               children: [
-                // 2. Riwayat Pembayaran (Kanan Atas - Kuning)
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -111,7 +111,23 @@ class _PcViewPageState extends State<PcViewPage> {
                     const Color(0xFFF57F17),
                   ),
                 ),
-                // 3. Kelola Rekening (Kiri Bawah - Hijau)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PcBankAccountPage(),
+                      ),
+                    );
+                  },
+                  child: _buildMenuCard(
+                    context,
+                    'Kelola Rekening',
+                    Icons.account_balance,
+                    const Color(0xFFE8F5E9),
+                    const Color(0xFF0C844C),
+                  ),
+                ),
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -126,8 +142,8 @@ class _PcViewPageState extends State<PcViewPage> {
                     context,
                     'Laporan Keuangan',
                     Icons.bar_chart,
-                    const Color(0xFFE8F5E9),
-                    const Color(0xFF0C844C),
+                    const Color(0xFFE3F2FD),
+                    const Color(0xFF1565C0),
                   ),
                 ),
               ],

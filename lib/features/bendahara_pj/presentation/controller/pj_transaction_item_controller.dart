@@ -6,10 +6,6 @@ import 'package:persis_app/features/bendahara_pj/data/models/transaction_item_de
 import 'package:persis_app/features/bendahara_pj/data/models/transaction_model.dart';
 import 'pj_verif_tunai_controller.dart';
 
-///   - [PjMonthStatus.paid]
-///   - [PjMonthStatus.tunggakan]
-///   - [PjMonthStatus.pending]
-///
 class PjTransactionItemController extends ChangeNotifier {
   PjTransactionItemController({TransactionRemoteDataSource? dataSource})
     : _dataSource = dataSource ?? TransactionRemoteDataSource();

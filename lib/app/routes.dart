@@ -5,7 +5,10 @@ import 'package:persis_app/features/auth/presentation/view/splash_screen.dart';
 import 'package:persis_app/features/profile/presentation/profile_screen.dart';
 import 'package:persis_app/features/profile/controller/profile_controller.dart';
 import 'package:persis_app/features/anggota/presentation/view/anggota_view.dart';
+import 'package:persis_app/features/anggota/presentation/view/anggota_non_tunai_view.dart';
+import 'package:persis_app/features/anggota/presentation/view/anggota_payment_status_view.dart';
 import 'package:persis_app/features/bendahara_pc/presentation/view/pc_view.dart';
+
 import 'package:persis_app/features/bendahara_pj/presentation/view/pj_view.dart';
 import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
 import 'package:persis_app/features/bendahara_pj/presentation/view/non_tunai/pj_verif_non_tunai_view.dart';
@@ -14,6 +17,7 @@ import 'package:persis_app/features/anggota/presentation/controller/anggota_cont
 import 'package:persis_app/features/bendahara_pc/presentation/view/pc_verifikasi_view.dart';
 import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/widgets/offline_warning_banner.dart';
+import 'package:persis_app/core/widgets/role_guard.dart';
 
 class AppRoutes {
   static const String initial = '/';
@@ -26,6 +30,8 @@ class AppRoutes {
   static const String anggota = '/anggota';
   static const String profile = '/profile';
   static const String verifikasiNonTunai = '/verifikasi-non_tunai';
+  static const String anggotaNonTunai = '/anggota-non-tunai';
+  static const String anggotaPaymentStatus = '/anggota-payment-status';
   static String get _baseUrl => AppConfig.baseUrl;
 
   static Map<String, WidgetBuilder> get routes {
@@ -51,6 +57,14 @@ class AppRoutes {
       ),
       testBases: (_) => const TestBasesPage(),
       verifikasiPC: (_) => const PcVerifikasiPage(),
+      anggotaNonTunai: (_) => const RoleGuard(
+        allowedRoles: ['anggota'],
+        child: AnggotaNonTunaiView(),
+      ),
+      anggotaPaymentStatus: (_) => const RoleGuard(
+        allowedRoles: ['bendahara_pc', 'bendahara_pj', 'bendahara_pd'],
+        child: AnggotaPaymentStatusView(),
+      ),
     };
   }
 }

@@ -85,7 +85,6 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
                       TransactionModel.fromJson(Map<String, dynamic>.from(e)),
                 )
                 .map((t) {
-                  // Hitung ulang amount hanya untuk bulan yang dipilih
                   final monthAmount = _calculateAmountForMonth(
                     t,
                     _selectedMonth.month,
@@ -262,7 +261,6 @@ class _PcLaporanViewPageState extends State<PcLaporanViewPage> {
         exportData = rawData
             .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
             .map((t) {
-              // Hitung ulang amount hanya untuk bulan yang dipilih
               final monthAmount = _calculateAmountForMonth(
                 t,
                 _selectedMonth.month,

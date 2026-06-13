@@ -12,6 +12,7 @@ import 'package:persis_app/features/anggota/presentation/widgets/anggota_card.da
 import 'package:persis_app/features/anggota/presentation/controller/anggota_controller.dart';
 import 'package:persis_app/features/anggota/presentation/view/riwayat_view.dart';
 import 'package:persis_app/features/anggota/presentation/view/pilih_pembayaran_view.dart';
+import 'package:persis_app/features/anggota/presentation/view/anggota_non_tunai_view.dart';
 
 class AnggotaView extends StatefulWidget {
   const AnggotaView({super.key});
@@ -300,7 +301,22 @@ class _AnggotaViewState extends State<AnggotaView> {
                         );
                       },
                     ),
-                    const SizedBox(width: 48),
+                    const SizedBox(width: 24),
+                    _buildMenuIcon(
+                      icon: Icons.credit_card,
+                      color: const Color(0xFF0C844C),
+                      bgColor: const Color(0xFFE8F5E9),
+                      label: 'Non-Tunai',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (c) => const AnggotaNonTunaiView(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 24),
                     _buildMenuIcon(
                       icon: Icons.history,
                       color: const Color(0xFF2116A3),
