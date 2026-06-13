@@ -47,6 +47,7 @@ class BankAccountModel {
   }
 
   Map<String, dynamic> toJson() => {
+    if (regionId != null && regionId!.isNotEmpty) "region_id": regionId,
     "payment_method_id": paymentMethodId,
     "bank_name": bankName,
     "account_number": accountNumber,

@@ -235,16 +235,35 @@ class _TransferBankViewState extends State<TransferBankView> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: ['BCA', 'BSI', 'Mandiri'].map((bank) {
-                    final isSelected = controller.selectedBank == bank;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () => controller.setBank(bank),
+                if (controller.isLoadingAccounts)
+                  const Center(child: CircularProgressIndicator())
+                else if (controller.transferAccounts.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF3CD),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'Belum ada rekening tersedia. Hubungi PC.',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 13,
+                        color: Color(0xFF856404),
+                      ),
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: controller.transferAccounts.map((account) {
+                      final isSelected = controller.selectedBankId == account.id;
+                      return GestureDetector(
+                        onTap: () => controller.setBankById(account.id ?? ''),
                         child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? const Color(0xFFE9FFE9)
@@ -256,9 +275,8 @@ class _TransferBankViewState extends State<TransferBankView> {
                             ),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          alignment: Alignment.center,
                           child: Text(
-                            bank,
+                            account.bankName ?? '-',
                             style: const TextStyle(
                               color: Color(0xFF494949),
                               fontSize: 14,
@@ -267,10 +285,9 @@ class _TransferBankViewState extends State<TransferBankView> {
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
+                      );
+                    }).toList(),
+                  ),
                 const SizedBox(height: 20),
                 Container(
                   width: double.infinity,
@@ -296,7 +313,7 @@ class _TransferBankViewState extends State<TransferBankView> {
                             ),
                           ),
                           Text(
-                            controller.selectedBank,
+                            controller.selectedBankName,
                             style: const TextStyle(
                               color: Color(0xFF464646),
                               fontSize: 14,
@@ -316,7 +333,7 @@ class _TransferBankViewState extends State<TransferBankView> {
                         ),
                       ),
                       Text(
-                        controller.nomorRekening,
+                        controller.selectedAccountNumber,
                         style: const TextStyle(
                           color: Color(0xFF6B6B6B),
                           fontSize: 24,

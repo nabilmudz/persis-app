@@ -244,14 +244,7 @@ class _AnggotaViewState extends State<AnggotaView> {
                                             context,
                                             MaterialPageRoute(
                                               builder: (c) =>
-                                                  ChangeNotifierProvider.value(
-                                                    value: context
-                                                        .read<
-                                                          AnggotaController
-                                                        >(),
-                                                    child:
-                                                        PilihPembayaranView(),
-                                                  ),
+                                                  const KartuIuranView(),
                                             ),
                                           );
                                         },
@@ -293,10 +286,7 @@ class _AnggotaViewState extends State<AnggotaView> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (c) => ChangeNotifierProvider.value(
-                              value: context.read<AnggotaController>(),
-                              child: PilihPembayaranView(),
-                            ),
+                            builder: (c) => const KartuIuranView(),
                           ),
                         );
                       },

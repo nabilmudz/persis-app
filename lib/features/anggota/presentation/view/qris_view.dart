@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:persis_app/app/routes.dart';
+import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/core/widgets/role_bottom_navigation_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,9 +22,6 @@ class _QrisViewState extends State<QrisView> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PembayaranController>().fetchQrisDetail();
-    });
   }
 
   Future<void> _pickImage(PembayaranController controller) async {
@@ -243,7 +241,7 @@ class _QrisViewState extends State<QrisView> {
                         ),
                       ],
                     ),
-                    child: controller.isLoading
+                    child: controller.isLoadingAccounts
                         ? const Center(
                             child: CircularProgressIndicator(
                               color: Color(0xFF10B367),
@@ -253,7 +251,7 @@ class _QrisViewState extends State<QrisView> {
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(15),
                             child: Image.network(
-                              controller.qrisImageUrl!,
+                              AppConfig.fullUrl(controller.qrisImageUrl!),
                               fit: BoxFit.contain,
                               errorBuilder: (_, _, _) => const Icon(
                                 Icons.qr_code_2,

@@ -121,7 +121,8 @@ class PcBankAccountController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final accounts = await _dataSource.getAll();
+      final regionId = await resolveRegionId();
+      final accounts = await _dataSource.getAll(regionId: regionId);
       _bankAccounts
         ..clear()
         ..addAll(accounts);
@@ -136,7 +137,19 @@ class PcBankAccountController extends ChangeNotifier {
 
   Future<bool> addBankAccount(BankAccountModel account) async {
     try {
-      await _dataSource.create(account);
+      final regionId = account.regionId ?? await resolveRegionId();
+      final enriched = BankAccountModel(
+        id: account.id,
+        regionId: regionId,
+        paymentMethodId: account.paymentMethodId,
+        bankName: account.bankName,
+        accountNumber: account.accountNumber,
+        qrisImageUrl: account.qrisImageUrl,
+        qrisImageBytes: account.qrisImageBytes,
+        qrisImageName: account.qrisImageName,
+        isActive: account.isActive,
+      );
+      await _dataSource.create(enriched);
       await loadBankAccounts();
       return true;
     } catch (e) {
@@ -148,7 +161,19 @@ class PcBankAccountController extends ChangeNotifier {
 
   Future<bool> updateBankAccount(String id, BankAccountModel account) async {
     try {
-      await _dataSource.update(id, account);
+      final regionId = account.regionId ?? await resolveRegionId();
+      final enriched = BankAccountModel(
+        id: account.id,
+        regionId: regionId,
+        paymentMethodId: account.paymentMethodId,
+        bankName: account.bankName,
+        accountNumber: account.accountNumber,
+        qrisImageUrl: account.qrisImageUrl,
+        qrisImageBytes: account.qrisImageBytes,
+        qrisImageName: account.qrisImageName,
+        isActive: account.isActive,
+      );
+      await _dataSource.update(id, enriched);
       await loadBankAccounts();
       return true;
     } catch (e) {

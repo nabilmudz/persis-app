@@ -15,11 +15,21 @@ class BankAccountRemoteDataSource {
     };
   }
 
-  Future<List<BankAccountModel>> getAll() async {
+  Future<List<BankAccountModel>> getAll({String? regionId, String? paymentMethodId}) async {
     try {
       final headers = await _authHeaders();
+      final params = <String>[];
+      if (regionId != null && regionId.trim().isNotEmpty) {
+        params.add('region_id=${Uri.encodeQueryComponent(regionId.trim())}');
+      }
+      if (paymentMethodId != null && paymentMethodId.trim().isNotEmpty) {
+        params.add('payment_method_id=${Uri.encodeQueryComponent(paymentMethodId.trim())}');
+      }
+      var url = '$baseUrl/bank-account';
+      if (params.isNotEmpty) url += '?${params.join('&')}';
+
       final response = await http.get(
-        Uri.parse('$baseUrl/bank-account'),
+        Uri.parse(url),
         headers: headers,
       );
       if (response.statusCode == 200) {
@@ -81,6 +91,9 @@ class BankAccountRemoteDataSource {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
+      if (bankAccount.regionId != null && bankAccount.regionId!.isNotEmpty) {
+        request.fields['region_id'] = bankAccount.regionId!;
+      }
       request.fields['payment_method_id'] = bankAccount.paymentMethodId ?? '';
       request.fields['bank_name'] = bankAccount.bankName ?? '';
       request.fields['account_number'] = bankAccount.accountNumber ?? '';
@@ -140,6 +153,9 @@ class BankAccountRemoteDataSource {
         request.headers['Authorization'] = 'Bearer $token';
       }
 
+      if (bankAccount.regionId != null && bankAccount.regionId!.isNotEmpty) {
+        request.fields['region_id'] = bankAccount.regionId!;
+      }
       request.fields['payment_method_id'] = bankAccount.paymentMethodId ?? '';
       request.fields['bank_name'] = bankAccount.bankName ?? '';
       request.fields['account_number'] = bankAccount.accountNumber ?? '';

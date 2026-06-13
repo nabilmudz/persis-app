@@ -42,7 +42,9 @@ class TransactionItemModel {
         source['period_id'] ??
             source['periodId'] ??
             source['dues_period_id'] ??
-            source['duesPeriodId'],
+            source['duesPeriodId'] ??
+            periodJson?['_id'] ??
+            periodJson?['id'],
       ),
       status: _readString(source['status']),
       amount:

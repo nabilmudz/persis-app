@@ -1,40 +1,292 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../data/models/payment_model.dart';
+import 'package:persis_app/core/config/config.dart';
+import 'package:persis_app/core/helpers/auth_helper.dart';
+import 'package:persis_app/features/anggota/data/datasources/user_remote_datasource.dart';
+import 'package:persis_app/features/anggota/data/models/transaction_item_model.dart';
+import 'package:persis_app/features/bendahara_pc/data/datasources/bank_account_remote_datasources.dart';
+import 'package:persis_app/features/bendahara_pc/data/datasources/payment_method_remote_datasources.dart';
+import 'package:persis_app/features/bendahara_pc/data/models/bank_account_model.dart';
+import 'package:persis_app/features/bendahara_pj/presentation/controller/pj_transaction_item_controller.dart';
+
 import '../../data/datasources/payment_remote_datasource.dart';
+
+enum AnggotaMonthStatus { paid, tunggakan, pending }
 
 class PembayaranController extends ChangeNotifier {
   final PaymentRemoteDataSource remoteDataSource;
+  final UserRemoteDataSource userRemoteDataSource;
 
-  PembayaranController({required this.remoteDataSource});
+  PembayaranController({
+    required this.remoteDataSource,
+    UserRemoteDataSource? userRemoteDataSource,
+  }) : userRemoteDataSource =
+           userRemoteDataSource ?? UserRemoteDataSource(AppConfig.baseUrl);
 
   bool isLoading = false;
   bool isUploading = false;
   bool isSuccess = false;
+  bool isLoadingAccounts = false;
   String? errorMessage;
+
+  int selectedYear = DateTime.now().year;
+  final Set<int> selectedMonths = <int>{};
+  final Map<int, AnggotaMonthStatus> _monthStatusMap = {};
+  final Map<int, int> _monthAmountMap = {};
+  final Map<int, String?> _periodIdMap = {};
+  bool isLoadingItems = false;
+
+  String? selectedPaymentMethod;
+  bool showPaymentDetails = false;
 
   String periodeMulai = '';
   String periodeAkhir = '';
   int totalTagihan = 0;
 
-  String selectedBank = 'BCA';
-  String? qrisImageUrl;
+  List<BankAccountModel> _transferAccounts = [];
+  List<BankAccountModel> _qrisAccounts = [];
+
+  List<BankAccountModel> get transferAccounts => _transferAccounts;
+  List<BankAccountModel> get qrisAccounts => _qrisAccounts;
+
+  String selectedBankId = '';
+  String selectedQrisId = '';
+
+  String? get qrisImageUrl => selectedQrisAccount?.qrisImageUrl;
 
   File? buktiFile;
   String? buktiUrl;
 
+  String? _paymentMethodTransferId;
+  String? _paymentMethodQrisId;
+
   final int hargaPerBulan = 20000;
 
-  final List<String> listBulan = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  static const List<String> listBulan = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
   ];
 
-  final Map<String, String> rekeningBank = {
-    'BCA': '0987 6543 21',
-    'BSI': '7112 2334 45',
-    'Mandiri': '1300 0011 2233',
-  };
+  static const List<String> monthNames = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
+  Future<void> loadSelfTransactionItems(String userId, {int? year}) async {
+    isLoadingItems = true;
+    notifyListeners();
+
+    try {
+      final items = await userRemoteDataSource.getRiwayatIuran(
+        userId,
+        year: year ?? selectedYear,
+      );
+      _buildStatusMap(items, year: year ?? selectedYear);
+    } catch (e) {
+      debugPrint('Error loadSelfTransactionItems: $e');
+    } finally {
+      isLoadingItems = false;
+      notifyListeners();
+    }
+  }
+
+  void _buildStatusMap(List<TransactionItemModel> items, {required int year}) {
+    _monthStatusMap.clear();
+    _monthAmountMap.clear();
+    _periodIdMap.clear();
+
+    for (final item in items) {
+      final month = item.periodMonth;
+      if (month == null || month < 1 || month > 12) continue;
+
+      final rawStatus = (item.status ?? '').trim().toLowerCase();
+      final newStatus = switch (rawStatus) {
+        'paid' || 'lunas' || 'completed' => AnggotaMonthStatus.paid,
+        'tunggakan' || 'overdue' => AnggotaMonthStatus.tunggakan,
+        _ => AnggotaMonthStatus.pending,
+      };
+
+      final existing = _monthStatusMap[month];
+      if (existing == AnggotaMonthStatus.paid) continue;
+
+      _monthStatusMap[month] = newStatus;
+
+      final amount = item.amount ?? 20000;
+      if (amount > 0) {
+        _monthAmountMap[month] = amount;
+      }
+
+      if (item.periodId != null && item.periodId!.isNotEmpty) {
+        _periodIdMap[month] = item.periodId;
+        PjTransactionItemController.cachePeriodId(
+          month: month,
+          year: selectedYear,
+          periodId: item.periodId,
+        );
+      }
+    }
+  }
+
+  String? getPeriodId(int month) {
+    if (_periodIdMap[month] != null && _periodIdMap[month]!.isNotEmpty) {
+      return _periodIdMap[month];
+    }
+    final cached = PjTransactionItemController.getCachedPeriodId(
+      month: month,
+      year: selectedYear,
+    );
+    if (cached != null && cached.isNotEmpty) return cached;
+    return _periodIdMap[month];
+  }
+
+  AnggotaMonthStatus getMonthStatus(int month) {
+    final cached = _monthStatusMap[month];
+    if (cached != null) return cached;
+
+    final now = DateTime.now();
+    final isPast =
+        selectedYear < now.year ||
+        (selectedYear == now.year && month < now.month);
+    return isPast ? AnggotaMonthStatus.tunggakan : AnggotaMonthStatus.pending;
+  }
+
+  int getMonthAmount(int month) {
+    return _monthAmountMap[month] ?? 20000;
+  }
+
+  int get totalTunggakan {
+    int total = 0;
+    for (int m = 1; m <= 12; m++) {
+      if (getMonthStatus(m) == AnggotaMonthStatus.tunggakan) {
+        total += getMonthAmount(m);
+      }
+    }
+    return total;
+  }
+
+  void handleMonthTap(int month) {
+    final status = getMonthStatus(month);
+    if (status == AnggotaMonthStatus.paid) return;
+
+    if (selectedMonths.contains(month)) {
+      bool hasLaterSelected = selectedMonths.any((m) => m > month);
+      if (hasLaterSelected) return;
+
+      selectedMonths.remove(month);
+    } else {
+      bool isDisabled = false;
+      for (int i = 1; i < month; i++) {
+        final s = getMonthStatus(i);
+        if (s != AnggotaMonthStatus.paid && !selectedMonths.contains(i)) {
+          isDisabled = true;
+          break;
+        }
+      }
+      if (isDisabled) return;
+
+      selectedMonths.add(month);
+    }
+
+    _recalculateTotal();
+    notifyListeners();
+  }
+
+  void setSelectedYear(int year) {
+    selectedYear = year;
+    selectedMonths.clear();
+    _recalculateTotal();
+    notifyListeners();
+  }
+
+  void _recalculateTotal() {
+    if (selectedMonths.isEmpty) {
+      totalTagihan = 0;
+      periodeMulai = '';
+      periodeAkhir = '';
+      return;
+    }
+
+    final sorted = selectedMonths.toList()..sort();
+    totalTagihan = 0;
+    for (final m in sorted) {
+      totalTagihan += getMonthAmount(m);
+    }
+
+    final first = sorted.first;
+    final last = sorted.last;
+    periodeMulai = '${monthNames[first - 1]} $selectedYear';
+    periodeAkhir = '${monthNames[last - 1]} $selectedYear';
+  }
+
+  String get selectedMonthsLabel {
+    if (selectedMonths.isEmpty) return '-';
+    final sorted = selectedMonths.toList()..sort();
+    return sorted.map((m) => monthNames[m - 1]).join(', ');
+  }
+
+  Future<void> fetchBankAccounts() async {
+    isLoadingAccounts = true;
+    notifyListeners();
+
+    try {
+      final regionId = await AuthHelper.getRegionId();
+      final bankDs = BankAccountRemoteDataSource(AppConfig.baseUrl);
+      final pmDs = PaymentMethodRemoteDataSource(AppConfig.baseUrl);
+
+      final paymentMethods = await pmDs.getAllPaymentMethods();
+      for (final pm in paymentMethods) {
+        final code = (pm.code ?? '').toLowerCase().trim();
+        if (code == 'qris') {
+          _paymentMethodQrisId = pm.id;
+        } else if (code == 'transfer_bank' || code == 'transfer bank') {
+          _paymentMethodTransferId = pm.id;
+        }
+      }
+
+      if (selectedPaymentMethod == 'transfer') {
+        _transferAccounts = await bankDs.getAll(
+          regionId: regionId,
+          paymentMethodId: _paymentMethodTransferId,
+        );
+        if (_transferAccounts.isNotEmpty && selectedBankId.isEmpty) {
+          selectedBankId = _transferAccounts.first.id ?? '';
+        }
+      } else if (selectedPaymentMethod == 'qris') {
+        _qrisAccounts = await bankDs.getAll(
+          regionId: regionId,
+          paymentMethodId: _paymentMethodQrisId,
+        );
+        if (_qrisAccounts.isNotEmpty && selectedQrisId.isEmpty) {
+          selectedQrisId = _qrisAccounts.first.id ?? '';
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetchBankAccounts: $e');
+    } finally {
+      isLoadingAccounts = false;
+      notifyListeners();
+    }
+  }
 
   void initPeriode(String mulai, String akhir, int total) {
     periodeMulai = mulai;
@@ -83,7 +335,9 @@ class PembayaranController extends ChangeNotifier {
       }
 
       final selisih =
-          ((tahunAkhir - tahunMulai) * 12) + (indexBulanAkhir - indexBulanMulai) + 1;
+          ((tahunAkhir - tahunMulai) * 12) +
+          (indexBulanAkhir - indexBulanMulai) +
+          1;
 
       if (selisih <= 0) {
         errorMessage = 'Periode akhir harus sama atau setelah periode mulai.';
@@ -107,29 +361,79 @@ class PembayaranController extends ChangeNotifier {
     return '${mulai[0]} ${mulai[1]} - ${akhir[0]} ${akhir[1]}';
   }
 
-  void setBank(String bank) {
-    selectedBank = bank;
+  void selectPaymentMethod(String method) {
+    selectedPaymentMethod = method;
+    selectedBankId = '';
+    selectedQrisId = '';
+    _qrisAccounts = [];
+    _transferAccounts = [];
+    buktiFile = null;
+    buktiUrl = null;
+    showPaymentDetails = true;
     notifyListeners();
   }
 
-  String get nomorRekening => rekeningBank[selectedBank] ?? '-';
-
-  Future<void> fetchQrisDetail() async {
-    isLoading = true;
-    errorMessage = null;
+  void resetPaymentMethod() {
+    selectedPaymentMethod = null;
+    showPaymentDetails = false;
+    _transferAccounts = [];
+    _qrisAccounts = [];
+    selectedBankId = '';
+    selectedQrisId = '';
+    buktiFile = null;
+    buktiUrl = null;
     notifyListeners();
+  }
 
+  BankAccountModel? get selectedBankAccount {
+    if (selectedBankId.isEmpty) {
+      return _transferAccounts.isNotEmpty ? _transferAccounts.first : null;
+    }
     try {
-      final data = await remoteDataSource.getQrisDetail();
-      qrisImageUrl = data['qris_image_url'];
-    } catch (e) {
-      debugPrint('Error fetchQrisDetail: $e');
-      errorMessage = e.toString();
-    } finally {
-      isLoading = false;
-      notifyListeners();
+      return _transferAccounts.firstWhere((a) => a.id == selectedBankId);
+    } catch (_) {
+      return _transferAccounts.isNotEmpty ? _transferAccounts.first : null;
     }
   }
+
+  String get selectedBankName => selectedBankAccount?.bankName ?? '-';
+  String get selectedAccountNumber => selectedBankAccount?.accountNumber ?? '-';
+  String get selectedAccountHolder =>
+      selectedBankAccount?.bankName ?? 'PC Pemuda Persis';
+
+  void setBankById(String id) {
+    selectedBankId = id;
+    notifyListeners();
+  }
+
+  BankAccountModel? get selectedQrisAccount {
+    if (selectedQrisId.isEmpty) {
+      return _qrisAccounts.isNotEmpty ? _qrisAccounts.first : null;
+    }
+    try {
+      return _qrisAccounts.firstWhere((a) => a.id == selectedQrisId);
+    } catch (_) {
+      return _qrisAccounts.isNotEmpty ? _qrisAccounts.first : null;
+    }
+  }
+
+  String get selectedQrisName => selectedQrisAccount?.bankName ?? '-';
+
+  void setQrisById(String id) {
+    selectedQrisId = id;
+    notifyListeners();
+  }
+
+  String? get selectedPaymentMethodId {
+    if (selectedPaymentMethod == 'transfer') {
+      return selectedBankAccount?.paymentMethodId ?? _paymentMethodTransferId;
+    } else if (selectedPaymentMethod == 'qris') {
+      return selectedQrisAccount?.paymentMethodId ?? _paymentMethodQrisId;
+    }
+    return null;
+  }
+
+  bool get canSubmit => buktiUrl != null && buktiUrl!.isNotEmpty;
 
   void setBuktiFile(File file) {
     buktiFile = file;
@@ -145,7 +449,8 @@ class PembayaranController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      buktiUrl = await remoteDataSource.uploadBukti(buktiFile!);
+      final token = await AuthHelper.getAccessToken();
+      buktiUrl = await remoteDataSource.uploadBukti(buktiFile!, token: token);
     } catch (e) {
       errorMessage = e.toString();
       debugPrint('Error uploadBukti: $e');
@@ -155,38 +460,41 @@ class PembayaranController extends ChangeNotifier {
     }
   }
 
-  Future<void> submitTransfer({required String anggotaId}) async {
-    await _submit(anggotaId: anggotaId, method: 'transfer');
-  }
+  Future<void> submitTransaction({required String anggotaId}) async {
+    if (!canSubmit) {
+      errorMessage = 'Upload bukti pembayaran terlebih dahulu.';
+      notifyListeners();
+      return;
+    }
 
-  Future<void> submitQris({required String anggotaId}) async {
-    await _submit(anggotaId: anggotaId, method: 'qris');
-  }
-
-  Future<void> _submit({
-    required String anggotaId,
-    required String method,
-  }) async {
     isLoading = true;
     isSuccess = false;
     errorMessage = null;
     notifyListeners();
 
     try {
-      final payment = PaymentModel(
-        anggotaId: anggotaId,
-        periodMulai: periodeMulai,
-        periodAkhir: periodeAkhir,
-        totalAmount: totalTagihan,
-        paymentMethod: method,
-        bank: method == 'transfer' ? selectedBank : null,
-        buktiUrl: buktiUrl,
-      );
+      final token = await AuthHelper.getAccessToken();
+      final sorted = selectedMonths.toList()..sort();
 
-      await remoteDataSource.submitPayment(payment);
+      final items = sorted.map((month) {
+        return <String, dynamic>{
+          'anggota_id': anggotaId,
+          'period_id': getPeriodId(month) ?? '',
+          'bukti_url': buktiUrl,
+        };
+      }).toList();
+
+      final payload = <String, dynamic>{
+        'creator_id': anggotaId,
+        'payment_method_id': selectedPaymentMethodId ?? '',
+        'total_amount': totalTagihan,
+        'items': items,
+      };
+
+      await remoteDataSource.createTransaction(payload, token: token);
       isSuccess = true;
     } catch (e) {
-      debugPrint('Error submitPayment: $e');
+      debugPrint('Error submitTransaction: $e');
       errorMessage = e.toString();
     } finally {
       isLoading = false;
@@ -194,11 +502,36 @@ class PembayaranController extends ChangeNotifier {
     }
   }
 
+  Future<void> submitTransfer({required String anggotaId}) async {
+    await submitTransaction(anggotaId: anggotaId);
+  }
+
+  Future<void> submitQris({required String anggotaId}) async {
+    await submitTransaction(anggotaId: anggotaId);
+  }
+
   void reset() {
     isSuccess = false;
     errorMessage = null;
     buktiFile = null;
     buktiUrl = null;
+    selectedPaymentMethod = null;
+    showPaymentDetails = false;
     notifyListeners();
+  }
+
+  String formatCurrency(int amount) {
+    final number = amount.toString();
+    final buffer = StringBuffer();
+
+    for (var i = 0; i < number.length; i++) {
+      final reverseIndex = number.length - i;
+      buffer.write(number[i]);
+      if (reverseIndex > 1 && reverseIndex % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+
+    return 'Rp. ${buffer.toString()}';
   }
 }

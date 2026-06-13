@@ -222,7 +222,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         anyMatched = true;
       }
     }
-    // Jika tidak ada item yang match period, kembalikan totalAmount asli
     return anyMatched ? matchedAmount : (t.totalAmount ?? 0);
   }
 
@@ -295,7 +294,6 @@ class _PjPaymentDataViewPageState extends State<PjPaymentDataViewPage> {
         exportData = rawData
             .map((e) => TransactionModel.fromJson(Map<String, dynamic>.from(e)))
             .map((t) {
-              // Hitung ulang amount hanya untuk bulan yang dipilih
               final monthAmount = _calculateAmountForMonth(
                 t,
                 _selectedMonth.month,
