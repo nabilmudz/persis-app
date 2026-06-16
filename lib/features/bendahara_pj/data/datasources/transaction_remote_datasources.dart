@@ -59,6 +59,28 @@ class TransactionRemoteDataSource {
     return false;
   }
 
+  Future<bool> patchTransactionStatus(
+    String transactionId,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final response = await ApiClient.patch(
+        '/transaction/$transactionId',
+        body: body,
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      }
+      debugPrint(
+        'Error patchTransactionStatus: ${response.statusCode} - ${response.body}',
+      );
+      return false;
+    } catch (e) {
+      debugPrint('Error patchTransactionStatus: $e');
+      return false;
+    }
+  }
+
   Future<bool> createTransaction(TransactionModel transaction) async {
     try {
       final response = await ApiClient.post(
@@ -104,6 +126,65 @@ class TransactionRemoteDataSource {
     } catch (e, stack) {
       debugPrint('Error getHistory: $e');
       debugPrint('Stacktrace: $stack');
+      return <TransactionModel>[];
+    }
+  }
+
+  Future<List<TransactionModel>> getTransactions({
+    String? creatorId,
+    String? regionId,
+    String? accStatus,
+    String? paymentMethodId,
+    int? month,
+    int? year,
+  }) async {
+    try {
+      final params = <String>[];
+      if (creatorId != null && creatorId.isNotEmpty) {
+        params.add('creator_id=${Uri.encodeQueryComponent(creatorId)}');
+      }
+      if (regionId != null && regionId.isNotEmpty) {
+        params.add('region_id=${Uri.encodeQueryComponent(regionId)}');
+      }
+      if (accStatus != null && accStatus.isNotEmpty) {
+        params.add('acc_status=${Uri.encodeQueryComponent(accStatus)}');
+      }
+      if (paymentMethodId != null && paymentMethodId.isNotEmpty) {
+        params.add(
+          'payment_method_id=${Uri.encodeQueryComponent(paymentMethodId)}',
+        );
+      }
+      if (month != null) {
+        params.add('month=$month');
+      }
+      if (year != null) {
+        params.add('year=$year');
+      }
+      var url = '/transaction';
+      if (params.isNotEmpty) url += '?${params.join('&')}';
+
+      final response = await ApiClient.get(url);
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        List? rawList;
+        if (decoded is List) {
+          rawList = decoded;
+        } else if (decoded is Map && decoded['data'] is List) {
+          rawList = decoded['data'] as List;
+        }
+        if (rawList != null) {
+          return rawList
+              .map(
+                (e) => TransactionModel.fromJson(
+                  Map<String, dynamic>.from(e as Map),
+                ),
+              )
+              .toList();
+        }
+      }
+      return <TransactionModel>[];
+    } catch (e) {
+      debugPrint('Error getTransactions: $e');
       return <TransactionModel>[];
     }
   }

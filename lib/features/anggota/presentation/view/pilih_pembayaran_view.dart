@@ -80,6 +80,7 @@ class _KartuIuranViewState extends State<KartuIuranView> {
   void _handleMonthTap(int month) {
     final status = _controller.getMonthStatus(month);
     if (status == AnggotaMonthStatus.paid) return;
+    if (status == AnggotaMonthStatus.nonTunaiPending) return;
 
     if (_controller.selectedMonths.contains(month)) {
       bool hasLaterSelected = _controller.selectedMonths.any((m) => m > month);
@@ -318,6 +319,10 @@ class _KartuIuranViewState extends State<KartuIuranView> {
                     bool isDisabled = false;
                     for (int i = 1; i < month; i++) {
                       final s = _controller.getMonthStatus(i);
+                      if (s == AnggotaMonthStatus.nonTunaiPending) {
+                        isDisabled = true;
+                        break;
+                      }
                       if (s != AnggotaMonthStatus.paid &&
                           !_controller.selectedMonths.contains(i)) {
                         isDisabled = true;
@@ -444,6 +449,7 @@ class _MonthCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLunas = status == AnggotaMonthStatus.paid;
     final isTunggakan = status == AnggotaMonthStatus.tunggakan;
+    final isNonTunaiPending = status == AnggotaMonthStatus.nonTunaiPending;
 
     final Decoration decoration;
     final Color textColor;
@@ -473,6 +479,18 @@ class _MonthCard extends StatelessWidget {
       );
       textColor = Colors.white;
       iconData = Icons.check_circle;
+    } else if (isNonTunaiPending) {
+      decoration = BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFB74D), Color(0xFFF57C00)],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFAFAFAF)),
+      );
+      textColor = Colors.white;
+      iconData = Icons.hourglass_empty;
     } else if (isDisabled) {
       decoration = BoxDecoration(
         color: const Color(0xFFEBEBEB),
@@ -503,11 +521,13 @@ class _MonthCard extends StatelessWidget {
       iconData = null;
     }
 
+    final bool notTappable = isLunas || isDisabled || isNonTunaiPending;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: (isLunas || isDisabled) ? null : onTap,
+        onTap: notTappable ? null : onTap,
         child: Ink(
           decoration: decoration,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -530,7 +550,9 @@ class _MonthCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Icon(
                   iconData,
-                  color: isDisabled ? const Color(0xFFA1A1A1) : Colors.white,
+                  color: (isDisabled && !isNonTunaiPending)
+                      ? const Color(0xFFA1A1A1)
+                      : Colors.white,
                   size: 22,
                 ),
               ],

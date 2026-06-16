@@ -4,6 +4,7 @@ class TransactionModel {
   final String? type;
   final String? creatorId;
   final String? paymentMethodId;
+  final String? paymentMethodName;
   final String? proofUrl;
   final String? bankName;
   final String? bankAccountName;
@@ -21,6 +22,7 @@ class TransactionModel {
   final String? npa;
   final List<TransactionItemModel>? items;
   final String? anggotaId;
+  final String? rejectionReason;
 
   TransactionModel({
     this.id,
@@ -28,6 +30,7 @@ class TransactionModel {
     this.type,
     this.creatorId,
     this.paymentMethodId,
+    this.paymentMethodName,
     this.proofUrl,
     this.bankName,
     this.bankAccountName,
@@ -45,82 +48,140 @@ class TransactionModel {
     this.npa,
     this.items,
     this.anggotaId,
+    this.rejectionReason,
   });
 
   factory TransactionModel.fromJson(Map<dynamic, dynamic> json) {
     final map = Map<String, dynamic>.from(json);
+
+    final id = map['_id'] ?? map['id'];
+    final code = map['code'];
+    final type = map['type'];
+    final creatorId = map['creator_id'] is Map
+        ? (map['creator_id']['_id'] ?? map['creator_id']['id'])?.toString()
+        : (map['creator_id'] ?? map['creatorId'])?.toString();
+    final paymentMethodId = map['payment_method_id'] is Map
+        ? (map['payment_method_id']['_id'] ?? map['payment_method_id']['id'])
+              ?.toString()
+        : (map['payment_method_id'] ?? map['paymentMethodId'])?.toString();
+    final paymentMethodName = map['payment_method_id'] is Map
+        ? (map['payment_method_id']['code'] ??
+                  map['payment_method_id']['name'] ??
+                  map['payment_method_id']['nama'])
+              ?.toString()
+              ?.trim()
+        : null;
+    final proofUrl = map['proof_url'] ?? map['proofUrl'];
+    final bankName = map['bank_name'] ?? map['bankName'];
+    final bankAccountName = map['bank_account_name'] ?? map['bankAccountName'];
+    final verifiedBy = map['verified_by'] is Map
+        ? (map['verified_by']['fullname'] ??
+                  map['verified_by']['name'] ??
+                  map['verified_by']['full_name'])
+              ?.toString()
+        : (map['verified_by'] ?? map['verifiedBy'])?.toString();
+    final totalAmount = map['total_amount'] ?? map['totalAmount'];
+    final status = map['status'];
+    final accStatus = (map['acc_status'] ?? map['accStatus'])?.toString();
+    final isSynced = map['is_synced'] ?? map['isSynced'];
+    final createdAt = map['created_at'] ?? map['createdAt'];
+    final updatedAt = map['updated_at'] ?? map['updatedAt'];
+    final accBy = map['acc_by'] is Map
+        ? (map['acc_by']['fullname'] ??
+                  map['acc_by']['name'] ??
+                  map['acc_by']['full_name'])
+              ?.toString()
+        : (map['acc_by'] ?? map['accBy'])?.toString();
+    final accAt = map['acc_at'] ?? map['accAt'];
+    final syncedAt = map['synced_at'] ?? map['syncedAt'];
+    final rejectionReason = map['rejection_reason']?.toString();
+
+    final rawItems = map['items'] ?? map['transaction_items'];
+    List<TransactionItemModel> parsedItems;
+    if (rawItems is List) {
+      parsedItems = rawItems
+          .map(
+            (x) => TransactionItemModel.fromJson(
+              Map<String, dynamic>.from(x as Map),
+            ),
+          )
+          .toList();
+    } else if (rawItems is Map) {
+      parsedItems = [
+        TransactionItemModel.fromJson(Map<String, dynamic>.from(rawItems)),
+      ];
+    } else {
+      parsedItems = <TransactionItemModel>[];
+    }
+
+    String? memberName =
+        map['member_name']?.toString() ?? map['memberName']?.toString();
+    String? npa = map['npa']?.toString();
+
+    final rawCreator = map['creator_id'];
+    if (memberName == null && rawCreator is Map) {
+      memberName =
+          (rawCreator['fullname'] ??
+                  rawCreator['name'] ??
+                  rawCreator['full_name'])
+              ?.toString();
+    }
+    if (npa == null && rawCreator is Map) {
+      npa = rawCreator['npa']?.toString();
+    }
+    final rawCreator2 = map['creator'];
+    if (memberName == null && rawCreator2 is Map) {
+      memberName =
+          (rawCreator2['fullname'] ??
+                  rawCreator2['name'] ??
+                  rawCreator2['full_name'])
+              ?.toString();
+    }
+    if (npa == null && rawCreator2 is Map) {
+      npa = rawCreator2['npa']?.toString();
+    }
+    if (memberName == null && parsedItems.isNotEmpty) {
+      memberName = parsedItems.first.memberName;
+    }
+    if (npa == null && parsedItems.isNotEmpty) {
+      npa = parsedItems.first.npa;
+    }
+
+    final rawAnggota = map['anggota_id'];
+    String? anggotaId;
+    if (rawAnggota is Map) {
+      anggotaId = (rawAnggota['_id'] ?? rawAnggota['id'])?.toString();
+    } else if (rawAnggota is String) {
+      anggotaId = rawAnggota;
+    } else {
+      anggotaId = (map['anggotaId'])?.toString();
+    }
+
     return TransactionModel(
-      id: map['_id'] ?? map['id'],
-      code: map['code'],
-      type: map['type'],
-      creatorId: map['creator_id'] is Map
-          ? (map['creator_id']['_id'] ?? map['creator_id']['id'])?.toString()
-          : (map['creator_id'] ?? map['creatorId'])?.toString(),
-      paymentMethodId: map['payment_method_id'] ?? map['paymentMethodId'],
-      proofUrl: map['proof_url'] ?? map['proofUrl'],
-      bankName: map['bank_name'] ?? map['bankName'],
-      bankAccountName: map['bank_account_name'] ?? map['bankAccountName'],
-      verifiedBy: map['verified_by'] is Map
-          ? (map['verified_by']['fullname'] ??
-                    map['verified_by']['name'] ??
-                    map['verified_by']['full_name'])
-                ?.toString()
-          : (map['verified_by'] ?? map['verifiedBy'])?.toString(),
-      totalAmount: map['total_amount'] ?? map['totalAmount'],
-      status: map['status'],
-      accStatus: map['acc_status']?.toString(),
-      isSynced: map['is_synced'] ?? map['isSynced'],
-      createdAt: map['created_at'] ?? map['createdAt'],
-      updatedAt: map['updated_at'] ?? map['updatedAt'],
-      accBy: map['acc_by'] is Map
-          ? (map['acc_by']['fullname'] ??
-                    map['acc_by']['name'] ??
-                    map['acc_by']['full_name'])
-                ?.toString()
-          : (map['acc_by'] ?? map['accBy'])?.toString(),
-      accAt: map['acc_at'] ?? map['accAt'],
-      syncedAt: map['synced_at'] ?? map['syncedAt'],
-      memberName:
-          map['member_name'] ??
-          map['memberName'] ??
-          (map['creator_id'] is Map
-              ? (map['creator_id']['fullname'] ??
-                        map['creator_id']['name'] ??
-                        map['creator_id']['full_name'])
-                    ?.toString()
-              : (map['creator'] is Map
-                    ? (map['creator']['fullname'] ??
-                              map['creator']['name'] ??
-                              map['creator']['full_name'])
-                          ?.toString()
-                    : null)),
-      npa:
-          map['npa'] ??
-          (map['creator_id'] is Map
-              ? map['creator_id']['npa']?.toString()
-              : (map['creator'] is Map
-                    ? map['creator']['npa']?.toString()
-                    : null)),
-      items: (() {
-        final rawItems = map['items'] ?? map['transaction_items'];
-        if (rawItems is List) {
-          return rawItems
-              .map(
-                (x) => TransactionItemModel.fromJson(
-                  Map<String, dynamic>.from(x as Map),
-                ),
-              )
-              .toList();
-        } else if (rawItems is Map) {
-          return [
-            TransactionItemModel.fromJson(Map<String, dynamic>.from(rawItems)),
-          ];
-        }
-        return <TransactionItemModel>[];
-      })(),
-      anggotaId: map['anggota_id'] is Map
-          ? (map['anggota_id']['_id'] ?? map['anggota_id']['id'])?.toString()
-          : (map['anggota_id'] ?? map['anggotaId'])?.toString(),
+      id: id,
+      code: code,
+      type: type,
+      creatorId: creatorId,
+      paymentMethodId: paymentMethodId,
+      paymentMethodName: paymentMethodName,
+      proofUrl: proofUrl,
+      bankName: bankName,
+      bankAccountName: bankAccountName,
+      verifiedBy: verifiedBy,
+      totalAmount: totalAmount,
+      status: status,
+      accStatus: accStatus,
+      isSynced: isSynced,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      accBy: accBy,
+      accAt: accAt,
+      syncedAt: syncedAt,
+      memberName: memberName,
+      npa: npa,
+      items: parsedItems,
+      anggotaId: anggotaId,
+      rejectionReason: rejectionReason,
     );
   }
 
@@ -130,6 +191,7 @@ class TransactionModel {
     "type": type,
     "creator_id": creatorId,
     "payment_method_id": paymentMethodId,
+    if (paymentMethodName != null) "payment_method_name": paymentMethodName,
     "proof_url": proofUrl,
     "bank_name": bankName,
     "bank_account_name": bankAccountName,
@@ -147,6 +209,7 @@ class TransactionModel {
     "npa": npa,
     "items": items?.map((x) => x.toJson()).toList(),
     "anggota_id": anggotaId,
+    if (rejectionReason != null) "rejection_reason": rejectionReason,
   };
 
   TransactionModel copyWith({
@@ -160,6 +223,7 @@ class TransactionModel {
     String? accStatus,
     String? verifiedBy,
     String? paymentMethodId,
+    String? paymentMethodName,
     String? creatorId,
     int? totalAmount,
     bool? isSynced,
@@ -182,6 +246,7 @@ class TransactionModel {
       accStatus: accStatus ?? this.accStatus,
       verifiedBy: verifiedBy ?? this.verifiedBy,
       paymentMethodId: paymentMethodId ?? this.paymentMethodId,
+      paymentMethodName: paymentMethodName ?? this.paymentMethodName,
       creatorId: creatorId ?? this.creatorId,
       totalAmount: totalAmount ?? this.totalAmount,
       isSynced: isSynced ?? this.isSynced,
@@ -206,6 +271,9 @@ class TransactionItemModel {
   final String? description;
   final String? memberName;
   final String? npa;
+  final String? buktiUrl;
+  final int? periodMonth;
+  final int? periodYear;
 
   TransactionItemModel({
     this.anggotaId,
@@ -217,6 +285,9 @@ class TransactionItemModel {
     this.description,
     this.memberName,
     this.npa,
+    this.buktiUrl,
+    this.periodMonth,
+    this.periodYear,
   });
 
   factory TransactionItemModel.fromJson(Map<String, dynamic> json) {
@@ -237,11 +308,30 @@ class TransactionItemModel {
 
     final rawPeriod = json['period_id'] ?? json['periodId'];
     String? resolvedPeriodId;
+    int? resolvedPeriodMonth;
+    int? resolvedPeriodYear;
     if (rawPeriod is String) {
       resolvedPeriodId = rawPeriod;
     } else if (rawPeriod is Map) {
       resolvedPeriodId =
           rawPeriod['_id']?.toString() ?? rawPeriod['id']?.toString();
+      resolvedPeriodMonth = rawPeriod['month'] is int
+          ? rawPeriod['month'] as int
+          : int.tryParse(rawPeriod['month']?.toString() ?? '');
+      resolvedPeriodYear = rawPeriod['year'] is int
+          ? rawPeriod['year'] as int
+          : int.tryParse(rawPeriod['year']?.toString() ?? '');
+    }
+
+    final rawDuesPeriod =
+        json['dues_period_id'] ?? json['duesPeriodId'] ?? json['dues_period'];
+    if (resolvedPeriodMonth == null && rawDuesPeriod is Map) {
+      resolvedPeriodMonth = rawDuesPeriod['month'] is int
+          ? rawDuesPeriod['month'] as int
+          : int.tryParse(rawDuesPeriod['month']?.toString() ?? '');
+      resolvedPeriodYear = rawDuesPeriod['year'] is int
+          ? rawDuesPeriod['year'] as int
+          : int.tryParse(rawDuesPeriod['year']?.toString() ?? '');
     }
 
     return TransactionItemModel(
@@ -254,6 +344,9 @@ class TransactionItemModel {
       description: json['description'],
       memberName: resolvedMemberName,
       npa: resolvedNpa,
+      buktiUrl: json['bukti_url']?.toString(),
+      periodMonth: resolvedPeriodMonth,
+      periodYear: resolvedPeriodYear,
     );
   }
 
@@ -267,6 +360,9 @@ class TransactionItemModel {
     String? description,
     String? memberName,
     String? npa,
+    String? buktiUrl,
+    int? periodMonth,
+    int? periodYear,
   }) {
     return TransactionItemModel(
       anggotaId: anggotaId ?? this.anggotaId,
@@ -278,6 +374,9 @@ class TransactionItemModel {
       description: description ?? this.description,
       memberName: memberName ?? this.memberName,
       npa: npa ?? this.npa,
+      buktiUrl: buktiUrl ?? this.buktiUrl,
+      periodMonth: periodMonth ?? this.periodMonth,
+      periodYear: periodYear ?? this.periodYear,
     );
   }
 
@@ -291,6 +390,9 @@ class TransactionItemModel {
     "description": description,
     "member_name": memberName,
     "npa": npa,
+    if (buktiUrl != null) "bukti_url": buktiUrl,
+    if (periodMonth != null) "period_month": periodMonth,
+    if (periodYear != null) "period_year": periodYear,
   };
 }
 

@@ -6,8 +6,9 @@ class BankAccountCard extends StatelessWidget {
   final String accountNumber;
   final String accountHolder;
   final String? qrisImageUrl;
+  final bool isActive;
   final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback onToggleActive;
 
   const BankAccountCard({
     super.key,
@@ -15,8 +16,9 @@ class BankAccountCard extends StatelessWidget {
     required this.accountNumber,
     required this.accountHolder,
     this.qrisImageUrl,
+    required this.isActive,
     required this.onEdit,
-    required this.onDelete,
+    required this.onToggleActive,
   });
 
   bool get _isQris => bankName.trim().toUpperCase() == 'QRIS';
@@ -143,18 +145,22 @@ class BankAccountCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
-                        onPressed: onDelete,
-                        icon: const Icon(Icons.delete, size: 16),
-                        label: const Text('Hapus'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isActive ? 'Aktif' : 'Nonaktif',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'Poppins',
+                          color: isActive
+                              ? const Color(0xFF10B367)
+                              : const Color(0xFF9E9E9E),
                         ),
+                      ),
+                      Switch(
+                        value: isActive,
+                        onChanged: (_) => onToggleActive(),
+                        activeColor: const Color(0xFF10B367),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ],
                   ),

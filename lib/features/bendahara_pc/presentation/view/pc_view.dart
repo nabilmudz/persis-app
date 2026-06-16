@@ -6,6 +6,7 @@ import '../controller/pc_controller.dart';
 import 'pc_laporan_view.dart';
 import 'pc_riwayat_pembayaran_view.dart';
 import 'pc_bank_account_view.dart';
+import 'pc_verifikasi_non_tunai_view.dart';
 
 class PcViewPage extends StatefulWidget {
   const PcViewPage({super.key});
@@ -84,69 +85,100 @@ class _PcViewPageState extends State<PcViewPage> {
             ),
             const SizedBox(height: 24),
 
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.25,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PcRiwayatPembayaranViewPage(
-                          controller: _controller,
-                        ),
+            ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                final pendingCount =
+                    _controller.pendingNonTunaiTransactions.length;
+                return GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 1.25,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                PcRiwayatPembayaranViewPage(
+                                  controller: _controller,
+                                ),
+                          ),
+                        );
+                      },
+                      child: _buildMenuCard(
+                        context,
+                        'Riwayat Pembayaran',
+                        Icons.history,
+                        const Color(0xFFFFFBEA),
+                        const Color(0xFFF57F17),
                       ),
-                    );
-                  },
-                  child: _buildMenuCard(
-                    context,
-                    'Riwayat Pembayaran',
-                    Icons.history,
-                    const Color(0xFFFFFBEA),
-                    const Color(0xFFF57F17),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PcBankAccountPage(),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PcBankAccountPage(),
+                          ),
+                        );
+                      },
+                      child: _buildMenuCard(
+                        context,
+                        'Kelola Rekening',
+                        Icons.account_balance,
+                        const Color(0xFFE8F5E9),
+                        const Color(0xFF0C844C),
                       ),
-                    );
-                  },
-                  child: _buildMenuCard(
-                    context,
-                    'Kelola Rekening',
-                    Icons.account_balance,
-                    const Color(0xFFE8F5E9),
-                    const Color(0xFF0C844C),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            PcLaporanViewPage(controller: _controller),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                PcLaporanViewPage(controller: _controller),
+                          ),
+                        );
+                      },
+                      child: _buildMenuCard(
+                        context,
+                        'Laporan Keuangan',
+                        Icons.bar_chart,
+                        const Color(0xFFE3F2FD),
+                        const Color(0xFF1565C0),
                       ),
-                    );
-                  },
-                  child: _buildMenuCard(
-                    context,
-                    'Laporan Keuangan',
-                    Icons.bar_chart,
-                    const Color(0xFFE3F2FD),
-                    const Color(0xFF1565C0),
-                  ),
-                ),
-              ],
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                PcVerifikasiNonTunaiView(
+                                  controller: _controller,
+                                ),
+                          ),
+                        );
+                      },
+                      child: _buildMenuCard(
+                        context,
+                        'Verifikasi Pembayaran',
+                        Icons.verified_user,
+                        const Color(0xFFFFF3E0),
+                        const Color(0xFFE65100),
+                        badge: pendingCount > 0
+                            ? '$pendingCount'
+                            : null,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -164,8 +196,9 @@ class _PcViewPageState extends State<PcViewPage> {
     String title,
     IconData icon,
     Color bgColor,
-    Color iconColor,
-  ) {
+    Color iconColor, {
+    String? badge,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -178,31 +211,62 @@ class _PcViewPageState extends State<PcViewPage> {
           ),
         ],
       ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: iconColor, size: 28),
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 28),
+                ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFF073D4D),
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                color: Color(0xFF073D4D),
-                fontFamily: 'Poppins',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+          ),
+          if (badge != null)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE65100),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  badge,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
               ),
-              textAlign: TextAlign.center,
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

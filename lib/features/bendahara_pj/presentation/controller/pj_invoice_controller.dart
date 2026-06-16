@@ -175,6 +175,22 @@ class PjInvoiceData {
       );
     }
 
+    final totalAmount = transaction.totalAmount ?? 0;
+    final hasAnyAmount = invoiceItems.any((it) => it.amount > 0);
+    if (!hasAnyAmount && invoiceItems.isNotEmpty && totalAmount > 0) {
+      final perItem = totalAmount ~/ invoiceItems.length;
+      final remainder = totalAmount % invoiceItems.length;
+      for (int i = 0; i < invoiceItems.length; i++) {
+        final amount = perItem + (i == 0 ? remainder : 0);
+        invoiceItems[i] = PjInvoiceLineItem(
+          month: invoiceItems[i].month,
+          year: invoiceItems[i].year,
+          label: invoiceItems[i].label,
+          amount: amount,
+        );
+      }
+    }
+
     final createdAt =
         DateTime.tryParse(transaction.createdAt ?? '') ?? DateTime(1900);
 
@@ -184,7 +200,7 @@ class PjInvoiceData {
       items: invoiceItems,
       months: months,
       year: year,
-      totalAmount: transaction.totalAmount ?? 0,
+      totalAmount: totalAmount,
       syncedToBackend: true,
       generatedAt: createdAt,
       accByName: accByName,
@@ -303,6 +319,13 @@ class PjInvoiceData {
     TransactionItemModel item,
     String? fallbackCreatedAt,
   ) {
+    if (item.periodMonth != null &&
+        item.periodMonth! >= 1 &&
+        item.periodMonth! <= 12 &&
+        item.periodYear != null) {
+      return (item.periodMonth!, item.periodYear!);
+    }
+
     final periodSources = <String?>[
       item.periodId,
       item.duesPeriodId,

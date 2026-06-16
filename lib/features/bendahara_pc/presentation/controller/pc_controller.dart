@@ -69,12 +69,6 @@ class PcController extends ChangeNotifier {
   }
 
   Future<String?> _resolveRegionId() async {
-    final stored = await SecureStorageService.read('region_id');
-    if (stored != null && stored.trim().isNotEmpty) {
-      debugPrint('[PcController] region_id from storage: $stored');
-      return stored.trim();
-    }
-
     final token = await SecureStorageService.read(
       SecureStorageService.accessTokenKey,
     );
@@ -88,21 +82,31 @@ class PcController extends ChangeNotifier {
       final decoded = utf8.decode(base64Url.decode(normalized));
       final payload = jsonDecode(decoded);
       if (payload is Map<String, dynamic>) {
-        final candidates = [
-          payload['region_id'],
-          payload['regionId'],
-          payload['region'],
-        ];
-        for (final c in candidates) {
-          if (c is String && c.trim().isNotEmpty) return c.trim();
-          if (c is Map) {
-            final id = c['_id'] ?? c['id'] ?? c['region_id'] ?? c['regionId'];
+        for (final key in ['region_id', 'regionId', 'region']) {
+          final val = payload[key];
+          if (val is String && val.trim().isNotEmpty) return val.trim();
+          if (val is Map) {
+            final id =
+                val['_id'] ?? val['id'] ?? val['region_id'] ?? val['regionId'];
             if (id is String && id.trim().isNotEmpty) return id.trim();
+          }
+        }
+        for (final value in payload.values) {
+          if (value is Map<String, dynamic>) {
+            for (final key in [
+              'region_id',
+              'regionId',
+              'region',
+              '_id',
+              'id',
+            ]) {
+              final v = value[key];
+              if (v is String && v.trim().isNotEmpty) return v.trim();
+            }
           }
         }
       }
     } catch (_) {}
-    debugPrint('[PcController] region_id not found in token');
     return null;
   }
 
@@ -112,6 +116,30 @@ class PcController extends ChangeNotifier {
         .toList();
     filtered.sort(_compareByCreatedAtDesc);
     return filtered.take(2).toList();
+  }
+
+  Future<void> fetchNonTunaiTransactions() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final regionId = await _resolveRegionId();
+      final items = await _dataSource.getTransactionsByRegion(regionId ?? '');
+      final nonTunai = items.where((tx) {
+        final type = _normalize(tx.type);
+        return type != 'tunai' && type != 'cash';
+      }).toList();
+      _allTransactions
+        ..clear()
+        ..addAll(nonTunai);
+    } catch (e) {
+      debugPrint('Error fetchNonTunaiTransactions: $e');
+      _errorMessage = 'Error: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   List<PcVerifikasiItem> filteredVerifikasiItems({
@@ -180,23 +208,119 @@ class PcController extends ChangeNotifier {
     final current = _allTransactions[index];
     if (isVerified(current)) return PcAccResult.alreadyVerified;
 
+    final now = DateTime.now().toIso8601String();
+    final userId = await _resolveUserId();
+    final success = await _dataSource.patchTransactionStatus(current.id ?? '', {
+      'acc_status': 'acc_pc',
+      'acc_by': userId,
+      'acc_at': now,
+    });
+
+    if (!success) return PcAccResult.notFound;
+
     _allTransactions[index] = TransactionModel(
+      id: current.id,
       creatorId: current.creatorId,
       paymentMethodId: current.paymentMethodId,
       totalAmount: current.totalAmount,
       status: current.status,
-      accStatus: 'acc_pj',
+      accStatus: 'acc_pc',
+      accBy: userId,
+      accAt: now,
       isSynced: current.isSynced,
       createdAt: current.createdAt,
       items: current.items,
+      proofUrl: current.proofUrl,
+      bankName: current.bankName,
+      type: current.type,
+      memberName: current.memberName,
+      npa: current.npa,
+      anggotaId: current.anggotaId,
     );
 
     notifyListeners();
     return PcAccResult.success;
   }
 
+  Future<bool> approveTransaction(String transactionId) async {
+    final userId = await _resolveUserId();
+    final now = DateTime.now().toIso8601String();
+    final success = await _dataSource.patchTransactionStatus(transactionId, {
+      'acc_status': 'acc_pc',
+      'acc_by': userId,
+      'acc_at': now,
+    });
+    if (success) {
+      await loadTransactions();
+    }
+    return success;
+  }
+
+  Future<bool> rejectTransaction(String transactionId, String reason) async {
+    final userId = await _resolveUserId();
+    final now = DateTime.now().toIso8601String();
+    final success = await _dataSource.patchTransactionStatus(transactionId, {
+      'acc_status': 'rejected',
+      'acc_by': userId,
+      'acc_at': now,
+      'rejection_reason': reason,
+    });
+    if (success) {
+      await loadTransactions();
+    }
+    return success;
+  }
+
+  List<TransactionModel> get pendingNonTunaiTransactions {
+    return _allTransactions.where((tx) {
+      final acc = _normalize(tx.accStatus);
+      final type = _normalize(tx.type);
+      return (acc == 'pending' || acc == 'acc_pj') &&
+          type != 'tunai' &&
+          type != 'cash';
+    }).toList()..sort((a, b) {
+      final da = a.createdAt ?? '';
+      final db = b.createdAt ?? '';
+      return db.compareTo(da);
+    });
+  }
+
+  List<TransactionModel> get allNonTunaiTransactions {
+    return _allTransactions.where((tx) {
+      final type = _normalize(tx.type);
+      return type != 'tunai' && type != 'cash';
+    }).toList()..sort((a, b) {
+      final da = a.createdAt ?? '';
+      final db = b.createdAt ?? '';
+      return db.compareTo(da);
+    });
+  }
+
   bool isVerified(TransactionModel item) {
-    return item.accStatus == 'acc_pj' || item.accStatus == 'approved';
+    final acc = _normalize(item.accStatus);
+    return acc == 'acc_pj' ||
+        acc == 'acc_pc' ||
+        acc == 'acc_pd' ||
+        acc == 'approved';
+  }
+
+  Future<String?> _resolveUserId() async {
+    try {
+      final token = await SecureStorageService.read(
+        SecureStorageService.accessTokenKey,
+      );
+      if (token == null) return null;
+      final parts = token.split('.');
+      if (parts.length < 2) return null;
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final payload = jsonDecode(decoded);
+      if (payload is Map<String, dynamic>) {
+        return (payload['user_id'] ?? payload['userId'] ?? payload['sub'])
+            ?.toString();
+      }
+    } catch (_) {}
+    return null;
   }
 
   String categoryFromTransaction(TransactionModel item) {

@@ -11,7 +11,7 @@ import 'package:persis_app/features/bendahara_pj/presentation/controller/pj_tran
 
 import '../../data/datasources/payment_remote_datasource.dart';
 
-enum AnggotaMonthStatus { paid, tunggakan, pending }
+enum AnggotaMonthStatus { paid, tunggakan, pending, nonTunaiPending }
 
 class PembayaranController extends ChangeNotifier {
   final PaymentRemoteDataSource remoteDataSource;
@@ -118,12 +118,17 @@ class PembayaranController extends ChangeNotifier {
     for (final item in items) {
       final month = item.periodMonth;
       if (month == null || month < 1 || month > 12) continue;
+      if (item.id == null) continue;
 
       final rawStatus = (item.status ?? '').trim().toLowerCase();
       final newStatus = switch (rawStatus) {
         'paid' || 'lunas' || 'completed' => AnggotaMonthStatus.paid,
-        'tunggakan' || 'overdue' => AnggotaMonthStatus.tunggakan,
-        _ => AnggotaMonthStatus.pending,
+        'tunggakan' ||
+        'overdue' ||
+        'rejected' ||
+        'ditolak' => AnggotaMonthStatus.tunggakan,
+        'pending' => AnggotaMonthStatus.nonTunaiPending,
+        _ => AnggotaMonthStatus.tunggakan,
       };
 
       final existing = _monthStatusMap[month];
@@ -187,6 +192,7 @@ class PembayaranController extends ChangeNotifier {
   void handleMonthTap(int month) {
     final status = getMonthStatus(month);
     if (status == AnggotaMonthStatus.paid) return;
+    if (status == AnggotaMonthStatus.nonTunaiPending) return;
 
     if (selectedMonths.contains(month)) {
       bool hasLaterSelected = selectedMonths.any((m) => m > month);
@@ -264,18 +270,20 @@ class PembayaranController extends ChangeNotifier {
       }
 
       if (selectedPaymentMethod == 'transfer') {
-        _transferAccounts = await bankDs.getAll(
+        final all = await bankDs.getAll(
           regionId: regionId,
           paymentMethodId: _paymentMethodTransferId,
         );
+        _transferAccounts = all.where((a) => a.isActive == true).toList();
         if (_transferAccounts.isNotEmpty && selectedBankId.isEmpty) {
           selectedBankId = _transferAccounts.first.id ?? '';
         }
       } else if (selectedPaymentMethod == 'qris') {
-        _qrisAccounts = await bankDs.getAll(
+        final all = await bankDs.getAll(
           regionId: regionId,
           paymentMethodId: _paymentMethodQrisId,
         );
+        _qrisAccounts = all.where((a) => a.isActive == true).toList();
         if (_qrisAccounts.isNotEmpty && selectedQrisId.isEmpty) {
           selectedQrisId = _qrisAccounts.first.id ?? '';
         }
@@ -480,6 +488,7 @@ class PembayaranController extends ChangeNotifier {
         return <String, dynamic>{
           'anggota_id': anggotaId,
           'period_id': getPeriodId(month) ?? '',
+          'status': 'pending',
           'bukti_url': buktiUrl,
         };
       }).toList();
@@ -488,6 +497,7 @@ class PembayaranController extends ChangeNotifier {
         'creator_id': anggotaId,
         'payment_method_id': selectedPaymentMethodId ?? '',
         'total_amount': totalTagihan,
+        'status': 'completed',
         'items': items,
       };
 

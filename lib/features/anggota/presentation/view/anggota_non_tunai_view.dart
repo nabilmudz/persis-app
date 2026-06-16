@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:persis_app/core/config/config.dart';
 import 'package:persis_app/features/anggota/presentation/controller/anggota_transaction_controller.dart';
+import 'package:persis_app/features/anggota/presentation/view/anggota_invoice_detail_view.dart';
+import 'package:persis_app/features/bendahara_pc/data/datasources/payment_method_remote_datasources.dart';
+import 'package:persis_app/features/bendahara_pc/data/models/payment_method_model.dart';
 import 'package:persis_app/features/bendahara_pj/data/models/transaction_model.dart';
 
 class AnggotaNonTunaiView extends StatefulWidget {
@@ -13,12 +17,37 @@ class AnggotaNonTunaiView extends StatefulWidget {
 class _AnggotaNonTunaiViewState extends State<AnggotaNonTunaiView> {
   late final AnggotaTransactionController _controller;
   int _selectedYear = DateTime.now().year;
+  final List<PaymentMethodModel> _paymentMethods = [];
 
   @override
   void initState() {
     super.initState();
     _controller = AnggotaTransactionController();
     _controller.fetchNonTunaiTransactions(year: _selectedYear);
+    _fetchPaymentMethods();
+  }
+
+  Future<void> _fetchPaymentMethods() async {
+    try {
+      final ds = PaymentMethodRemoteDataSource(AppConfig.baseUrl);
+      final methods = await ds.getAllPaymentMethods();
+      if (mounted)
+        setState(
+          () => _paymentMethods
+            ..clear()
+            ..addAll(methods),
+        );
+    } catch (_) {}
+  }
+
+  String _resolvePaymentMethod(String? id) {
+    if (id == null || id.isEmpty) return '-';
+    final match = _paymentMethods.where((pm) => pm.id == id);
+    if (match.isNotEmpty) {
+      final code = match.first.code?.trim();
+      if (code != null && code.isNotEmpty) return code;
+    }
+    return id;
   }
 
   @override
@@ -50,44 +79,123 @@ class _AnggotaNonTunaiViewState extends State<AnggotaNonTunaiView> {
     return '${dt.day} ${_monthNames[dt.month]} ${dt.year}';
   }
 
-  String _paymentMethodLabel(TransactionModel tx) {
-    final pm = (tx.paymentMethodId ?? '').toLowerCase().trim();
-    switch (pm) {
-      case 'transfer_bank':
-      case 'transfer bank':
-        return 'Transfer Bank';
-      case 'qris':
-        return 'QRIS';
-      default:
-        return pm.isNotEmpty ? pm : '-';
+  String _transactionTitle(TransactionModel tx) {
+    final items = tx.items;
+    if (items != null && items.isNotEmpty) {
+      final months = <int>[];
+      int? year;
+      for (final item in items) {
+        final resolved = _resolveMonthYear(item);
+        if (resolved.$1 > 0) {
+          months.add(resolved.$1);
+          year ??= resolved.$2;
+        }
+      }
+      if (months.isNotEmpty) {
+        months.sort();
+        year ??= DateTime.now().year;
+        final monthLabel = months.map((m) => _monthNames[m]).join(', ');
+        return 'Iuran $monthLabel $year';
+      }
     }
+    final dt = DateTime.tryParse(tx.createdAt ?? '');
+    if (dt != null) {
+      return 'Iuran ${_monthNames[dt.month]} ${dt.year}';
+    }
+    return 'Iuran';
   }
 
-  String _statusLabel(String? status) {
-    final s = (status ?? '').toLowerCase().trim();
+  (int, int?) _resolveMonthYear(dynamic item) {
+    if (item == null) return (0, null);
+    final pm = item.periodMonth;
+    final py = item.periodYear;
+    if (pm is int && pm >= 1 && pm <= 12 && py is int) {
+      return (pm, py);
+    }
+
+    final desc = (item.description ?? '').toString().trim();
+    if (desc.isNotEmpty) {
+      for (int i = 1; i < _monthNames.length; i++) {
+        if (desc.toLowerCase().contains(_monthNames[i].toLowerCase())) {
+          final yearMatch = RegExp(r'(19|20)\d{2}').firstMatch(desc);
+          return (
+            i,
+            yearMatch != null ? int.tryParse(yearMatch.group(0)!) : null,
+          );
+        }
+      }
+    }
+
+    final periodId = (item.periodId ?? item.duesPeriodId ?? '')
+        .toString()
+        .trim();
+    if (periodId.isNotEmpty) {
+      final match = RegExp(r'(\d{4})[-_/](\d{1,2})').firstMatch(periodId);
+      if (match != null) {
+        final y = int.tryParse(match.group(1)!);
+        final m = int.tryParse(match.group(2)!);
+        if (y != null && m != null && m >= 1 && m <= 12) return (m, y);
+      }
+    }
+
+    return (0, null);
+  }
+
+  String _paymentMethodLabel(TransactionModel tx) {
+    return _resolvePaymentMethod(tx.paymentMethodId);
+  }
+
+  String _accStatusLabel(String? accStatus, {String? rejectionReason}) {
+    final s = (accStatus ?? '').toLowerCase().trim();
     switch (s) {
-      case 'completed':
-        return 'Selesai';
-      case 'draft':
-        return 'Draft';
-      case 'cancelled':
-        return 'Dibatalkan';
+      case 'acc_pc':
+        return 'Disetujui PC';
+      case 'acc_pd':
+        return 'Disetujui PD';
+      case 'approved':
+        return 'Disetujui';
+      case 'rejected':
+        final reason = rejectionReason ?? '';
+        return reason.isNotEmpty ? 'Ditolak — $reason' : 'Ditolak';
+      case 'pending':
+      case 'acc_pj':
+        return 'Menunggu ACC';
       default:
         return s.isNotEmpty ? s : '-';
     }
   }
 
-  Color _statusColor(String? status) {
-    final s = (status ?? '').toLowerCase().trim();
+  Color _accStatusColor(String? accStatus) {
+    final s = (accStatus ?? '').toLowerCase().trim();
     switch (s) {
-      case 'completed':
+      case 'acc_pc':
+      case 'acc_pd':
+      case 'approved':
         return const Color(0xFF10B367);
-      case 'draft':
-        return const Color(0xFFF57F17);
-      case 'cancelled':
+      case 'rejected':
         return const Color(0xFFE53935);
+      case 'pending':
+      case 'acc_pj':
+        return const Color(0xFFF57F17);
       default:
         return const Color(0xFF6A6A6A);
+    }
+  }
+
+  IconData _accStatusIcon(String? accStatus) {
+    final s = (accStatus ?? '').toLowerCase().trim();
+    switch (s) {
+      case 'acc_pc':
+      case 'acc_pd':
+      case 'approved':
+        return Icons.check_circle;
+      case 'rejected':
+        return Icons.cancel;
+      case 'pending':
+      case 'acc_pj':
+        return Icons.hourglass_empty;
+      default:
+        return Icons.help_outline;
     }
   }
 
@@ -199,10 +307,12 @@ class _AnggotaNonTunaiViewState extends State<AnggotaNonTunaiView> {
                           itemCount: transactions.length,
                           itemBuilder: (context, index) => _TransactionCard(
                             tx: transactions[index],
+                            txTitle: _transactionTitle(transactions[index]),
                             formatDate: _formatDate,
                             paymentMethodLabel: _paymentMethodLabel,
-                            statusLabel: _statusLabel,
-                            statusColor: _statusColor,
+                            accStatusLabel: _accStatusLabel,
+                            accStatusColor: _accStatusColor,
+                            accStatusIcon: _accStatusIcon,
                           ),
                         ),
                 ),
@@ -217,17 +327,21 @@ class _AnggotaNonTunaiViewState extends State<AnggotaNonTunaiView> {
 
 class _TransactionCard extends StatelessWidget {
   final TransactionModel tx;
+  final String txTitle;
   final String Function(String?) formatDate;
   final String Function(TransactionModel) paymentMethodLabel;
-  final String Function(String?) statusLabel;
-  final Color Function(String?) statusColor;
+  final String Function(String?, {String? rejectionReason}) accStatusLabel;
+  final Color Function(String?) accStatusColor;
+  final IconData Function(String?) accStatusIcon;
 
   const _TransactionCard({
     required this.tx,
+    required this.txTitle,
     required this.formatDate,
     required this.paymentMethodLabel,
-    required this.statusLabel,
-    required this.statusColor,
+    required this.accStatusLabel,
+    required this.accStatusColor,
+    required this.accStatusIcon,
   });
 
   @override
@@ -237,6 +351,9 @@ class _TransactionCard extends StatelessWidget {
       symbol: 'Rp ',
       decimalDigits: 0,
     ).format(tx.totalAmount ?? 0);
+    final statusColor = accStatusColor(tx.accStatus);
+    final pay = paymentMethodLabel(tx);
+    final subtitle = '${formatDate(tx.createdAt)}';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -252,27 +369,59 @@ class _TransactionCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE9EFFF),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.account_balance_wallet,
-              color: Color(0xFF2116A3),
-              size: 22,
-            ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(15),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AnggotaInvoiceDetailView(transaction: tx),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                accStatusIcon(tx.accStatus),
+                color: statusColor,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    txTitle,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Color(0xFF363636),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      color: Color(0xFF6A6A6A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  paymentMethodLabel(tx),
+                  formatted,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontWeight: FontWeight.w700,
@@ -281,52 +430,34 @@ class _TransactionCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  formatDate(tx.createdAt),
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Color(0xFF6A6A6A),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    accStatusLabel(
+                      tx.accStatus,
+                      rejectionReason: tx.rejectionReason,
+                    ),
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      color: statusColor,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatted,
-                style: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: Color(0xFF363636),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor(tx.status).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  statusLabel(tx.status),
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                    color: statusColor(tx.status),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

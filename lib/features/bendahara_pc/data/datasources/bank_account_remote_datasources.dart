@@ -194,14 +194,15 @@ class BankAccountRemoteDataSource {
     }
   }
 
-  Future<void> delete(String id) async {
+  Future<void> toggleActive(String id, bool isActive) async {
     final headers = await _authHeaders();
-    final response = await http.delete(
+    final response = await http.patch(
       Uri.parse('$baseUrl/bank-account/$id'),
       headers: headers,
+      body: jsonEncode({'is_active': isActive}),
     );
     if (response.statusCode != 200) {
-      throw Exception('Gagal menghapus rekening bank');
+      throw Exception('Gagal ${isActive ? 'mengaktifkan' : 'menonaktifkan'} rekening bank');
     }
   }
 }

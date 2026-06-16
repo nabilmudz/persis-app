@@ -183,13 +183,13 @@ class PcBankAccountController extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteBankAccount(String id) async {
+  Future<bool> toggleBankAccountActive(String id, bool isActive) async {
     try {
-      await _dataSource.delete(id);
+      await _dataSource.toggleActive(id, isActive);
       await loadBankAccounts();
       return true;
     } catch (e) {
-      _errorMessage = 'Error deleting bank account: $e';
+      _errorMessage = 'Error toggling bank account: $e';
       notifyListeners();
       return false;
     }

@@ -123,35 +123,10 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
     );
   }
 
-  Future<void> _handleDelete(BankAccountModel account) async {
-    final label = account.bankName ?? 'rekening ini';
-    final shouldDelete = await SweetAlertDialog.showConfirmation(
-      context: context,
-      title: 'Konfirmasi Hapus',
-      message: 'Yakin ingin menghapus $label?',
-      confirmText: 'Ya, Hapus',
-      cancelText: 'Batal',
-    );
-
-    if (!shouldDelete || !mounted || account.id == null) return;
-
-    final result = await _controller.deleteBankAccount(account.id!);
-
-    if (!mounted) return;
-
-    if (result) {
-      await SweetAlertDialog.showSuccess(
-        context: context,
-        title: 'Berhasil',
-        message: 'Rekening berhasil dihapus.',
-      );
-    } else {
-      await SweetAlertDialog.showSuccess(
-        context: context,
-        title: 'Gagal',
-        message: _controller.errorMessage ?? 'Gagal menghapus rekening.',
-      );
-    }
+  Future<void> _handleToggleActive(BankAccountModel account) async {
+    if (account.id == null) return;
+    final newActive = !(account.isActive == true);
+    await _controller.toggleBankAccountActive(account.id!, newActive);
   }
 
   @override
@@ -301,8 +276,9 @@ class _PcBankAccountPageState extends State<PcBankAccountPage> {
                             accountNumber: account.accountNumber ?? '',
                             accountHolder: account.bankName ?? '-',
                             qrisImageUrl: account.qrisImageUrl,
+                            isActive: account.isActive == true,
                             onEdit: () => _handleEdit(account),
-                            onDelete: () => _handleDelete(account),
+                            onToggleActive: () => _handleToggleActive(account),
                           ),
                         );
                       }),

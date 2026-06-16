@@ -33,7 +33,7 @@ class TransactionItemModel {
         ? Map<String, dynamic>.from(json['duesPeriod'] as Map)
         : null;
 
-    final source = <String, dynamic>{...itemJson, ...json};
+    final source = <String, dynamic>{...json, ...itemJson};
 
     return TransactionItemModel(
       id: _readString(source['_id'] ?? source['id']),
